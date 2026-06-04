@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Keychain Designer — YoursGifts</title>
+    <meta name="description" content="Design your personalized 3D printed keychain with custom name, colors, and fonts. Small Gifts, Big Meanings — by YoursGifts.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin-panel.css">
+</head>
+<body>
+
+    <!-- Background Orbs -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <!-- Header -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="logo-wrap">
+                <img src="LOGO WITH SLOGAN.png" alt="YoursGifts Logo" class="logo-img">
+            </div>
+            <nav class="header-nav">
+                <span class="nav-badge">🎨 3D Print Designer</span>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <div class="hero-badge">✨ Personalized Keychains</div>
+            <h1 class="hero-title">Design Your <span class="gradient-text">Keychain</span></h1>
+            <p class="hero-sub">Pick a name, choose colors & fonts — we'll 3D print it just for you.</p>
+        </div>
+    </section>
+
+    <!-- Main Designer -->
+    <main class="designer-wrap">
+        <div class="designer-layout">
+
+            <!-- LEFT: Controls Panel -->
+            <aside class="controls-panel glass-card">
+                <div class="panel-section">
+                    <div class="section-label"><span class="label-icon">🎁</span> Product Type</div>
+                    <div class="product-type-toggle" id="productTypeToggle" role="tablist">
+                        <button class="ptype-opt active" data-val="keychain" role="tab" aria-selected="true">🔑 Keychain</button>
+                        <button class="ptype-opt" data-val="nameplate" role="tab" aria-selected="false">🪧 Nameplate</button>
+                        <button class="ptype-opt" data-val="wordart" role="tab" aria-selected="false">✨ Word Art</button>
+                        <button class="ptype-opt" data-val="loveseries" role="tab" aria-selected="false">❤ LOVE Series</button>
+                        <button class="ptype-opt" data-val="tilekey" role="tab" aria-selected="false">🎴 Letter Tiles</button>
+                    </div>
+                    <div class="wordart-hint" id="wordartHint" style="display:none;">
+                        💡 Tip: ALL CAPS on the bottom line stands more stably on a desk.
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <label class="section-label" for="nameInput" style="margin-bottom: 0;">
+                            <span class="label-icon">✏️</span> Your Name / Text
+                        </label>
+                        <button id="langToggleBtn" class="lang-toggle" title="Toggle English / Tamil">EN</button>
+                    </div>
+                    <div class="input-wrap">
+                        <textarea id="nameInput" class="name-input" placeholder="e.g. Priya, SAKTHI…  (Enter for 2nd line)" maxlength="31" rows="2" autocomplete="off"></textarea>
+                        <span class="char-count"><span id="charCount">0</span>/15</span>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div class="section-label" style="margin-bottom: 0;"><span class="label-icon">🎨</span> Colors</div>
+                        <button id="layerToggle" class="layer-toggle" title="Toggle 2-Layer / 3-Layer print">
+                            <span class="layer-opt" data-val="2L">2L</span>
+                            <span class="layer-opt active" data-val="3L">3L</span>
+                        </button>
+                    </div>
+                    <div class="color-grid">
+                        <div class="color-control" id="baseColorRow">
+                            <span class="color-label">Base</span>
+                            <div class="swatch-row" id="baseSwatches"></div>
+                        </div>
+                        <div class="color-control">
+                            <span class="color-label" id="fontColorLabel">Text</span>
+                            <div class="swatch-row" id="fontSwatches"></div>
+                        </div>
+                        <div class="color-control" id="line2ColorRow" style="display:none;">
+                            <span class="color-label">Line 2</span>
+                            <div class="swatch-row" id="line2Swatches"></div>
+                        </div>
+                        <div class="color-control" id="outlineColorRow">
+                            <span class="color-label">Outline</span>
+                            <div class="swatch-row" id="outlineSwatches"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="section-label"><span class="label-icon">📐</span> Size</div>
+                    <div class="size-selector" id="sizeSelector">
+                        <button class="size-btn active" data-size="small" data-price="149">Small<span>≤6 chars</span></button>
+                        <button class="size-btn" data-size="medium" data-price="189">Medium<span>7-9 chars</span></button>
+                        <button class="size-btn" data-size="large" data-price="210">Large<span>10 chars</span></button>
+                        <button class="size-btn" data-size="xl" data-price="300">XL<span>11+ chars</span></button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="section-label"><span class="label-icon">🔢</span> Quantity</div>
+                    <div class="quantity-wrap">
+                        <button class="qty-btn" id="qtyMinus">−</button>
+                        <span class="qty-display" id="qtyDisplay">1</span>
+                        <button class="qty-btn" id="qtyPlus">+</button>
+                    </div>
+                </div>
+
+                <!-- Price & CTA -->
+                <div class="price-cta-block">
+                    <div class="price-area">
+                        <span class="price-label">Total</span>
+                        <div class="price-amount" id="priceDisplay">₹149</div>
+                    </div>
+                    <button class="whatsapp-btn" id="whatsappBtn">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                        </svg>
+                        Order on WhatsApp
+                    </button>
+                    <button class="cart-btn" id="addToCartBtn">
+                        🛒 Add to Cart
+                    </button>
+                </div>
+            </aside>
+
+            <!-- RIGHT: Preview Panel -->
+            <div class="preview-panel">
+
+                <!-- ========== 3D VIEWER ========== -->
+                <div class="viewer-3d-section glass-card" id="viewer3dSection" style="display:none;">
+                    <div class="viewer-header">
+                        <h2 class="viewer-title">🔮 3D Preview</h2>
+                        <div class="viewer-actions-top">
+                            <button class="viewer-icon-btn" id="autoRotateToggle" title="Toggle auto-rotate">
+                                <span id="rotateIcon">🔄</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Canvas container -->
+                    <div class="viewer-canvas-wrap" id="viewer3dCanvas">
+                        <!-- Three.js canvas injected here -->
+
+                        <!-- Loading overlay (inside canvas wrap for positioning) -->
+                        <div class="viewer-loading" id="viewerLoading">
+                            <div class="loader-spinner"></div>
+                            <span>Loading 3D model…</span>
+                        </div>
+                    </div>
+
+                    <!-- Download buttons -->
+                    <div class="viewer-downloads" style="flex-wrap: wrap;">
+                        <button class="dl-btn dl-png" id="downloadPNG">
+                            📷 Download PNG 4K
+                        </button>
+                        <button class="dl-btn dl-svg" id="downloadSVG">
+                            📐 Download SVG
+                        </button>
+                        <button class="dl-btn" id="downloadSTL" style="display:none; background: var(--purple-brand); color: white;">
+                            🖨️ Download STL (Admin)
+                        </button>
+                    </div>
+            
+                    <script>
+                        // Show admin tools if ?admin=true is in the URL
+                        if (window.location.search.includes('admin=true')) {
+                            document.getElementById('downloadSTL').style.display = '';
+                        }
+                    </script>
+                    <div class="hint-text">Drag to rotate · Scroll to zoom</div>
+                </div>
+
+                <!-- Font Grid -->
+                <div class="preview-header">
+                    <h2 class="preview-title">Choose a Font Style</h2>
+                    <p class="preview-sub" id="previewSub">Click a card to select it</p>
+                </div>
+
+                <!-- Word-art only: top/bottom slot tabs -->
+                <div class="wordart-slot-tabs" id="wordartSlotTabs" style="display:none;">
+                    <button class="slot-tab active" data-slot="top" aria-selected="true">
+                        <span class="slot-letter">🅐</span>
+                        <span class="slot-label">Top line</span>
+                        <span class="slot-fontname" id="slotTopName">—</span>
+                    </button>
+                    <button class="slot-tab" data-slot="bottom" aria-selected="false">
+                        <span class="slot-letter">🅑</span>
+                        <span class="slot-label">Bottom line</span>
+                        <span class="slot-fontname" id="slotBottomName">—</span>
+                    </button>
+                </div>
+
+                <div class="font-grid" id="fontGrid">
+                    <!-- Font preview cards generated by JS -->
+                </div>
+
+                <!-- Selected summary -->
+                <div class="selection-summary" id="selectionSummary">
+                    <span class="summary-icon">👆</span>
+                    <span id="summaryText">Tap a style above to choose your font</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <footer class="site-footer">
+        <p>© 2025 <strong>YoursGifts</strong> — Small Gifts, Big Meanings 🎁</p>
+    </footer>
+
+    <!-- ===== ADMIN PANEL (hidden by default, shown with ?admin=true) ===== -->
+    <a href="admin.html" class="admin-toggle-btn" id="adminToggleBtn" style="display:none;" title="Open STL Console">⚙️</a>
+    <aside class="admin-panel" id="adminPanel">
+        <div class="admin-header">
+            <h3>🖨️ STL Controls</h3>
+            <button class="admin-close-btn" id="adminCloseBtn">✕</button>
+        </div>
+        <div class="admin-body">
+
+            <!-- Live Dimensions -->
+            <div class="admin-section expanded">
+                <div class="admin-section-title" data-section="dims">📏 Live Dimensions</div>
+                <div class="admin-section-content" id="adminDims">
+                    <div class="admin-dimension-readout" id="adminDimReadout">
+                        <div class="dim-row">
+                            <span class="dim-label">Width</span>
+                            <span class="dim-value" id="dimWidth">—</span>
+                            <span class="dim-unit">mm</span>
+                        </div>
+                        <div class="dim-row">
+                            <span class="dim-label">Height</span>
+                            <span class="dim-value" id="dimHeight">—</span>
+                            <span class="dim-unit">mm</span>
+                        </div>
+                        <div class="dim-row">
+                            <span class="dim-label">Depth</span>
+                            <span class="dim-value" id="dimDepth">—</span>
+                            <span class="dim-unit">mm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Scale -->
+            <div class="admin-section expanded">
+                <div class="admin-section-title" data-section="scale">🔍 Overall Scale</div>
+                <div class="admin-section-content" id="adminScale">
+                    <div class="admin-slider-row">
+                        <label>Scale</label>
+                        <input type="range" id="adminScaleFactor" min="0.5" max="3.0" step="0.1" value="1.0">
+                        <span class="admin-slider-val" id="adminScaleVal">1.0×</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Base Layer -->
+            <div class="admin-section">
+                <div class="admin-section-title" data-section="base">🟧 Base Layer</div>
+                <div class="admin-section-content" id="adminBase">
+                    <div class="admin-slider-row">
+                        <label>Depth</label>
+                        <input type="range" id="adminBaseDepth" min="1" max="10" step="0.5" value="4">
+                        <span class="admin-slider-val" id="adminBaseDepthVal">4.0</span>
+                    </div>
+                    <div class="admin-slider-row">
+                        <label>Bevel Thickness</label>
+                        <input type="range" id="adminBaseBevelThk" min="0" max="4" step="0.25" value="2">
+                        <span class="admin-slider-val" id="adminBaseBevelThkVal">2.0</span>
+                    </div>
+                    <div class="admin-slider-row">
+                        <label>Bevel Size</label>
+                        <input type="range" id="adminBaseBevelSize" min="0" max="8" step="0.5" value="4.5">
+                        <span class="admin-slider-val" id="adminBaseBevelSizeVal">4.5</span>
+                    </div>
+                    <div class="admin-slider-row">
+                        <label>Smoothness</label>
+                        <input type="range" id="adminBaseBevelSeg" min="1" max="12" step="1" value="8">
+                        <span class="admin-slider-val" id="adminBaseBevelSegVal">8</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Outline Layer -->
+            <div class="admin-section" id="adminOutlineSection">
+                <div class="admin-section-title" data-section="outline">🔲 Outline Layer</div>
+                <div class="admin-section-content" id="adminOutline">
+                    <div class="admin-slider-row">
+                        <label>Depth</label>
+                        <input type="range" id="adminOutlineDepth" min="0.5" max="5" step="0.25" value="1.5">
+                        <span class="admin-slider-val" id="adminOutlineDepthVal">1.5</span>
+                    </div>
+                    <div class="admin-slider-row">
+                        <label>Bevel Thickness</label>
+                        <input type="range" id="adminOutlineBevelThk" min="0" max="2" step="0.1" value="0.5">
+                        <span class="admin-slider-val" id="adminOutlineBevelThkVal">0.5</span>
+                    </div>
+                    <div class="admin-slider-row">
+                        <label>Bevel Size</label>
+                        <input type="range" id="adminOutlineBevelSize" min="0" max="4" step="0.25" value="1.5">
+                        <span class="admin-slider-val" id="adminOutlineBevelSizeVal">1.5</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Font/Text Layer -->
+            <div class="admin-section">
+                <div class="admin-section-title" data-section="font">✏️ Text Layer</div>
+                <div class="admin-section-content" id="adminFont">
+                    <div class="admin-slider-row">
+                        <label>Depth</label>
+                        <input type="range" id="adminFontDepth" min="0.5" max="5" step="0.25" value="1.5">
+                        <span class="admin-slider-val" id="adminFontDepthVal">1.5</span>
+                    </div>
+                    <div class="admin-slider-row">
+                        <label>Bevel Thickness</label>
+                        <input type="range" id="adminFontBevelThk" min="0" max="2" step="0.1" value="0.5">
+                        <span class="admin-slider-val" id="adminFontBevelThkVal">0.5</span>
+                    </div>
+                    <div class="admin-slider-row">
+                        <label>Bevel Size</label>
+                        <input type="range" id="adminFontBevelSize" min="0" max="2" step="0.1" value="0">
+                        <span class="admin-slider-val" id="adminFontBevelSizeVal">0.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ring Attachment -->
+            <div class="admin-section">
+                <div class="admin-section-title" data-section="ring">⭕ Ring Attachment</div>
+                <div class="admin-section-content" id="adminRing">
+                    <div class="admin-slider-row">
+                        <label>Outer Radius</label>
+                        <input type="range" id="adminRingOuter" min="4" max="16" step="0.5" value="8">
+                        <span class="admin-slider-val" id="adminRingOuterVal">8.0</span>
+                    </div>
+                    <div class="admin-slider-row">
+                        <label>Inner Radius</label>
+                        <input type="range" id="adminRingInner" min="1.5" max="8" step="0.5" value="3.5">
+                        <span class="admin-slider-val" id="adminRingInnerVal">3.5</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Presets -->
+            <div class="admin-section expanded">
+                <div class="admin-section-title" data-section="presets">⚡ Quick Presets</div>
+                <div class="admin-section-content" id="adminPresets">
+                    <div class="admin-preset-row">
+                        <button class="admin-preset-btn" data-preset="thin">Thin (5mm)</button>
+                        <button class="admin-preset-btn active" data-preset="standard">Standard (8mm)</button>
+                        <button class="admin-preset-btn" data-preset="thick">Thick (12mm)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-divider"></div>
+
+            <!-- Export -->
+            <div class="admin-export-section">
+                <div class="admin-slider-row">
+                    <label>Filename</label>
+                    <input type="text" id="adminFilename" class="admin-filename-input" value="keychain_3d_print" placeholder="filename">
+                    <span class="admin-slider-val">.stl</span>
+                </div>
+                <button class="admin-export-btn" id="adminExportSTL">🖨️ Export STL</button>
+                <button class="admin-reset-btn" id="adminResetBtn">↻ Reset to Defaults</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ===== Scripts ===== -->
+
+    <!-- opentype.js for TTF font parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+
+    <!-- Main UI script (non-module) -->
+    <script src="script.js"></script>
+
+    <!-- Three.js import map + 3D viewer (ES module) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import { KeychainViewer } from './viewer3d.js';
+
+        var viewer      = null;
+        var viewerReady = false;
+
+        var viewerSection = document.getElementById('viewer3dSection');
+        var canvasWrap    = document.getElementById('viewer3dCanvas');
+        var loadingEl     = document.getElementById('viewerLoading');
+        var autoRotBtn    = document.getElementById('autoRotateToggle');
+        var rotateIcon    = document.getElementById('rotateIcon');
+        var dlPNGBtn      = document.getElementById('downloadPNG');
+        var dlSVGBtn      = document.getElementById('downloadSVG');
+        var dlSTLBtn      = document.getElementById('downloadSTL');
+
+        // Show loading overlay
+        function showLoading()  { loadingEl.style.display = 'flex'; }
+        function hideLoading()  { loadingEl.style.display = 'none'; }
+
+        if (dlSTLBtn) {
+            dlSTLBtn.addEventListener('click', function() {
+                if (viewer) viewer.exportSTL();
+            });
+        }
+
+        // Listen for font-selected event from script.js
+        window.addEventListener('font-selected', async function (e) {
+            var detail = e.detail;
+            if (!detail || !detail.fontFile || !detail.text) return;
+
+            // Show viewer section
+            viewerSection.style.display = '';
+
+            // Initialize viewer once
+            if (!viewer) {
+                viewer = new KeychainViewer(canvasWrap);
+                viewerReady = true;
+            }
+
+            showLoading();
+            try {
+                await viewer.update(
+                    detail.text,
+                    detail.fontFile,
+                    detail.colors,
+                    detail.layers,
+                    null,
+                    detail.productType,
+                    detail.wordartFonts
+                );
+            } catch (err) {
+                console.error('3D viewer error:', err);
+            }
+            hideLoading();
+
+            // Scroll viewer into view
+            viewerSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        // Listen for design-updated event (name/color change while font is selected)
+        window.addEventListener('design-updated', async function (e) {
+            if (!viewer || !viewerReady) return;
+            var detail = e.detail;
+            if (!detail || !detail.fontFile || !detail.text) return;
+
+            showLoading();
+            try {
+                await viewer.update(
+                    detail.text,
+                    detail.fontFile,
+                    detail.colors,
+                    detail.layers,
+                    null,
+                    detail.productType,
+                    detail.wordartFonts
+                );
+            } catch (err) {
+                console.error('3D viewer update error:', err);
+            }
+            hideLoading();
+        });
+
+        // Auto-rotate toggle
+        autoRotBtn.addEventListener('click', function () {
+            if (!viewer) return;
+            var on = viewer.toggleAutoRotate();
+            rotateIcon.textContent = on ? '🔄' : '⏸️';
+            autoRotBtn.title = on ? 'Pause auto-rotate' : 'Resume auto-rotate';
+        });
+
+        // Download PNG
+        dlPNGBtn.addEventListener('click', function () {
+            if (!viewer) return;
+            viewer.downloadPNG(4);
+        });
+
+        // Download SVG — find the selected font card's SVG
+        dlSVGBtn.addEventListener('click', function () {
+            var selected = document.querySelector('.font-card.selected svg');
+            if (selected) {
+                KeychainViewer.downloadSVG(selected);
+            }
+        });
+
+        // ===== ADMIN PANEL BRIDGE =====
+        // Listen for admin rebuild requests
+        window.addEventListener('admin-rebuild', function(e) {
+            if (!viewer || !viewerReady) return;
+            viewer.rebuildWithParams(e.detail);
+        });
+
+        // Listen for admin dimension requests
+        window.addEventListener('admin-request-dimensions', function() {
+            if (!viewer) return;
+            var dims = viewer.getDimensions();
+            window.dispatchEvent(new CustomEvent('admin-dimensions-response', { detail: dims }));
+        });
+
+        // Listen for admin STL export with custom filename
+        window.addEventListener('admin-export-stl', function(e) {
+            if (!viewer) return;
+            viewer.exportSTL(e.detail.filename);
+        });
+    </script>
+
+    <!-- Admin Panel Logic (non-module, loaded after DOM) -->
+    <script src="admin-panel.js"></script>
+
+</body>
+</html>
