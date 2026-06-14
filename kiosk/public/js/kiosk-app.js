@@ -318,7 +318,7 @@ function calculatePricing() {
     const laborCost = (SETUP_PER_BATCH / batchSize) + POST_PROCESS;
     
     const productionCost = materialCost + machineCost + laborCost;
-    const finalAmount = 1; // Fixed to 1 rupee for testing payment and admin panel
+    const finalAmount = 10; // Fixed to 10 rupees for testing payment (to bypass bank-level ₹1 deep link limits)
     
     // Save to state
     state.costs = {
