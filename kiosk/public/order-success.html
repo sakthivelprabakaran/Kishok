@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmed — YoursGifts Kiosk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css">
+    <style>
+        .success-container {
+            text-align: center;
+            padding: 2.5rem 1.25rem;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            box-shadow: var(--card-shadow);
+            margin: 2rem 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .check-icon-wrap {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.15);
+            border: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+            animation: bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .success-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            line-height: 1.4;
+        }
+
+        .order-badge-card {
+            background: rgba(123, 47, 255, 0.1);
+            border: 1px solid rgba(123, 47, 255, 0.3);
+            border-radius: 16px;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .badge-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #a855f7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+
+        .order-number {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+
+        .pickup-box {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 16px;
+            width: 100%;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .pickup-icon {
+            font-size: 2rem;
+        }
+
+        .pickup-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .pickup-title {
+            font-size: 0.85rem;
+            font-weight: 750;
+            color: #ffffff;
+        }
+
+        .pickup-desc {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+
+        .kiosk-btn {
+            display: block;
+            width: 100%;
+            text-decoration: none;
+            text-align: center;
+            background: var(--primary-gradient);
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 800;
+            padding: 1rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px var(--primary-glow);
+            transition: var(--transition-smooth);
+        }
+
+        .kiosk-btn:active {
+            transform: translateY(2px);
+        }
+
+        /* Animations */
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+            70% {
+                transform: scale(0.9);
+                opacity: 0.9;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="kiosk-container">
+        <!-- Header -->
+        <header class="kiosk-header">
+            <div class="logo-area">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="20" height="20" rx="6" fill="#7b2fff"/>
+                    <path d="M7 12L10 15L17 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="logo-text">YoursGifts</span>
+            </div>
+            <div class="kiosk-badge">⚡ Roadside Kiosk</div>
+        </header>
+
+        <!-- Success Message Area -->
+        <div class="success-container">
+            <div class="check-icon-wrap">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
+            <h1 class="success-title">Order Submitted!</h1>
+            <p class="success-subtitle" id="custGreeting">Thank you, Priya! Your order has been placed in the printing queue. Our kiosk operator is verifying your UPI payment.</p>
+
+            <!-- Order Number Badge -->
+            <div class="order-badge-card">
+                <span class="badge-label">Your Order Number</span>
+                <span class="order-number" id="orderNumBadge">KSK-000</span>
+            </div>
+
+            <!-- Print/Pickup info -->
+            <div class="pickup-box">
+                <div class="pickup-icon">🖨️</div>
+                <div class="pickup-details">
+                    <span class="pickup-title">Estimated Pickup Time</span>
+                    <span class="pickup-desc" id="pickupTimeText">Ready in approximately 25 minutes. Please show this screen at the printer counter to collect your keychain.</span>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <a href="index.html" class="kiosk-btn">Design Another Keychain</a>
+        </div>
+
+        <!-- Footer -->
+        <footer class="kiosk-footer">
+            <p>© 2026 YoursGifts. All rights reserved.</p>
+            <p>Write down your Order Number if you need to close this page.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Parse URL params to populate details
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderNum = urlParams.get('orderNum') || 'KSK-001';
+            const name = urlParams.get('name') || 'Customer';
+            const time = urlParams.get('time') || '20';
+            const amt = urlParams.get('amt') || '30';
+            const qty = urlParams.get('qty') || '1';
+
+            document.getElementById('orderNumBadge').textContent = orderNum;
+            document.getElementById('custGreeting').textContent = `Thank you, ${name}! Your order has been successfully placed in the printing queue. Our kiosk operator is verifying your payment of ₹${amt} for ${qty} item(s).`;
+            document.getElementById('pickupTimeText').textContent = `Ready in approximately ${time} minutes. Please present Order #${orderNum} at the counter for collection.`;
+        });
+    </script>
+</body>
+</html>

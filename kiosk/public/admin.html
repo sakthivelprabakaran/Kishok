@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YoursGifts Kiosk — Admin Control Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar/Header -->
+        <header class="admin-header">
+            <div class="header-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="20" height="20" rx="6" fill="#7b2fff"/>
+                    <path d="M7 12L10 15L17 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>YoursGifts Admin</span>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse-dot"></span>
+                <span>Kiosk Online</span>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-label">Total Orders</span>
+                <span class="stat-value" id="statOrders">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Total Revenue</span>
+                <span class="stat-value" id="statRevenue">₹0</span>
+            </div>
+            <div class="stat-card accent-card">
+                <span class="stat-label">Pending Prints</span>
+                <span class="stat-value" id="statPending">0</span>
+            </div>
+        </section>
+
+        <div class="admin-content-layout">
+            <!-- Left: Orders List -->
+            <section class="orders-section">
+                <div class="panel-header-row">
+                    <h3>Incoming Order Feed</h3>
+                    <button class="refresh-btn" id="btnRefresh">🔄 Refresh</button>
+                </div>
+                
+                <div class="order-list" id="orderList">
+                    <div class="empty-state">Loading orders...</div>
+                </div>
+            </section>
+
+            <!-- Right: Active Batches Panel -->
+            <section class="batches-section">
+                <div class="panel-header-row">
+                    <h3>Active Printing Batches</h3>
+                </div>
+                <p class="panel-desc">Manage color combinations currently printing to offer batch setup discounts to customers.</p>
+
+                <!-- Current Active Batches list -->
+                <div class="batches-list" id="batchesList">
+                    <!-- Injected via JS -->
+                </div>
+
+                <!-- Add New Batch Form -->
+                <div class="add-batch-card">
+                    <h4>Add Active Batch Color</h4>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>Base Color</label>
+                            <input type="color" id="batchBaseColor" value="#ff9933">
+                        </div>
+                        <div class="form-col">
+                            <label>Font Color</label>
+                            <input type="color" id="batchFontColor" value="#ffffff">
+                        </div>
+                        <div class="form-col">
+                            <label>Size/Count</label>
+                            <input type="number" id="batchSizeCount" value="5" min="2" max="25" style="width: 60px;">
+                        </div>
+                    </div>
+                    <button class="add-batch-btn" id="btnAddBatch">+ Set Active Combo</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Hidden Audio element for chime -->
+    <audio id="orderChime" src="https://assets.mixkit.co/active_storage/sfx/911/911-200.wav" preload="auto"></audio>
+
+    <script type="module" src="js/admin-dashboard.js"></script>
+</body>
+</html>

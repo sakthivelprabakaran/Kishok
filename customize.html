@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YoursGifts — Premium 3D Customizer</title>
+    <meta name="description" content="Design and customize your premium 3D printed keychains, nameplates, word art, and decor. Small Gifts, Big Meanings — by YoursGifts.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin-panel.css">
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- LEFT PANEL: Sticky 3D Preview (60% Desktop) -->
+        <section class="visualizer-pane">
+            <div class="visualizer-canvas-wrap" id="viewer3dCanvas">
+                <!-- Three.js canvas will be injected here -->
+
+                <!-- Loading overlay -->
+                <div class="viewer-loading" id="viewerLoading">
+                    <div class="loader-spinner"></div>
+                    <span>Generating 3D Studio Preview…</span>
+                </div>
+
+                <!-- Floating overlay controls (minimalist) -->
+                <div class="visualizer-overlay-controls">
+                    <button class="visualizer-btn" id="autoRotateToggle" title="Toggle Auto-Rotate">
+                        <span id="rotateIcon">🔄</span> Auto-Rotate
+                    </button>
+                    <button class="visualizer-btn" id="downloadPNG" title="Download High-Res Screenshot">
+                        📷 Capture 4K
+                    </button>
+                    <button class="visualizer-btn" id="downloadSVG" title="Download Flat SVG Design">
+                        📐 Vector SVG
+                    </button>
+                    <button class="visualizer-btn" id="toggleFDM" title="Toggle Printed Finish / CAD Render">
+                        🖨️ Show Print Finish
+                    </button>
+                    <button class="visualizer-btn admin-btn" id="downloadSTL" style="display:none;" title="Download STL (Admin)">
+                        🖨️ Export STL
+                    </button>
+                </div>
+
+                <div class="visualizer-instructions">
+                    <span>👈 Drag to rotate · Pinch/Scroll to zoom · Right-click to pan 👉</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: Customizer Sidebar (40% Desktop) -->
+        <aside class="customizer-pane">
+            <div class="customizer-inner">
+
+                <!-- Header & Brand -->
+                <header class="customizer-header">
+                    <div class="brand-wrap">
+                        <img src="LOGO WITH SLOGAN.png" alt="YoursGifts Logo" class="brand-logo">
+                    </div>
+                    <div class="brand-badge">✨ 3D PRINT DESIGN STUDIO</div>
+                </header>
+
+                <div class="customizer-flow">
+
+                    <!-- STEP 1: Choose Product Style -->
+                    <div class="step-card">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <h3 class="step-title">Choose Product Style</h3>
+                            <p class="step-description">Select your customized base item style</p>
+                            
+                            <div class="product-type-toggle" id="productTypeToggle" role="tablist">
+                                <button class="ptype-opt active" data-val="keychain" role="tab" aria-selected="true">🔑 Keychain</button>
+                                <button class="ptype-opt" data-val="nameplate" role="tab" aria-selected="false">🪧 Nameplate</button>
+                                <button class="ptype-opt" data-val="wordart" role="tab" aria-selected="false">✨ Word Art</button>
+                                <button class="ptype-opt" data-val="loveseries" role="tab" aria-selected="false">❤ LOVE Series</button>
+                                <button class="ptype-opt" data-val="tilekey" role="tab" aria-selected="false">🎴 Letter Tiles</button>
+                                <button class="ptype-opt" data-val="linked_initials" role="tab" aria-selected="false">🔗 Linked Initials</button>
+                                <button class="ptype-opt" data-val="nametag" role="tab" aria-selected="false">🌊 Wavy Nametag</button>
+                                <button class="ptype-opt" data-val="girly_keychain" role="tab" aria-selected="false">🎀 Girly Keychain</button>
+                                <button class="ptype-opt" data-val="bordered_keychain" role="tab" aria-selected="false">🔲 Bordered Keychain</button>
+                                <button class="ptype-opt" data-val="supported_text" role="tab" aria-selected="false">🧱 Supported Nameplate</button>
+                                <button class="ptype-opt" data-val="flower_keychain" role="tab" aria-selected="false">🌸 Flower Initial</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: Customize Name / Text -->
+                    <div class="step-card">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <div class="step-header-row">
+                                <h3 class="step-title" id="nameLabelText">Custom Name / Text</h3>
+                                <button id="langToggleBtn" class="lang-toggle" title="Toggle English / Tamil">EN</button>
+                            </div>
+                            <p class="step-description" id="nameLabelDesc">Type the letters you want to customize</p>
+
+                            <!-- Single Input Field -->
+                            <div class="input-container" id="singleInputContainer">
+                                <input type="text" id="nameInput" class="custom-input" placeholder="e.g. PRIYA, SAKTHI…" maxlength="15" autocomplete="off">
+                                <span class="input-char-limit"><span id="charCount">0</span>/15</span>
+                            </div>
+
+                            <!-- Dual Input Fields (for Word Art) -->
+                            <div class="dual-inputs-wrap" id="dualInputsContainer" style="display: none;">
+                                <div class="input-container">
+                                    <input type="text" id="wordartLine1" class="custom-input" placeholder="Line 1 (e.g. Priya)" maxlength="15" autocomplete="off">
+                                    <span class="input-char-limit"><span id="charCount1">0</span>/15</span>
+                                </div>
+                                <div class="input-container">
+                                    <input type="text" id="wordartLine2" class="custom-input" placeholder="Line 2 (e.g. SAKTHI)" maxlength="15" autocomplete="off">
+                                    <span class="input-char-limit"><span id="charCount2">0</span>/15</span>
+                                </div>
+                            </div>
+
+                            <div class="wordart-hint" id="wordartHint" style="display:none;">
+                                💡 Tip: ALL CAPS on the bottom line stands more stably on a desk.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: Choose Font Style -->
+                    <div class="step-card">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <h3 class="step-title">Choose Font Style</h3>
+                            <p class="step-description" id="previewSub">Pick a typeface for your text</p>
+
+                            <!-- Font Category Filter Tabs -->
+                            <div class="font-category-tabs" id="fontCategoryTabs" role="tablist">
+                                <button class="font-cat-tab active" data-cat="all" role="tab" aria-selected="true">✨ All</button>
+                                <button class="font-cat-tab" data-cat="bold" role="tab" aria-selected="false">💥 Bold / Pop</button>
+                                <button class="font-cat-tab" data-cat="cursive" role="tab" aria-selected="false">✍️ Cursive</button>
+                                <button class="font-cat-tab" data-cat="retro" role="tab" aria-selected="false">🚀 Retro</button>
+                            </div>
+
+                            <!-- Word-art only: top/bottom slot tabs -->
+                            <div class="wordart-slot-tabs" id="wordartSlotTabs" style="display:none;">
+                                <button class="slot-tab active" data-slot="top" aria-selected="true">
+                                    <span class="slot-letter">🅐</span>
+                                    <span class="slot-label">Top line font</span>
+                                    <span class="slot-fontname" id="slotTopName">—</span>
+                                </button>
+                                <button class="slot-tab" data-slot="bottom" aria-selected="false">
+                                    <span class="slot-letter">🅑</span>
+                                    <span class="slot-label">Bottom line font</span>
+                                    <span class="slot-fontname" id="slotBottomName">—</span>
+                                </button>
+                            </div>
+
+                            <div class="font-grid-container">
+                                <div class="font-grid" id="fontGrid">
+                                    <!-- Font preview cards generated dynamically -->
+                                </div>
+                            </div>
+
+                            <div class="selection-summary" id="selectionSummary">
+                                <span class="summary-icon">👆</span>
+                                <span id="summaryText">Tap a style above to choose your font</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4: Choose Colors -->
+                    <div class="step-card">
+                        <div class="step-num">4</div>
+                        <div class="step-content">
+                            <div class="step-header-row">
+                                <h3 class="step-title">Customize Colors</h3>
+                                <button id="layerToggle" class="layer-toggle" title="Toggle 2-Layer / 3-Layer print">
+                                    <span class="layer-opt" data-val="2L">2L</span>
+                                    <span class="layer-opt active" data-val="3L">3L</span>
+                                </button>
+                            </div>
+                            <p class="step-description">Configure the colors of individual print layers</p>
+
+                            <div class="swatches-flow">
+                                <div class="swatch-control-group" id="baseColorRow">
+                                    <span class="swatch-group-label">Base</span>
+                                    <div class="swatch-row" id="baseSwatches"></div>
+                                </div>
+                                <div class="swatch-control-group">
+                                    <span class="swatch-group-label" id="fontColorLabel">Text</span>
+                                    <div class="swatch-row" id="fontSwatches"></div>
+                                </div>
+                                <div class="swatch-control-group" id="line2ColorRow" style="display:none;">
+                                    <span class="swatch-group-label">Line 2</span>
+                                    <div class="swatch-row" id="line2Swatches"></div>
+                                </div>
+                                <div class="swatch-control-group" id="outlineColorRow">
+                                    <span class="swatch-group-label">Outline</span>
+                                    <div class="swatch-row" id="outlineSwatches"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 5: Ring Attachment (Keychain-only) -->
+                    <div class="step-card" id="ringPositionSection">
+                        <div class="step-num">5</div>
+                        <div class="step-content">
+                            <h3 class="step-title">Ring Attachment Position</h3>
+                            <p class="step-description">Choose where the keyring attachment hole goes</p>
+
+                            <div class="ring-position-toggle" id="ringPositionToggle" role="tablist">
+                                <button class="ring-opt active" data-val="left" role="tab" aria-selected="true">👈 Left Side</button>
+                                <button class="ring-opt" data-val="right" role="tab" aria-selected="false">👉 Right Side</button>
+                                <button class="ring-opt" data-val="none" role="tab" aria-selected="false">❌ No Ring</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 5 (Alternative): Wavy Nametag Adjustments -->
+                    <div class="step-card" id="wavyNametagAdjustmentsSection" style="display: none;">
+                        <div class="step-num">5</div>
+                        <div class="step-content">
+                            <h3 class="step-title">Wave Adjustments</h3>
+                            <p class="step-description">Fine-tune the name path oscillation & heights</p>
+                            
+                            <div class="wave-slider-group">
+                                <div class="wave-slider-row">
+                                    <div class="wave-slider-row-header">
+                                        <span class="wave-slider-label">Wave Amplitude</span>
+                                        <span class="wave-slider-val" id="nametagWaveAmplitudeVal">5.0mm</span>
+                                    </div>
+                                    <input type="range" id="nametagWaveAmplitude" min="0" max="20" step="0.5" value="5.0">
+                                </div>
+                                <div class="wave-slider-row">
+                                    <div class="wave-slider-row-header">
+                                        <span class="wave-slider-label">Wave Cycles</span>
+                                        <span class="wave-slider-val" id="nametagWaveCyclesVal">1.0</span>
+                                    </div>
+                                    <input type="range" id="nametagWaveCycles" min="0.5" max="4.0" step="0.1" value="1.0">
+                                </div>
+                                <div class="wave-slider-row">
+                                    <div class="wave-slider-row-header">
+                                        <span class="wave-slider-label">Even Letter Height</span>
+                                        <span class="wave-slider-val" id="nametagHeightEvenVal">4.0mm</span>
+                                    </div>
+                                    <input type="range" id="nametagHeightEven" min="1.0" max="10.0" step="0.5" value="4.0">
+                                </div>
+                                <div class="wave-slider-row">
+                                    <div class="wave-slider-row-header">
+                                        <span class="wave-slider-label">Odd Letter Height</span>
+                                        <span class="wave-slider-val" id="nametagHeightOddVal">2.0mm</span>
+                                    </div>
+                                    <input type="range" id="nametagHeightOdd" min="1.0" max="10.0" step="0.5" value="2.0">
+                                </div>
+                                <div class="wave-slider-row">
+                                    <div class="wave-slider-row-header">
+                                        <span class="wave-slider-label">Letter Gap</span>
+                                        <span class="wave-slider-val" id="nametagLetterGapVal">-2.5mm</span>
+                                    </div>
+                                    <input type="range" id="nametagLetterGap" min="-5.0" max="5.0" step="0.1" value="-2.5">
+                                </div>
+                                <div class="wave-slider-row">
+                                    <div class="wave-slider-row-header">
+                                        <span class="wave-slider-label">Base Thickness</span>
+                                        <span class="wave-slider-val" id="nametagBaseThicknessVal">2.5mm</span>
+                                    </div>
+                                    <input type="range" id="nametagBaseThickness" min="1.0" max="5.0" step="0.1" value="2.5">
+                                </div>
+                                <div class="wave-slider-row">
+                                    <div class="wave-slider-row-header">
+                                        <span class="wave-slider-label">Text Size (Height)</span>
+                                        <span class="wave-slider-val" id="nametagTextSizeVal">22mm</span>
+                                    </div>
+                                    <input type="range" id="nametagTextSize" min="6" max="40" step="1" value="22">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 6: Quantity & Order Checkout -->
+                    <div class="step-card">
+                        <div class="step-num">6</div>
+                        <div class="step-content">
+                            <h3 class="step-title">Quantity & Order</h3>
+                            <p class="step-description">Adjust volume and proceed to order</p>
+
+                            <div class="order-summary-block">
+                                <div class="quantity-control-wrap">
+                                    <span class="qty-label">Quantity</span>
+                                    <div class="quantity-counter">
+                                        <button class="qty-count-btn" id="qtyMinus">−</button>
+                                        <span class="qty-number" id="qtyDisplay">1</span>
+                                        <button class="qty-count-btn" id="qtyPlus">+</button>
+                                    </div>
+                                </div>
+                                <div class="size-selector-wrap" style="display:none;">
+                                    <div class="size-selector" id="sizeSelector">
+                                        <button class="size-btn active" data-size="small" data-price="149"></button>
+                                        <button class="size-btn" data-size="medium" data-price="189"></button>
+                                        <button class="size-btn" data-size="large" data-price="210"></button>
+                                        <button class="size-btn" data-size="xl" data-price="300"></button>
+                                    </div>
+                                </div>
+
+                                <div class="price-checkout-row">
+                                    <div class="final-price-box">
+                                        <span class="final-price-label">Total Price</span>
+                                        <span class="final-price-val" id="priceDisplay">₹149</span>
+                                    </div>
+                                </div>
+
+                                <div class="checkout-actions">
+                                    <button class="action-btn-primary" id="whatsappBtn">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                        </svg>
+                                        Order on WhatsApp
+                                    </button>
+                                    <button class="action-btn-secondary" id="addToCartBtn">
+                                        🛒 Add to Cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Footer -->
+                <footer class="customizer-footer">
+                    <p>© 2025 <strong>YoursGifts</strong> — Small Gifts, Big Meanings 🎁</p>
+                </footer>
+
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ===== Scripts ===== -->
+
+    <!-- opentype.js for TTF font parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+    <!-- Clipper for 2D boolean CAD operations -->
+    <script src="https://cdn.jsdelivr.net/npm/clipper-lib@6.4.2/clipper.min.js"></script>
+
+    <!-- Main UI script (non-module) -->
+    <script src="script.js"></script>
+
+    <!-- Three.js import map + 3D viewer (ES module) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import { KeychainViewer } from './viewer3d.js';
+
+        var viewer      = null;
+        var viewerReady = false;
+
+        var canvasWrap    = document.getElementById('viewer3dCanvas');
+        var loadingEl     = document.getElementById('viewerLoading');
+        var autoRotBtn    = document.getElementById('autoRotateToggle');
+        var rotateIcon    = document.getElementById('rotateIcon');
+        var dlPNGBtn      = document.getElementById('downloadPNG');
+        var dlSVGBtn      = document.getElementById('downloadSVG');
+        var dlSTLBtn      = document.getElementById('downloadSTL');
+
+        // Show loading overlay
+        function showLoading()  { loadingEl.style.display = 'flex'; }
+        function hideLoading()  { loadingEl.style.display = 'none'; }
+
+        if (dlSTLBtn) {
+            dlSTLBtn.addEventListener('click', function() {
+                if (viewer) viewer.exportSTL();
+            });
+        }
+
+        // Initialize viewer immediately on load
+        function initViewer() {
+            if (!viewer) {
+                viewer = new KeychainViewer(canvasWrap);
+                viewerReady = true;
+            }
+        }
+
+        // Helper to collect all parameters including wave adjustments
+        function getParamsPayload(detail) {
+            return {
+                ringPosition:   detail.ringPosition,
+                wave_mode:      detail.wave_mode,
+                wave_amplitude: detail.wave_amplitude,
+                wave_cycles:    detail.wave_cycles,
+                text_size:      detail.text_size,
+                letter_gap:     detail.letter_gap,
+                base_thickness: detail.base_thickness,
+                height_even:    detail.height_even,
+                height_odd:     detail.height_odd,
+                ring_outer_d:   detail.ring_outer_d,
+                ring_inner_d:   detail.ring_inner_d,
+                ring_height:    detail.ring_height,
+            };
+        }
+        
+        // Listen for font-selected event from script.js
+        window.addEventListener('font-selected', async function (e) {
+            var detail = e.detail;
+            if (!detail || !detail.fontFile || !detail.text) return;
+
+            initViewer();
+
+            showLoading();
+            try {
+                await viewer.update(
+                    detail.text,
+                    detail.fontFile,
+                    detail.colors,
+                    detail.layers,
+                    getParamsPayload(detail),
+                    detail.productType,
+                    detail.wordartFonts
+                );
+            } catch (err) {
+                console.error('3D viewer error:', err);
+            }
+            hideLoading();
+        });
+
+        // Listen for design-updated event (name/color change while font is selected)
+        window.addEventListener('design-updated', async function (e) {
+            initViewer();
+            if (!viewer || !viewerReady) return;
+            var detail = e.detail;
+            if (!detail || !detail.fontFile || !detail.text) return;
+
+            try {
+                await viewer.update(
+                    detail.text,
+                    detail.fontFile,
+                    detail.colors,
+                    detail.layers,
+                    getParamsPayload(detail),
+                    detail.productType,
+                    detail.wordartFonts
+                );
+            } catch (err) {
+                console.error('3D viewer update error:', err);
+            }
+        });
+
+        // Auto-rotate toggle
+        autoRotBtn.addEventListener('click', function () {
+            if (!viewer) return;
+            var on = viewer.toggleAutoRotate();
+            rotateIcon.textContent = on ? '🔄' : '⏸️';
+            autoRotBtn.title = on ? 'Pause auto-rotate' : 'Resume auto-rotate';
+            autoRotBtn.classList.toggle('active', on);
+        });
+
+        // Download PNG
+        dlPNGBtn.addEventListener('click', function () {
+            if (!viewer) return;
+            viewer.downloadPNG(4);
+        });
+
+        // Download SVG — find the selected font card's SVG
+        dlSVGBtn.addEventListener('click', function () {
+            var selected = document.querySelector('.font-card.selected svg');
+            if (selected) {
+                KeychainViewer.downloadSVG(selected);
+            }
+        });
+
+        // Show admin tools if ?admin=true is in the URL
+        if (window.location.search.includes('admin=true')) {
+            if (dlSTLBtn) dlSTLBtn.style.display = '';
+        }
+
+        // ===== ADMIN PANEL BRIDGE =====
+        window.addEventListener('admin-rebuild', function(e) {
+            if (!viewer || !viewerReady) return;
+            viewer.rebuildWithParams(e.detail);
+        });
+
+        window.addEventListener('admin-request-dimensions', function() {
+            if (!viewer) return;
+            var dims = viewer.getDimensions();
+            window.dispatchEvent(new CustomEvent('admin-dimensions-response', { detail: dims }));
+        });
+
+        window.addEventListener('admin-export-stl', function(e) {
+            if (!viewer) return;
+            viewer.exportSTL(e.detail.filename);
+        });
+
+        // Initial setup trigger
+        document.addEventListener('DOMContentLoaded', () => {
+            initViewer();
+        });
+    </script>
+
+</body>
+</html>

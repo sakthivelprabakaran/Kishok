@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Customize Your Keychain — YoursGifts Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css">
+    <link rel="stylesheet" href="css/customize.css">
+</head>
+<body>
+    <!-- Sticky 3D Canvas Pane (45% viewport height) -->
+    <section class="visualizer-pane">
+        <!-- Back Button -->
+        <a href="index.html" class="floating-back-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Back</span>
+        </a>
+
+        <!-- Main Three.js Container -->
+        <div class="visualizer-canvas-wrap" id="viewer3dCanvas">
+            <!-- Loading indicator -->
+            <div class="viewer-loading" id="viewerLoading">
+                <div class="loader-spinner"></div>
+                <span>Generating 3D Studio Preview…</span>
+            </div>
+
+            <!-- Overlays -->
+            <div class="visualizer-overlay-controls">
+                <button class="visualizer-btn active" id="autoRotateToggle">
+                    <span id="rotateIcon">🔄</span> Auto-Rotate
+                </button>
+                <button class="visualizer-btn" id="toggleFDM">
+                    🖨️ Print Texture
+                </button>
+            </div>
+            
+            <div class="drag-hint">
+                <span>👈 Drag to Rotate · Pinch to Zoom 👉</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Customizer Panel Section -->
+    <section class="customizer-pane">
+        <div class="panel-header">
+            <h2 id="productTitle">Keychain Customizer</h2>
+            <p id="productSubtitle" class="product-subtitle">Personalize your keychain design below</p>
+        </div>
+
+        <!-- STEP 1: Text Customization -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-num">1</span>
+                <div>
+                    <h3 id="nameLabelText">Custom Name / Text</h3>
+                    <p id="nameLabelDesc" class="step-desc">Type your name or customized word</p>
+                </div>
+                <button id="langToggleBtn" class="lang-toggle-btn">EN</button>
+            </div>
+
+            <!-- Single Input Container -->
+            <div class="input-wrap" id="singleInputContainer">
+                <input type="text" id="nameInput" class="custom-input" placeholder="Enter custom text..." maxlength="15" autocomplete="off" spellcheck="false">
+                <span class="char-counter"><span id="charCount">0</span>/15</span>
+            </div>
+
+            <!-- Dual Inputs Container (for Word Art) -->
+            <div class="dual-inputs-wrap" id="dualInputsContainer" style="display: none;">
+                <div class="input-wrap">
+                    <input type="text" id="wordartLine1" class="custom-input" placeholder="Line 1 (Top line)" maxlength="15" autocomplete="off">
+                    <span class="char-counter"><span id="charCount1">0</span>/15</span>
+                </div>
+                <div class="input-wrap" style="margin-top: 0.75rem;">
+                    <input type="text" id="wordartLine2" class="custom-input" placeholder="Line 2 (Bottom stand)" maxlength="15" autocomplete="off">
+                    <span class="char-counter"><span id="charCount2">0</span>/15</span>
+                </div>
+            </div>
+            
+            <p class="wordart-tip" id="wordartHint" style="display: none;">💡 Tip: Bottom line stands more stably in ALL CAPS.</p>
+        </div>
+
+        <!-- STEP 2: Font Selection -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-num">2</span>
+                <div>
+                    <h3>Choose Font Style</h3>
+                    <p class="step-desc">Select a style for your keychain letters</p>
+                </div>
+            </div>
+
+            <!-- Font Slot Tabs (for Word Art) -->
+            <div class="wordart-slot-tabs" id="wordartSlotTabs" style="display: none;">
+                <button class="slot-tab active" data-slot="top" id="btnSlotTop">
+                    <span class="slot-letter">🅣</span> Top Font
+                </button>
+                <button class="slot-tab" data-slot="bottom" id="btnSlotBottom">
+                    <span class="slot-letter">🅑</span> Bottom Font
+                </button>
+            </div>
+
+            <!-- Horizontal Font Scroll -->
+            <div class="font-selector-strip" id="fontSelectorStrip">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- STEP 3: Colors Selection -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-num">3</span>
+                <div>
+                    <h3>Choose Colors</h3>
+                    <p class="step-desc">Pick your colors (check active batches for setup savings!)</p>
+                </div>
+            </div>
+
+            <!-- Color Palette Row: Base/Outline/Text -->
+            <div class="color-options-wrap">
+                <!-- Base Color (Ring/Backplate) -->
+                <div class="color-row" id="baseColorRow">
+                    <span class="color-row-label">Base Color:</span>
+                    <div class="swatches-strip" id="baseSwatches">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Font Color (Front Text) -->
+                <div class="color-row" id="fontColorRow">
+                    <span class="color-row-label">Font Color:</span>
+                    <div class="swatches-strip" id="fontSwatches">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Outline Color (Border/Background) -->
+                <div class="color-row" id="outlineColorRow">
+                    <span class="color-row-label">Outline Color:</span>
+                    <div class="swatches-strip" id="outlineSwatches">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Line 2 Color (For Wordart bottom) -->
+                <div class="color-row" id="line2ColorRow" style="display: none;">
+                    <span class="color-row-label">Stand Color:</span>
+                    <div class="swatches-strip" id="line2Swatches">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ring Position Selection (if applicable) -->
+        <div class="step-card" id="ringPositionSection">
+            <div class="step-header">
+                <span class="step-num">⚙️</span>
+                <div>
+                    <h3>Keyring Position</h3>
+                    <p class="step-desc">Where the loop for the keyring will go</p>
+                </div>
+            </div>
+            <div class="ring-pos-toggle" id="ringPosToggle">
+                <button class="pos-opt active" data-val="left">Left</button>
+                <button class="pos-opt" data-val="right">Right</button>
+            </div>
+        </div>
+
+        <!-- Smart Batch Suggestion Alert -->
+        <div class="batch-suggestion-alert" id="batchPromoAlert" style="display: none;">
+            <div class="alert-icon">🔥</div>
+            <div class="alert-content">
+                <span class="alert-title">Color Batch Discount Applied!</span>
+                <span class="alert-message" id="batchPromoAlertMsg">Ordering RED/WHITE saves you ₹15 on printing setup!</span>
+            </div>
+        </div>
+
+        <!-- STEP 4: Live Cost Breakdown -->
+        <div class="step-card price-breakdown-card">
+            <h3 class="breakdown-title">💰 Live Kiosk Cost Breakdown</h3>
+            <div class="price-row">
+                <span>Material Cost (<span id="calcWeight">0.0</span>g PLA)</span>
+                <span id="priceMat">₹0</span>
+            </div>
+            <div class="price-row">
+                <span>Machine Print Time (<span id="calcTime">0</span> min)</span>
+                <span id="priceMachine">₹0</span>
+            </div>
+            <div class="price-row">
+                <span>Setup & Labor (Batch setup)</span>
+                <span id="priceLabor">₹0</span>
+            </div>
+            <div class="price-divider"></div>
+            <div class="price-row total-row">
+                <span>Production Cost (with buffer)</span>
+                <span class="final-price" id="priceTotal">₹0</span>
+            </div>
+            <div class="print-time-info">
+                <span>🖨️ Total Printing Time: <strong id="infoPrintTime">~0 min</strong></span>
+            </div>
+        </div>
+
+        <!-- STEP 5: Quantity & Customer Info -->
+        <div class="step-card">
+            <div class="step-header">
+                <span class="step-num">4</span>
+                <div>
+                    <h3>Order & Delivery Info</h3>
+                    <p class="step-desc">Enter details to queue your order</p>
+                </div>
+            </div>
+
+            <!-- Quantity Selector -->
+            <div class="qty-selector-wrap">
+                <span class="qty-label">Quantity:</span>
+                <div class="qty-controls">
+                    <button class="qty-btn" id="qtyMinus">−</button>
+                    <span class="qty-val" id="qtyVal">1</span>
+                    <button class="qty-btn" id="qtyPlus">+</button>
+                </div>
+            </div>
+
+            <!-- Customer Details Form -->
+            <div class="order-form">
+                <div class="input-wrap" style="margin-bottom: 0.75rem;">
+                    <input type="text" id="custName" class="custom-input" placeholder="Your Name (for pickup label)" required>
+                </div>
+                <div class="input-wrap">
+                    <input type="tel" id="custPhone" class="custom-input" placeholder="Phone Number (for order notifications)" pattern="[0-9]{10}" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit & Pay Button -->
+        <button class="primary-pay-btn" id="btnPlaceOrder">
+            <span class="btn-text">PAY ₹0 VIA UPI</span>
+            <span class="btn-subtext">Click to pay & submit order</span>
+        </button>
+    </section>
+
+    <!-- UPI PAYMENT MODAL -->
+    <div class="payment-modal-overlay" id="paymentModal">
+        <div class="payment-modal">
+            <button class="close-modal-btn" id="closePaymentModal">&times;</button>
+            <div class="modal-header">
+                <h3>Scan or Open UPI to Pay</h3>
+                <p>Complete payment of <strong id="modalPayAmt">₹0</strong> to start printing</p>
+            </div>
+            
+            <!-- Mobile App CTAs -->
+            <div class="upi-app-list" id="upiAppButtons">
+                <a href="#" class="upi-app-btn gpay" id="linkGPay">
+                    <span>Pay via Google Pay</span>
+                </a>
+                <a href="#" class="upi-app-btn phonepe" id="linkPhonePe">
+                    <span>Pay via PhonePe</span>
+                </a>
+                <a href="#" class="upi-app-btn generic" id="linkGenericUPI">
+                    <span>Pay via Any UPI App</span>
+                </a>
+            </div>
+
+            <div class="modal-divider"><span>OR SCAN QR CODE</span></div>
+
+            <!-- Scannable QR (for desktop or fallback) -->
+            <div class="qr-code-wrap">
+                <img id="upiQRCode" src="" alt="UPI Payment QR Code">
+                <p class="qr-instructions">Scan this QR with any UPI app (GPay, PhonePe, Paytm, etc.) to complete payment.</p>
+            </div>
+
+            <!-- Transaction input -->
+            <div class="txn-verification-section">
+                <p class="txn-instructions">After paying, enter your <strong>12-digit UPI Reference Number / Transaction ID</strong> below to verify & submit order.</p>
+                <div class="input-wrap" style="margin-top: 0.5rem;">
+                    <input type="text" id="upiTxnIdInput" class="custom-input" placeholder="e.g. 123456789012" maxlength="12" pattern="\d{12}">
+                </div>
+                <button class="verify-submit-btn" id="btnSubmitVerify">Submit Order & Start Printing</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clipper-lib@6.4.2/clipper.min.js"></script>
+
+    <!-- Three.js module configuration -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module" src="js/kiosk-app.js"></script>
+</body>
+</html>

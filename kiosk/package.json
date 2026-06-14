@@ -1,0 +1,17 @@
+{
+  "name": "yoursgifts-kiosk",
+  "version": "1.0.0",
+  "description": "Roadside mobile ordering kiosk system for YoursGifts keychains",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.1"
+  },
+  "author": "Antigravity",
+  "license": "ISC"
+}

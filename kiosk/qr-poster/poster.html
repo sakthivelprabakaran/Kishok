@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YoursGifts Kiosk — Printable QR Poster</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #7b2fff;
+            --primary-gradient: linear-gradient(135deg, #7b2fff 0%, #a855f7 100%);
+            --text-dark: #0f0e15;
+            --text-muted: #6b7280;
+            --font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: #f3f4f6;
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        /* Printable A4 Poster Frame */
+        .poster-frame {
+            background-color: #ffffff;
+            width: 210mm;
+            height: 297mm;
+            padding: 2.5rem;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            border: 4px solid var(--primary);
+        }
+
+        /* Top background decorations */
+        .poster-frame::before {
+            content: "";
+            position: absolute;
+            top: -200px;
+            right: -200px;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(123, 79, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+            z-index: 1;
+            border-radius: 50%;
+        }
+
+        /* Brand & Logo Area */
+        .poster-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            text-align: center;
+            z-index: 2;
+        }
+
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-box {
+            background: var(--primary-gradient);
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 20px rgba(123, 47, 255, 0.3);
+        }
+
+        .logo-box svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .brand-name {
+            font-size: 2.25rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            color: var(--text-dark);
+        }
+
+        .slogan {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Hero Call to Action */
+        .hero-banner {
+            text-align: center;
+            margin: 1.5rem 0;
+            z-index: 2;
+        }
+
+        .banner-title {
+            font-size: 3rem;
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+        }
+
+        .banner-title span {
+            color: var(--primary);
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .banner-desc {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 550px;
+            margin: 0 auto;
+            font-weight: 500;
+        }
+
+        /* Step Guide block */
+        .steps-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            z-index: 2;
+        }
+
+        .step-block {
+            flex: 1;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 1.25rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .step-num-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .step-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        .step-desc {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+
+        /* QR Scan block */
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            z-index: 2;
+        }
+
+        .qr-border-wrap {
+            border: 6px dashed var(--primary);
+            padding: 1rem;
+            border-radius: 28px;
+            background: #ffffff;
+            box-shadow: 0 10px 30px rgba(123, 47, 255, 0.1);
+        }
+
+        .qr-code-img {
+            width: 250px;
+            height: 250px;
+            display: block;
+        }
+
+        .scan-action-title {
+            font-size: 1.75rem;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            animation: pulseText 2s infinite ease-in-out;
+        }
+
+        /* Footer Info */
+        .poster-footer {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid #f3f4f6;
+            padding-top: 1.5rem;
+            z-index: 2;
+        }
+
+        .footer-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .footer-left span:first-child {
+            font-size: 0.85rem;
+            font-weight: 750;
+            color: var(--text-dark);
+        }
+
+        .footer-left span:last-child {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .footer-right {
+            background: rgba(16, 185, 129, 0.1);
+            color: #047857;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 0.45rem 1rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        /* Admin Controls for printing */
+        .admin-print-bar {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            width: 210mm;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .print-btn {
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .print-url-hint {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .print-url-hint strong {
+            color: var(--primary);
+        }
+
+        /* Print Override */
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+            }
+            .admin-print-bar {
+                display: none;
+            }
+            .poster-frame {
+                border-radius: 0;
+                box-shadow: none;
+                border: none;
+                width: 100%;
+                height: 100%;
+                padding: 0;
+            }
+        }
+
+        @keyframes pulseText {
+            0%, 100% { color: var(--text-dark); }
+            50% { color: var(--primary); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Printing control bar -->
+    <div class="admin-print-bar">
+        <span class="print-url-hint">Poster points to: <strong id="hintUrl">Detecting...</strong></span>
+        <button class="print-btn" onclick="window.print()">🖨️ Print Poster (A4)</button>
+    </div>
+
+    <!-- Main A4 Poster -->
+    <div class="poster-frame">
+        <!-- Logo -->
+        <header class="poster-header">
+            <div class="logo-wrap">
+                <div class="logo-box">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="20" height="20" rx="6" fill="#7b2fff"/>
+                        <path d="M7 12L10 15L17 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1 class="brand-name">YoursGifts</h1>
+            </div>
+            <span class="slogan">Premium 3D Customizer</span>
+        </header>
+
+        <!-- Banner Title -->
+        <section class="hero-banner">
+            <h2 class="banner-title">Design Your Own<br><span>Custom 3D Keychain</span></h2>
+            <p class="banner-desc">Scan the code below on your phone, customize your name & colors in 3D, and collect it from our counter in minutes!</p>
+        </section>
+
+        <!-- QR Code Scan -->
+        <section class="qr-section">
+            <h3 class="scan-action-title">📱 SCAN HERE TO START</h3>
+            <div class="qr-border-wrap">
+                <img class="qr-code-img" id="posterQRCode" src="" alt="Scan QR Code to Design">
+            </div>
+        </section>
+
+        <!-- Step Guide -->
+        <section class="steps-container">
+            <div class="step-block">
+                <span class="step-num-badge">1</span>
+                <span class="step-title">Scan QR</span>
+                <span class="step-desc">Open your camera app and point it here.</span>
+            </div>
+            <div class="step-block">
+                <span class="step-num-badge">2</span>
+                <span class="step-title">Customize</span>
+                <span class="step-desc">Type your name, select font & color.</span>
+            </div>
+            <div class="step-block">
+                <span class="step-num-badge">3</span>
+                <span class="step-title">Pay via UPI</span>
+                <span class="step-desc">Pay directly on your phone.</span>
+            </div>
+            <div class="step-block">
+                <span class="step-num-badge">4</span>
+                <span class="step-title">Collect</span>
+                <span class="step-desc">Ready in 15 mins at the counter!</span>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="poster-footer">
+            <div class="footer-left">
+                <span>YoursGifts Roadside Kiosk Station</span>
+                <span id="labelUrl">Visit: detecting...</span>
+            </div>
+            <div class="footer-right">
+                ⚡ Prints instantly from ₹30
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            // Detect host IP address/URL dynamically
+            // e.g. If visiting http://192.168.1.5:3001/poster.html, 
+            // the QR code should point to http://192.168.1.5:3001/index.html
+            const hostUrl = window.location.protocol + '//' + window.location.host + '/index.html';
+            
+            document.getElementById('hintUrl').textContent = hostUrl;
+            document.getElementById('labelUrl').textContent = 'Visit: ' + window.location.protocol + '//' + window.location.host;
+
+            // Generate QR Code URL
+            const qrApi = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(hostUrl);
+            document.getElementById('posterQRCode').src = qrApi;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>YoursGifts Kiosk — Instant Custom Keychains</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css">
+</head>
+<body>
+    <div class="kiosk-container">
+        <!-- Header -->
+        <header class="kiosk-header">
+            <div class="logo-area">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="20" height="20" rx="6" fill="#7b2fff"/>
+                    <path d="M7 12L10 15L17 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="logo-text">YoursGifts</span>
+            </div>
+            <div class="kiosk-badge">⚡ Roadside Kiosk</div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="kiosk-hero">
+            <h1 class="hero-title">Design Your Custom 3D Keychain</h1>
+            <p class="hero-subtitle">Customize in full 3D, pay via UPI, and pick it up in 15-20 minutes!</p>
+        </section>
+
+        <!-- Active Batch Savings Banner -->
+        <div class="batch-savings-banner" id="batchBanner">
+            <div class="banner-icon">💡</div>
+            <div class="banner-text">
+                <span class="banner-title">Batch Savings Active!</span>
+                <span class="banner-desc" id="batchPromoText">We are currently printing RED/WHITE and BLACK/WHITE. Choose these combos to save setup fees!</span>
+            </div>
+        </div>
+
+        <!-- Section Title -->
+        <div class="section-title-wrap">
+            <h2 class="section-title">Select a Product Style</h2>
+            <p class="section-desc">Tap any product to start customizing in 3D</p>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="product-grid" id="productGrid">
+            <!-- Classic Keychain -->
+            <a href="customize.html?type=keychain" class="product-card" data-type="keychain">
+                <div class="card-img-wrap">
+                    <img src="assets/classic.png" alt="Classic Keychain" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🔑 Classic</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Classic Keychain</h3>
+                    <p class="card-desc">Standard text keychain. Perfect for names.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~15m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Bordered Keychain -->
+            <a href="customize.html?type=bordered_keychain" class="product-card" data-type="bordered_keychain">
+                <div class="card-img-wrap">
+                    <img src="assets/keychain-design-4k-17.png" alt="Bordered Keychain" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🔲 Bordered</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Bordered Keychain</h3>
+                    <p class="card-desc">Text enclosed in a custom raised border.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~20m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Flower Initial -->
+            <a href="customize.html?type=flower_keychain" class="product-card" data-type="flower_keychain">
+                <div class="card-img-wrap">
+                    <img src="assets/keychain-design-4k-16.png" alt="Flower Initial" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🌸 Flower</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Flower Initial</h3>
+                    <p class="card-desc">Cursive initial merged with radial petals.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~25m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Wavy Nametag -->
+            <a href="customize.html?type=nametag" class="product-card" data-type="nametag">
+                <div class="card-img-wrap">
+                    <img src="assets/keychain-design-4k-15.png" alt="Wavy Nametag" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🌊 Wavy Nametag</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Wavy Nametag</h3>
+                    <p class="card-desc">Stretching name on an organic wavy band.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~22m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Girly Keychain -->
+            <a href="customize.html?type=girly_keychain" class="product-card" data-type="girly_keychain">
+                <div class="card-img-wrap">
+                    <img src="assets/keychain-design-4k-12.png" alt="Girly Keychain" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🎀 Girly</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Girly Keychain</h3>
+                    <p class="card-desc">With custom offset keyring and 3D bow.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~25m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Letter Tiles -->
+            <a href="customize.html?type=tilekey" class="product-card" data-type="tilekey">
+                <div class="card-img-wrap">
+                    <img src="assets/tiles.png" alt="Letter Tiles" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🎴 Letter Tiles</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Letter Tiles</h3>
+                    <p class="card-desc">Individual key chain letter blocks linked.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~30m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Linked Initials -->
+            <a href="customize.html?type=linked_initials" class="product-card" data-type="linked_initials">
+                <div class="card-img-wrap">
+                    <img src="assets/keychain-design-4k-13.png" alt="Linked Initials" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🔗 Linked</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Linked Initials</h3>
+                    <p class="card-desc">Two letters merged together horizontally.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~18m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Supported Nameplate -->
+            <a href="customize.html?type=supported_text" class="product-card" data-type="supported_text">
+                <div class="card-img-wrap">
+                    <img src="assets/keychain-design-4k-14.png" alt="Supported Nameplate" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🧱 Supported</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Supported Nameplate</h3>
+                    <p class="card-desc">Desktop nameplate with star or heart bridges.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~35m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Word Art -->
+            <a href="customize.html?type=wordart" class="product-card" data-type="wordart">
+                <div class="card-img-wrap">
+                    <img src="assets/wordart.png" alt="Word Art" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>✨ Word Art</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Word Art</h3>
+                    <p class="card-desc">Layered script over bold display stand.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~45m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- LOVE Series -->
+            <a href="customize.html?type=loveseries" class="product-card" data-type="loveseries">
+                <div class="card-img-wrap">
+                    <img src="assets/keychain-design-4k-18.png" alt="LOVE Series" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>❤️ LOVE Series</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">LOVE Series</h3>
+                    <p class="card-desc">Your custom script name over a solid 'LOVE' stand.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~40m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Nameplate -->
+            <a href="customize.html?type=nameplate" class="product-card" data-type="nameplate">
+                <div class="card-img-wrap">
+                    <img src="assets/keychain-design-4k-19.png" alt="Desk Nameplate" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23252433%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🪧 Nameplate</text></svg>'">
+                </div>
+                <div class="card-info">
+                    <h3 class="card-name">Desk Nameplate</h3>
+                    <p class="card-desc">Premium standing display block for desks.</p>
+                    <div class="card-footer">
+                        <span class="card-time">🖨️ ~40m</span>
+                        <span class="card-action">Customize →</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <footer class="kiosk-footer">
+            <p>© 2026 YoursGifts. All rights reserved.</p>
+            <p>Made with ❤️ for Instant Roadside Customization.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Fetch active printing batches to display live savings notice
+        async function loadActiveBatches() {
+            try {
+                const response = await fetch('/api/batches');
+                const batches = await response.json();
+                const banner = document.getElementById('batchBanner');
+                const promoText = document.getElementById('batchPromoText');
+                
+                if (batches && batches.length > 0) {
+                    const batchNames = batches.map(b => b.name).join(' and ');
+                    promoText.textContent = `We are currently printing ${batchNames}. Order these color combinations to save setup fees (₹15 off per item)!`;
+                    banner.style.display = 'flex';
+                } else {
+                    banner.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Failed to load active batches:', err);
+            }
+        }
+        window.addEventListener('DOMContentLoaded', loadActiveBatches);
+    </script>
+</body>
+</html>
