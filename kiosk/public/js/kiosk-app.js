@@ -318,7 +318,7 @@ function calculatePricing() {
     const laborCost = (SETUP_PER_BATCH / batchSize) + POST_PROCESS;
     
     const productionCost = materialCost + machineCost + laborCost;
-    const finalAmount = Math.ceil(productionCost * FAILURE_BUFFER);
+    const finalAmount = 1; // Fixed to 1 rupee for testing payment and admin panel
     
     // Save to state
     state.costs = {
