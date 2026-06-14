@@ -550,12 +550,34 @@ function applyProductTypeConstraints() {
 function openUPILink(app) {
     const orderAmt = state.costs.finalAmount * state.quantity;
     const note = `KSK-${state.productType.substring(0,3).toUpperCase()}-${state.name.substring(0,5).toUpperCase()}`.replace(/\s+/g, '');
+    const params = `pa=${encodeURIComponent(UPI_VPA)}&pn=${encodeURIComponent('YoursGifts')}&am=${orderAmt.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
     
-    // Standard cross-platform UPI scheme (supported by both Android and iOS)
-    const upiUrl = `upi://pay?pa=${encodeURIComponent(UPI_VPA)}&pn=${encodeURIComponent('YoursGifts')}&am=${orderAmt.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
+    // Detect iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     
-    window.location.href = upiUrl;
+    let appUrl = `upi://pay?${params}`;
+    
+    if (app === 'gpay') {
+        if (isIOS) {
+            // iOS Google Pay scheme
+            appUrl = `gpay://upi/pay?${params}`;
+        } else {
+            // Android Google Pay scheme via Chrome Intent
+            appUrl = `intent://pay?${params}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+        }
+    } else if (app === 'phonepe') {
+        if (isIOS) {
+            // iOS PhonePe scheme
+            appUrl = `phonepe://pay?${params}`;
+        } else {
+            // Android PhonePe scheme via Chrome Intent
+            appUrl = `intent://pay?${params}#Intent;scheme=upi;package=com.phonepe.app;end`;
+        }
+    }
+    
+    window.location.href = appUrl;
 }
+
 
 
 function triggerPaymentModal() {
