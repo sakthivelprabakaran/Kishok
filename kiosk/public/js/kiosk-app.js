@@ -551,18 +551,12 @@ function openUPILink(app) {
     const orderAmt = state.costs.finalAmount * state.quantity;
     const note = `KSK-${state.productType.substring(0,3).toUpperCase()}-${state.name.substring(0,5).toUpperCase()}`.replace(/\s+/g, '');
     
-    // upi://pay?pa=sakthivelprabakaran311-1@okaxis&pn=YoursGifts&am=32.00&cu=INR&tn=KSK-KEY-SAMP
+    // Standard cross-platform UPI scheme (supported by both Android and iOS)
     const upiUrl = `upi://pay?pa=${encodeURIComponent(UPI_VPA)}&pn=${encodeURIComponent('YoursGifts')}&am=${orderAmt.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
     
-    let appUrl = upiUrl;
-    if (app === 'gpay') {
-        appUrl = `googlepay://pay?pa=${encodeURIComponent(UPI_VPA)}&pn=${encodeURIComponent('YoursGifts')}&am=${orderAmt.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
-    } else if (app === 'phonepe') {
-        appUrl = `phonepe://pay?pa=${encodeURIComponent(UPI_VPA)}&pn=${encodeURIComponent('YoursGifts')}&am=${orderAmt.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
-    }
-    
-    window.location.href = appUrl;
+    window.location.href = upiUrl;
 }
+
 
 function triggerPaymentModal() {
     const orderAmt = state.costs.finalAmount * state.quantity;
