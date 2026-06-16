@@ -95,6 +95,10 @@ const UPI_VPA = 'sakthivelprabakaran311-1@okaxis';
 // ===== STATE =====
 
 const state = {
+    currentStep: 1,
+    totalSteps: 4,
+    hasRing: true,
+    layers: '3L', // standard 3 layer customizer
     name: 'SAMPLE',
     productType: 'keychain', // default
     lang: 'en',
@@ -139,6 +143,12 @@ function cacheElements() {
     el.productTitle    = document.getElementById('productTitle');
     el.productSubtitle = document.getElementById('productSubtitle');
     
+    el.stepDots        = document.querySelectorAll('.step-dot');
+    el.stepLines       = document.querySelectorAll('.stepper-line');
+    el.stepperText     = document.getElementById('stepperTextIndicator');
+    el.btnNextStep     = document.getElementById('btnNextStep');
+    el.btnPrevStep     = document.getElementById('btnPrevStep');
+    
     el.nameInput       = document.getElementById('nameInput');
     el.charCount       = document.getElementById('charCount');
     el.singleInputContainer = document.getElementById('singleInputContainer');
@@ -165,6 +175,7 @@ function cacheElements() {
     
     el.ringPositionSection = document.getElementById('ringPositionSection');
     el.ringPosToggle   = document.getElementById('ringPosToggle');
+    el.thicknessToggle = document.getElementById('thicknessToggle');
     
     el.calcWeight      = document.getElementById('calcWeight');
     el.calcTime        = document.getElementById('calcTime');
@@ -265,7 +276,7 @@ async function update3DModel() {
             nameText,
             fontPath,
             colorsPayload,
-            '3L', // standard 3 layer customizer
+            state.layers,
             paramsPayload,
             state.productType,
             wordartFonts
@@ -302,7 +313,9 @@ function calculatePricing() {
         state.matchedBatchSize = batchSize;
         
         // Show success alert
-        el.batchPromoAlert.style.display = 'flex';
+        if (state.currentStep === 3) {
+            el.batchPromoAlert.style.display = 'flex';
+        }
         el.batchPromoAlertMsg.textContent = `Excellent! A batch of ${matchedBatch.name} is printing. Per-item setup fee drops from ₹30 to ₹${(SETUP_PER_BATCH / batchSize).toFixed(0)}!`;
     } else {
         state.matchedBatchSize = null;
@@ -343,6 +356,68 @@ function calculatePricing() {
     // Update main checkout button text
     const btnText = document.querySelector('.primary-pay-btn .btn-text');
     btnText.textContent = `PAY ₹${state.costs.finalAmount * state.quantity} VIA UPI`;
+}
+
+function renderStepper() {
+    // Hide all step elements
+    document.querySelectorAll('[data-step]').forEach(elem => {
+        elem.style.display = 'none';
+    });
+    
+    // Show current step elements
+    document.querySelectorAll(`[data-step="${state.currentStep}"]`).forEach(elem => {
+        // Special case for ringPositionSection
+        if (elem.id === 'ringPositionSection' && !state.hasRing) {
+             return;
+        }
+        // Special case for batchPromoAlert
+        if (elem.id === 'batchPromoAlert' && !state.matchedBatchSize) {
+             return;
+        }
+        elem.style.display = ''; 
+    });
+
+    // Update Progress Indicator
+    el.stepDots.forEach(dot => {
+        const dotStep = parseInt(dot.dataset.step);
+        dot.classList.toggle('active', dotStep === state.currentStep);
+        dot.classList.toggle('completed', dotStep < state.currentStep);
+    });
+    
+    el.stepLines.forEach((line, idx) => {
+        line.classList.toggle('completed', idx + 1 < state.currentStep);
+    });
+
+    // Update Text Indicator
+    const stepTitles = {
+        1: 'Step 1: Text Customization',
+        2: 'Step 2: Font Selection',
+        3: 'Step 3: Colors & Details',
+        4: 'Step 4: Review & Payment'
+    };
+    if(el.stepperText) el.stepperText.textContent = stepTitles[state.currentStep];
+
+    // Update Buttons
+    if (state.currentStep === 1) {
+        if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'hidden';
+        if(el.btnNextStep) el.btnNextStep.style.display = '';
+        if(el.btnNextStep) el.btnNextStep.textContent = 'Next: Font';
+        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'none';
+    } else if (state.currentStep === 2) {
+        if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'visible';
+        if(el.btnNextStep) el.btnNextStep.style.display = '';
+        if(el.btnNextStep) el.btnNextStep.textContent = 'Next: Colors';
+        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'none';
+    } else if (state.currentStep === 3) {
+        if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'visible';
+        if(el.btnNextStep) el.btnNextStep.style.display = '';
+        if(el.btnNextStep) el.btnNextStep.textContent = 'Next: Review & Pay';
+        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'none';
+    } else if (state.currentStep === 4) {
+        if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'visible';
+        if(el.btnNextStep) el.btnNextStep.style.display = 'none';
+        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'flex';
+    }
 }
 
 // ===== UI RENDERERS =====
@@ -471,7 +546,12 @@ function applyProductTypeConstraints() {
 
     // Show/Hide keyring position selector
     const hasRing = state.productType === 'keychain' || state.productType === 'tilekey' || state.productType === 'linked_initials' || state.productType === 'nametag' || isBordered || isFlower;
-    el.ringPositionSection.style.display = hasRing ? 'block' : 'none';
+    state.hasRing = hasRing;
+    if (state.currentStep === 3) {
+        el.ringPositionSection.style.display = hasRing ? 'block' : 'none';
+    } else {
+        el.ringPositionSection.style.display = 'none';
+    }
 
     // Toggle Color rows depending on item style
     if (isTileKey) {
@@ -601,6 +681,45 @@ function triggerPaymentModal() {
 // ===== EVENT BINDINGS =====
 
 function setupEvents() {
+    // Stepper Navigation
+    if(el.btnNextStep) {
+        el.btnNextStep.addEventListener('click', () => {
+            // Validation before proceeding
+            if (state.currentStep === 1) {
+                if (state.productType === 'wordart') {
+                    if (!el.wordartLine1.value.trim() && !el.wordartLine2.value.trim()) {
+                        alert('Please enter text for at least one line.');
+                        return;
+                    }
+                } else {
+                    if (!el.nameInput.value.trim()) {
+                        alert('Please enter some text.');
+                        return;
+                    }
+                }
+            }
+            
+            if (state.currentStep < state.totalSteps) {
+                state.currentStep++;
+                renderStepper();
+                // Scroll to top of customizer pane
+                const pane = document.querySelector('.customizer-pane');
+                if(pane) pane.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    }
+
+    if(el.btnPrevStep) {
+        el.btnPrevStep.addEventListener('click', () => {
+            if (state.currentStep > 1) {
+                state.currentStep--;
+                renderStepper();
+                const pane = document.querySelector('.customizer-pane');
+                if(pane) pane.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    }
+
     // URL Query check for product type
     const urlParams = new URLSearchParams(window.location.search);
     const typeParam = urlParams.get('type');
@@ -678,14 +797,28 @@ function setupEvents() {
     });
 
     // Ring Position choices
-    el.ringPosToggle.querySelectorAll('.pos-opt').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            el.ringPosToggle.querySelectorAll('.pos-opt').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            state.ringPosition = btn.dataset.val;
-            update3DModel();
+    if(el.ringPosToggle) {
+        el.ringPosToggle.querySelectorAll('.pos-opt').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                el.ringPosToggle.querySelectorAll('.pos-opt').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.ringPosition = btn.dataset.val;
+                update3DModel();
+            });
         });
-    });
+    }
+
+    // Thickness choices
+    if(el.thicknessToggle) {
+        el.thicknessToggle.querySelectorAll('.pos-opt').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                el.thicknessToggle.querySelectorAll('.pos-opt').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.layers = btn.dataset.val;
+                update3DModel();
+            });
+        });
+    }
 
     // Quantity modifiers
     el.qtyMinus.addEventListener('click', () => {
@@ -814,6 +947,7 @@ async function init() {
     renderColorSwatches();
     init3DViewer();
     update3DModel();
+    renderStepper();
 }
 
 window.addEventListener('DOMContentLoaded', init);

@@ -52,8 +52,20 @@
             <p id="productSubtitle" class="product-subtitle">Personalize your keychain design below</p>
         </div>
 
+        <!-- Stepper Progress -->
+        <div class="stepper-progress">
+            <div class="step-dot active" data-step="1"></div>
+            <div class="stepper-line"></div>
+            <div class="step-dot" data-step="2"></div>
+            <div class="stepper-line"></div>
+            <div class="step-dot" data-step="3"></div>
+            <div class="stepper-line"></div>
+            <div class="step-dot" data-step="4"></div>
+        </div>
+        <div class="stepper-text-indicator" id="stepperTextIndicator">Step 1: Text Customization</div>
+
         <!-- STEP 1: Text Customization -->
-        <div class="step-card">
+        <div class="step-card" data-step="1">
             <div class="step-header">
                 <span class="step-num">1</span>
                 <div>
@@ -85,7 +97,7 @@
         </div>
 
         <!-- STEP 2: Font Selection -->
-        <div class="step-card">
+        <div class="step-card" data-step="2" style="display: none;">
             <div class="step-header">
                 <span class="step-num">2</span>
                 <div>
@@ -111,7 +123,7 @@
         </div>
 
         <!-- STEP 3: Colors Selection -->
-        <div class="step-card">
+        <div class="step-card" data-step="3" style="display: none;">
             <div class="step-header">
                 <span class="step-num">3</span>
                 <div>
@@ -156,8 +168,23 @@
             </div>
         </div>
 
+        <!-- Thickness Selection -->
+        <div class="step-card" id="thicknessSection" data-step="3" style="display: none;">
+            <div class="step-header">
+                <span class="step-num">🥪</span>
+                <div>
+                    <h3>Thickness</h3>
+                    <p class="step-desc">Choose the layer thickness</p>
+                </div>
+            </div>
+            <div class="ring-pos-toggle" id="thicknessToggle">
+                <button class="pos-opt" data-val="2L">2-Layer (Standard)</button>
+                <button class="pos-opt active" data-val="3L">3-Layer (Premium)</button>
+            </div>
+        </div>
+
         <!-- Ring Position Selection (if applicable) -->
-        <div class="step-card" id="ringPositionSection">
+        <div class="step-card" id="ringPositionSection" data-step="3" style="display: none;">
             <div class="step-header">
                 <span class="step-num">⚙️</span>
                 <div>
@@ -172,7 +199,7 @@
         </div>
 
         <!-- Smart Batch Suggestion Alert -->
-        <div class="batch-suggestion-alert" id="batchPromoAlert" style="display: none;">
+        <div class="batch-suggestion-alert" id="batchPromoAlert" data-step="3" style="display: none;">
             <div class="alert-icon">🔥</div>
             <div class="alert-content">
                 <span class="alert-title">Color Batch Discount Applied!</span>
@@ -181,7 +208,7 @@
         </div>
 
         <!-- STEP 4: Live Cost Breakdown -->
-        <div class="step-card price-breakdown-card">
+        <div class="step-card price-breakdown-card" data-step="4" style="display: none;">
             <h3 class="breakdown-title">💰 Live Kiosk Cost Breakdown</h3>
             <div class="price-row">
                 <span>Material Cost (<span id="calcWeight">0.0</span>g PLA)</span>
@@ -206,7 +233,7 @@
         </div>
 
         <!-- STEP 5: Quantity & Customer Info -->
-        <div class="step-card">
+        <div class="step-card" data-step="4" style="display: none;">
             <div class="step-header">
                 <span class="step-num">4</span>
                 <div>
@@ -236,11 +263,15 @@
             </div>
         </div>
 
-        <!-- Submit & Pay Button -->
-        <button class="primary-pay-btn" id="btnPlaceOrder">
-            <span class="btn-text">PAY ₹0 VIA UPI</span>
-            <span class="btn-subtext">Click to pay & submit order</span>
-        </button>
+        <!-- Fixed Bottom Navigation -->
+        <div class="stepper-nav">
+            <button class="stepper-btn-back" id="btnPrevStep" style="visibility: hidden;">Back</button>
+            <button class="stepper-btn-next" id="btnNextStep">Next: Font</button>
+            <button class="primary-pay-btn" id="btnPlaceOrder" style="display: none;">
+                <span class="btn-text">PAY ₹0 VIA UPI</span>
+                <span class="btn-subtext">Click to pay & submit order</span>
+            </button>
+        </div>
     </section>
 
     <!-- UPI PAYMENT MODAL -->

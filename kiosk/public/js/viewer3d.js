@@ -225,7 +225,7 @@ export class KeychainViewer {
         this.renderer = new THREE.WebGLRenderer({
             antialias: true,
             preserveDrawingBuffer: true,   // needed for PNG export
-            alpha: false,
+            alpha: true,
         });
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -271,23 +271,9 @@ export class KeychainViewer {
         this.shadowPlane.position.y = -20;
         this.shadowPlane.receiveShadow = true;
         this.scene.add(this.shadowPlane);
-
-        // Theme Support (Clean neutral studio backdrop)
-        const isLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-        if (isLight) {
-            this.scene.background = new THREE.Color(0xf5f5f7);
-        } else {
-            this.scene.background = new THREE.Color(0x12111a);
-        }
-
-        window.addEventListener('theme-changed', (e) => {
-            const theme = e.detail.theme;
-            if (theme === 'light') {
-                this.scene.background = new THREE.Color(0xf5f5f7);
-            } else {
-                this.scene.background = new THREE.Color(0x12111a);
-            }
-        });
+        
+        // Background is handled via CSS (transparent canvas)
+        this.scene.background = null;
 
         // Controls
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);

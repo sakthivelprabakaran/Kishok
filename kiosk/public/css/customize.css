@@ -14,7 +14,7 @@ body {
     width: 100%;
     height: 45vh;
     min-height: 300px;
-    background: #0f0e15;
+    background: var(--bg-main);
     z-index: 10;
     border-bottom: 1px solid var(--border-color);
 }
@@ -129,10 +129,108 @@ body {
 /* Customizer Panel */
 .customizer-pane {
     flex-grow: 1;
-    padding: 1.5rem 1rem 3rem 1rem;
+    padding: 1.5rem 1rem 6rem 1rem;
     max-width: 500px;
     margin: 0 auto;
     width: 100%;
+}
+
+/* Stepper Progress Styles */
+.stepper-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    padding: 0 0.5rem;
+}
+
+.step-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--border-color);
+    transition: var(--transition-smooth);
+}
+
+.step-dot.active {
+    background: var(--primary);
+    box-shadow: 0 0 8px var(--primary-glow);
+    transform: scale(1.2);
+}
+
+.step-dot.completed {
+    background: var(--primary);
+}
+
+.stepper-line {
+    flex-grow: 1;
+    height: 2px;
+    background: var(--border-color);
+    margin: 0 8px;
+    transition: var(--transition-smooth);
+}
+
+.stepper-line.completed {
+    background: var(--primary);
+}
+
+.stepper-text-indicator {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    padding: 0.25rem 0;
+}
+
+/* Stepper Navigation */
+.stepper-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-color);
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    z-index: 50;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+}
+
+.stepper-btn-back {
+    padding: 0.85rem 1.25rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-main);
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.stepper-btn-back:active {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.stepper-btn-next {
+    flex-grow: 1;
+    padding: 0.85rem 1.25rem;
+    background: var(--primary-gradient);
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px var(--primary-glow);
+    transition: var(--transition-smooth);
+}
+
+.stepper-btn-next:active {
+    transform: scale(0.98);
 }
 
 .panel-header {
@@ -819,4 +917,17 @@ body {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* Responsive Fixes for 3D Viewer */
+@media (max-width: 768px) {
+    .visualizer-overlay-controls {
+        bottom: 0.75rem;
+        right: 50%;
+        transform: translateX(50%);
+        width: max-content;
+    }
+    .drag-hint {
+        bottom: 3.5rem;
+    }
 }
