@@ -6,7 +6,7 @@
     <title>Customize Your Keychain — YoursGifts Studio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght;500;600;700&family=Space+Mono:wght;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/kiosk.css">
     <link rel="stylesheet" href="css/customize.css">
 </head>
@@ -31,11 +31,11 @@
 
             <!-- Overlays -->
             <div class="visualizer-overlay-controls">
-                <button class="visualizer-btn active" id="autoRotateToggle">
-                    <span id="rotateIcon">🔄</span> Auto-Rotate
+                <button class="visualizer-btn active" id="autoRotateToggle" aria-label="Toggle auto-rotate" aria-pressed="true">
+                    <span id="rotateIcon" aria-hidden="true">🔄</span> Auto-Rotate
                 </button>
-                <button class="visualizer-btn" id="toggleFDM">
-                    🖨️ Print Texture
+                <button class="visualizer-btn" id="toggleFDM" aria-label="Toggle print texture finish">
+                    <span aria-hidden="true">🖨️</span> Print Texture
                 </button>
             </div>
             
@@ -277,7 +277,7 @@
     <!-- UPI PAYMENT MODAL -->
     <div class="payment-modal-overlay" id="paymentModal">
         <div class="payment-modal">
-            <button class="close-modal-btn" id="closePaymentModal">&times;</button>
+            <button class="close-modal-btn" id="closePaymentModal" aria-label="Close payment dialog">&times;</button>
             <div class="modal-header">
                 <h3>Scan or Open UPI to Pay</h3>
                 <p>Complete payment of <strong id="modalPayAmt">₹0</strong> to start printing</p>

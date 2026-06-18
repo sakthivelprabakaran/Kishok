@@ -7,7 +7,7 @@
     <meta name="description" content="Design and customize your premium 3D printed keychains, nameplates, word art, and decor. Small Gifts, Big Meanings — by YoursGifts.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="admin-panel.css">
 </head>
@@ -28,25 +28,31 @@
 
                 <!-- Floating overlay controls (minimalist) -->
                 <div class="visualizer-overlay-controls">
-                    <button class="visualizer-btn" id="autoRotateToggle" title="Toggle Auto-Rotate">
-                        <span id="rotateIcon">🔄</span> Auto-Rotate
+                    <button class="visualizer-btn" id="autoRotateToggle" title="Toggle Auto-Rotate" aria-label="Toggle auto-rotate" aria-pressed="true">
+                        <span id="rotateIcon" aria-hidden="true">🔄</span> Auto-Rotate
                     </button>
-                    <button class="visualizer-btn" id="downloadPNG" title="Download High-Res Screenshot">
-                        📷 Capture 4K
+                    <button class="visualizer-btn" id="downloadPNG" title="Download High-Res Screenshot" aria-label="Download high-resolution screenshot">
+                        <span aria-hidden="true">📷</span> Capture 4K
                     </button>
-                    <button class="visualizer-btn" id="downloadSVG" title="Download Flat SVG Design">
-                        📐 Vector SVG
+                    <button class="visualizer-btn" id="downloadSVG" title="Download Flat SVG Design" aria-label="Download flat SVG design">
+                        <span aria-hidden="true">📐</span> Vector SVG
                     </button>
-                    <button class="visualizer-btn" id="toggleFDM" title="Toggle Printed Finish / CAD Render">
-                        🖨️ Show Print Finish
+                    <button class="visualizer-btn" id="toggleFDM" title="Toggle Printed Finish / CAD Render" aria-label="Toggle printed finish or CAD render">
+                        <span aria-hidden="true">🖨️</span> Show Print Finish
                     </button>
-                    <button class="visualizer-btn admin-btn" id="downloadSTL" style="display:none;" title="Download STL (Admin)">
-                        🖨️ Export STL
+                    <button class="visualizer-btn admin-btn" id="downloadSTL" style="display:none;" title="Download STL (Admin)" aria-label="Export STL file (admin)">
+                        <span aria-hidden="true">🖨️</span> Export STL
                     </button>
                 </div>
 
+                <!-- Mobile-only: expand the 3D preview -->
+                <button class="preview-expand-btn" id="previewExpandBtn" type="button" aria-label="Expand 3D preview" aria-pressed="false">
+                    <span aria-hidden="true">⤢</span> Expand preview
+                </button>
+
                 <div class="visualizer-instructions">
-                    <span>👈 Drag to rotate · Pinch/Scroll to zoom · Right-click to pan 👉</span>
+                    <span class="instructions-desktop">👆 Drag to rotate · Scroll to zoom · Right-click to pan</span>
+                    <span class="instructions-touch">👆 Drag to rotate · Pinch to zoom · Two fingers to pan</span>
                 </div>
             </div>
         </section>
@@ -317,6 +323,12 @@
                                         🛒 Add to Cart
                                     </button>
                                 </div>
+
+                                <div class="checkout-trust" aria-label="Order reassurances">
+                                    <span><span aria-hidden="true">🚚</span> Ships in 3–5 days</span>
+                                    <span><span aria-hidden="true">🔒</span> Secure WhatsApp order</span>
+                                    <span><span aria-hidden="true">↩️</span> Easy reprint on defects</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -496,6 +508,22 @@
             if (!viewer) return;
             viewer.exportSTL(e.detail.filename);
         });
+
+        // Mobile preview expand/collapse
+        var previewExpandBtn = document.getElementById('previewExpandBtn');
+        var visualizerPane   = document.querySelector('.visualizer-pane');
+        if (previewExpandBtn && visualizerPane) {
+            previewExpandBtn.addEventListener('click', function () {
+                var expanded = visualizerPane.classList.toggle('expanded');
+                previewExpandBtn.setAttribute('aria-pressed', String(expanded));
+                previewExpandBtn.innerHTML = expanded
+                    ? '<span aria-hidden="true">⤡</span> Collapse'
+                    : '<span aria-hidden="true">⤢</span> Expand preview';
+                // nudge the renderer to resize after the height transition
+                window.dispatchEvent(new Event('resize'));
+                setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 320);
+            });
+        }
 
         // Initial setup trigger
         document.addEventListener('DOMContentLoaded', () => {
