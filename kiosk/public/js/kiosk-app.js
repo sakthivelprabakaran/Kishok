@@ -119,7 +119,8 @@ const state = {
     wordartActiveSlot: 'top',
     
     quantity: 1,
-    ringPosition: 'left',
+    ringPosition: 'left',     // which side the ring attaches (kept 'left')
+    ringAnchor: 'top',        // vertical placement: 'top' corner | 'center'
     showFDMTexture: false,
     
     // Dynamic values from viewer
@@ -257,6 +258,7 @@ async function update3DModel() {
     
     const paramsPayload = {
         ringPosition: state.ringPosition,
+        ring: { anchor: state.ringAnchor || 'top' },
         wave_mode: "wave",
         wave_amplitude: 5.0,
         wave_cycles: 1.0,
@@ -802,7 +804,7 @@ function setupEvents() {
             btn.addEventListener('click', (e) => {
                 el.ringPosToggle.querySelectorAll('.pos-opt').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                state.ringPosition = btn.dataset.val;
+                state.ringAnchor = btn.dataset.val;   // 'top' | 'center'
                 update3DModel();
             });
         });
