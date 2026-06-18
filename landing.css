@@ -637,9 +637,8 @@ footer { background: var(--ink); color: var(--paper); padding: 3rem clamp(1.25re
     .nav-links { display: none; }
 }
 
-/* Phone: REEL-FIRST, but keep the whole studio device (preview + dots +
-   mock UI) together as ONE cohesive block on top, then the condensed copy
-   + CTA below it. The device stays intact — only its order moves. */
+/* Phone: a tight, world-class hook + CTA up top (with room below the navbar),
+   THEN the cohesive studio device (preview + dots + mock UI) as one block. */
 @media (max-width: 640px) {
     .nav-links { display: none; }
 
@@ -648,21 +647,21 @@ footer { background: var(--ink); color: var(--paper); padding: 3rem clamp(1.25re
         flex-direction: column;
         min-height: auto;
         text-align: center;
-        gap: 1.3rem;
-        padding: 4.8rem 1.1rem 2rem;   /* clears the fixed navbar */
+        gap: 1.4rem;
+        padding: 5.5rem 1.1rem 2.5rem;   /* generous clearance under the fixed navbar */
     }
-    /* whole device first, copy second — device stays one unit */
-    .demo-device { order: 1; max-width: 480px; margin: 0 auto; width: 100%; gap: .8rem; }
-    .hero-copy   { order: 2; max-width: none; margin: 0 auto; }
+    /* compact copy FIRST, device SECOND, both centred */
+    .hero-copy   { order: 1; max-width: none; margin: 0 auto; }
+    .demo-device { order: 2; max-width: 480px; margin: 0 auto; width: 100%; gap: .8rem; }
 
-    .demo-preview { height: 42vh; min-height: 260px; }
+    .demo-preview { height: 40vh; min-height: 250px; }
 
-    /* condense the copy so the CTA stays reachable */
-    .hero-copy .hero-badge { display: none; }   /* the reel's own caption covers this */
-    .t3d { font-size: clamp(1.9rem, 8vw, 2.5rem); margin-bottom: .6rem;
+    /* condense the copy: keep the live badge (it sets the scene) but tighten everything */
+    .hero-copy .hero-badge { margin-bottom: 1rem; font-size: .66rem; padding: 6px 12px; }
+    .t3d { font-size: clamp(2rem, 9vw, 2.8rem); margin-bottom: .7rem;
            text-shadow: 1px 1px 0 #d2c2a8, 2px 2px 0 #c0ad8d, 3px 3px 8px rgba(26,23,20,.35); }
-    .hero-subtitle { font-size: .96rem; margin-bottom: 1rem; }
-    .hero-actions { justify-content: center; }
+    .hero-subtitle { font-size: .95rem; margin-bottom: 1.2rem; }
+    .hero-actions { justify-content: center; flex-wrap: wrap; gap: .7rem; }
     .scroll-cue { display: none; }
 }
 @media (max-width: 560px) {
