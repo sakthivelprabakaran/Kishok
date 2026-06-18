@@ -413,7 +413,7 @@ textarea.custom-input { resize: none; line-height: 1.4; overflow: hidden; }
 
 /* ========== RING POSITION (Step 5) ========== */
 .ring-position-toggle {
-    display: grid; grid-template-columns: repeat(3,1fr); gap: 6px;
+    display: grid; grid-template-columns: repeat(2,1fr); gap: 6px;
     background: var(--paper);
     border: 1.5px solid var(--ink);
     border-radius: var(--r-md); padding: 5px;

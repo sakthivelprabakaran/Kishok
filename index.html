@@ -30,38 +30,43 @@
         </div>
     </nav>
 
-    <!-- ============ HERO: THE PRINT BED (live CSS-3D stage) ============ -->
+    <!-- ============ HERO: SELF-PLAYING DEMO REEL ============ -->
     <section class="stage" id="stage">
-        <div class="stage-perspective">
-            <div class="scene" id="scene">
-                <!-- Perspective print-bed floor -->
-                <div class="print-bed" aria-hidden="true">
-                    <div class="bed-grid"></div>
-                    <div class="bed-glow"></div>
-                </div>
-
-                <!-- The keychain — print layers injected by landing-3d.js -->
-                <div class="kc-rig" id="kcRig">
-                    <div class="keychain" id="keychain" data-layers="26" aria-hidden="true"></div>
-                    <!-- Travelling print nozzle line -->
-                    <div class="print-head" id="printHead" aria-hidden="true">
-                        <span class="nozzle"></span>
-                    </div>
-                    <div class="kc-shadow" aria-hidden="true"></div>
-                </div>
+        <!-- Left: copy -->
+        <div class="hero-copy">
+            <span class="hero-badge"><span class="dot"></span> LIVE 3D STUDIO · PLAYING A DEMO</span>
+            <h1 class="hero-title t3d">Watch your idea<br>become <span class="hl">3D.</span></h1>
+            <p class="hero-subtitle">This is the real customizer, playing itself. Type a name, pick a font, choose colours — and see it built in 3D before you pay a rupee.</p>
+            <div class="hero-actions">
+                <a href="customize.html" class="btn-primary">Make your own →</a>
+                <a href="#products" class="btn-secondary">View Products</a>
             </div>
         </div>
 
-        <!-- Overlaid copy (kept in normal flow for a11y/SEO) -->
-        <div class="hero-copy">
-            <span class="hero-badge"><span class="dot"></span> NOW PRINTING · LAYER <span id="layerTick">01</span>/26</span>
-            <h1 class="hero-title t3d">Bring ideas<br>to life in <span class="hl">3D.</span></h1>
-            <p class="hero-subtitle">Watch your design rise off the print bed — layer by layer — in real, rotatable 3D before you ever pay a rupee.</p>
-            <div class="hero-actions">
-                <a href="customize.html" class="btn-primary">Start Designing</a>
-                <a href="#products" class="btn-secondary">View Products</a>
+        <!-- Right: the auto-playing demo device -->
+        <div class="demo-device">
+            <!-- REAL 3D preview (Three.js KeychainViewer) -->
+            <div class="demo-preview">
+                <div class="demo-canvas" id="demoCanvas" aria-hidden="true"></div>
+                <div class="demo-loading" id="demoLoading"><span class="loader-spinner"></span></div>
+                <div class="demo-caption" id="demoCaption">Live 3D Preview</div>
             </div>
-            <p class="hero-hint" id="heroHint">↑ move your cursor — the bed tilts with you</p>
+
+            <!-- mini mock customizer that animates itself -->
+            <div class="demo-ui" aria-hidden="true">
+                <div class="mini-step" id="miniStepText">
+                    <span class="mini-label">Your text</span>
+                    <div class="mini-field"><span id="mockText"></span><i class="caret"></i></div>
+                </div>
+                <div class="mini-step">
+                    <span class="mini-label">Font</span>
+                    <div class="mini-chips" id="mockFonts"></div>
+                </div>
+                <div class="mini-step">
+                    <span class="mini-label">Colours</span>
+                    <div class="mini-swatches" id="mockColors"></div>
+                </div>
+            </div>
         </div>
 
         <div class="scroll-cue" aria-hidden="true"><span></span></div>
@@ -168,6 +173,17 @@
         </div>
     </footer>
 
-    <script src="landing-3d.js" defer></script>
+    <!-- opentype.js (font parsing) + clipper (boolean ops), same as the customizer -->
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clipper-lib@6.4.2/clipper.min.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="landing-3d.js"></script>
 </body>
 </html>

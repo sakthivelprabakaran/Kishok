@@ -1,153 +1,128 @@
 /* =========================================================
-   YOURSGIFTS — "The Print Bed"
-   Live CSS-3D landing engine. No dependencies, no WebGL.
-   Builds a layered keychain in real 3D space, prints it
-   layer-by-layer on load, then responds to cursor + scroll.
-   Fully gated behind prefers-reduced-motion.
+   YOURSGIFTS — Landing demo reel (REAL 3D)
+   Loads the actual KeychainViewer (Three.js) used by the
+   customizer and auto-plays sample designs through it, while
+   a mock customizer UI animates alongside. Honours
+   prefers-reduced-motion (renders one static design, no loop).
    ========================================================= */
+import { KeychainViewer } from './viewer3d.js?v=poc4';
+
 (function () {
   'use strict';
 
   var reduceMotion = window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  var keychain = document.getElementById('keychain');
-  var kcRig    = document.getElementById('kcRig');
-  var scene    = document.getElementById('scene');
-  var stage    = document.getElementById('stage');
-  var printHead= document.getElementById('printHead');
-  var layerTick= document.getElementById('layerTick');
-  var heroHint = document.getElementById('heroHint');
+  var canvas    = document.getElementById('demoCanvas');
+  var loading   = document.getElementById('demoLoading');
+  var mockText  = document.getElementById('mockText');
+  var mockFonts = document.getElementById('mockFonts');
+  var mockColors= document.getElementById('mockColors');
+  var caption   = document.getElementById('demoCaption');
+  if (!canvas) return;
 
-  if (!keychain) return;
+  /* ---- sample designs the reel cycles through ----
+     fontPath/label mirror the customizer's FONTS catalog.
+     colors use {base, font, outline} like viewer.update expects. */
+  // Shuttle/space palette accents across the reel.
+  var SCENES = [
+    // 1. PRIYA — fresh combo (teal base, white text, gold outline)
+    { text: 'PRIYA',  fontPath: 'Fonts/Anton-Regular.ttf',      fontName: 'Anton',         label: 'Classic Keychain', colors: { base:'#0FB9B1', font:'#FFFFFF', outline:'#FFD700' }, layers:'3L', product:'keychain' },
+    // 2. Maya — orange base, white text
+    { text: 'Maya',   fontPath: 'Fonts/Lobster-Regular.ttf',    fontName: 'Lobster',       label: 'Script Keychain',  colors: { base:'#FF8A1E', font:'#FFFFFF', outline:'#1A1714' }, layers:'2L', product:'keychain' },
+    // 3. NEO — pink base, white text
+    { text: 'NEO',    fontPath: 'Fonts/Orbitron-Regular.ttf',   fontName: 'Orbitron',      label: 'Retro Tech',       colors: { base:'#FF2D78', font:'#FFFFFF', outline:'#2B2D7F' }, layers:'3L', product:'keychain' },
+    // 4. POC — LOVE Series (top line + locked "LOVE" bottom + red heart), Sunday Chillin
+    { text: 'Anjali', fontPath: 'Fonts/Sunday Chillin.ttf',     fontName: 'Sunday Chillin', label: 'LOVE Series',     colors: { base:'#2B2D7F', font:'#FFD700', outline:'#FFFFFF', line2:'#FF2D78' }, layers:'3L', product:'loveseries' },
+    // 5. POC — Letter Tiles (strip / letter / tile colours)
+    { text: 'GO',     fontPath: 'Fonts/BagelFatOne-Regular.ttf',fontName: 'Bagel Fat One', label: 'Letter Tiles',     colors: { base:'#2B2D7F', font:'#FFFFFF', outline:'#FFD700', line2:'#0FB9B1' }, layers:'3L', product:'tilekey' },
+    // 6. POC — Word Art, 2 lines: top=Retrow Mentho, bottom=Rock Boys
+    { text: 'Vivi\nSAKTHI', fontPath: 'Fonts/Retrow Mentho.ttf', fontName: 'Word Art',     label: 'Word Art (2-line)', colors: { base:'#0FB9B1', font:'#FF2D78', outline:'#1A1714', line2:'#FFD700' }, layers:'3L', product:'wordart',
+      wordartFonts: { top: 'Fonts/Retrow Mentho.ttf', bottom: 'Fonts/Rock Boys.ttf' } }
+  ];
 
-  var LAYERS = parseInt(keychain.getAttribute('data-layers'), 10) || 26;
-  var LAYER_H = 4;            // px of translateZ per layer (depth)
-  var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+  /* ---- build the mock UI chips/swatches once ---- */
+  SCENES.forEach(function (s, idx) {
+    var chip = document.createElement('span');
+    chip.className = 'mini-chip';
+    chip.textContent = s.fontName;
+    chip.dataset.idx = idx;
+    mockFonts.appendChild(chip);
+  });
+  // Swatch row mirrors each scene's base colour (so the active one always lights up).
+  SCENES.forEach(function (s, idx) {
+    var sw = document.createElement('span');
+    sw.className = 'mini-swatch';
+    sw.style.background = s.colors.base;
+    sw.dataset.idx = idx;
+    mockColors.appendChild(sw);
+  });
+  var chipEls   = mockFonts.querySelectorAll('.mini-chip');
+  var swatchEls = mockColors.querySelectorAll('.mini-swatch');
 
-  /* ---------- 1. BUILD: stack N extruded layers ---------- */
-  // Each .kc-layer is a flat keychain silhouette pushed back in Z.
-  // Stacked, they read as one solid extruded object that shows its
-  // sides when the rig rotates.
-  var frag = document.createDocumentFragment();
-  for (var i = 0; i < LAYERS; i++) {
-    var layer = document.createElement('div');
-    layer.className = 'kc-layer';
-    layer.style.transform = 'translateZ(' + (i * LAYER_H) + 'px)';
-    // top + bottom layers are the visible "faces"; tint mids slightly
-    // darker so the extrusion reads with depth.
-    var t = i / (LAYERS - 1);
-    layer.style.setProperty('--depth', t.toFixed(3));
-    if (i === LAYERS - 1) layer.classList.add('kc-face-top');
-    frag.appendChild(layer);
+  function setActive(list, idx) {
+    list.forEach(function (n, i) { n.classList.toggle('active', i === idx); });
   }
-  keychain.appendChild(frag);
-  var layerEls = keychain.querySelectorAll('.kc-layer');
-
-  /* ---------- 2. PRINT: reveal layers bottom→top ---------- */
-  function instantShow() {
-    for (var i = 0; i < layerEls.length; i++) layerEls[i].classList.add('printed');
-    if (layerTick) layerTick.textContent = pad(LAYERS);
-    if (printHead) printHead.style.display = 'none';
-    keychain.classList.add('built');
-  }
-
-  function printSequence() {
-    var i = 0;
-    var stepMs = 70;
-    (function step() {
-      if (i >= layerEls.length) {
-        if (printHead) printHead.classList.add('done');
-        keychain.classList.add('built');
-        return;
-      }
-      layerEls[i].classList.add('printed');
-      if (layerTick) layerTick.textContent = pad(i + 1);
-      // move the nozzle line up with the current layer height
-      if (printHead) {
-        printHead.style.bottom = (i * LAYER_H) + 'px';
-      }
-      i++;
-      setTimeout(step, stepMs);
-    })();
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  async function typeInto(el, str) {
+    el.textContent = '';
+    for (var i = 0; i < str.length; i++) { el.textContent += str[i]; await wait(85); }
   }
 
-  if (reduceMotion) {
-    instantShow();
-  } else {
-    // small delay so fonts/layout settle, then print
-    setTimeout(printSequence, 350);
+  /* ---- instantiate the real viewer ---- */
+  var viewer;
+  try {
+    viewer = new KeychainViewer(canvas);
+  } catch (e) {
+    console.error('Demo viewer failed to start:', e);
+    if (loading) loading.textContent = '3D preview unavailable';
+    return;
   }
 
-  /* ---------- 3. INTERACT: cursor tilt + scroll rotate ---------- */
-  if (!reduceMotion) {
-    var targetRX = -18, targetRY = -22;   // resting pose
-    var curRX = -55, curRY = 0;            // start laid-flatter, eases in
-    var spin = 0;                          // continuous idle spin
-    var pointerRX = 0, pointerRY = 0;      // cursor contribution
-    var scrollRX = 0;
-
-    // pointer parallax (desktop)
-    window.addEventListener('pointermove', function (e) {
-      var cx = window.innerWidth / 2;
-      var cy = window.innerHeight / 2;
-      pointerRY = ((e.clientX - cx) / cx) * 16;   // left/right
-      pointerRX = ((e.clientY - cy) / cy) * -10;  // up/down
-      if (heroHint) heroHint.style.opacity = '0';
-    }, { passive: true });
-
-    // device tilt (mobile) — best-effort, no permission nag
-    window.addEventListener('deviceorientation', function (e) {
-      if (e.gamma == null) return;
-      pointerRY = Math.max(-20, Math.min(20, e.gamma));
-      pointerRX = Math.max(-14, Math.min(14, (e.beta || 0) - 45)) * -0.4;
-    }, { passive: true });
-
-    // scroll rotates the piece as it leaves the stage
-    window.addEventListener('scroll', function () {
-      var h = stage ? stage.offsetHeight : window.innerHeight;
-      var p = Math.min(1, Math.max(0, window.scrollY / h));
-      scrollRX = p * 40;
-      if (kcRig) kcRig.style.opacity = String(1 - p * 0.85);
-    }, { passive: true });
-
-    // idle auto-spin + eased follow — one rAF loop
-    var raf = function (fn) {
-      return (window.requestAnimationFrame || function (cb) { return setTimeout(cb, 16); })(fn);
-    };
-    (function loop() {
-      spin += 0.18;
-      var wantRY = targetRY + pointerRY + Math.sin(spin * 0.02) * 14;
-      var wantRX = targetRX + pointerRX + scrollRX;
-      // critically-damped-ish easing
-      curRY += (wantRY - curRY) * 0.06;
-      curRX += (wantRX - curRX) * 0.06;
-      if (kcRig) {
-        kcRig.style.transform =
-          'rotateX(' + curRX.toFixed(2) + 'deg) rotateY(' + curRY.toFixed(2) + 'deg)';
-      }
-      raf(loop);
-    })();
-  } else {
-    // static, readable pose
-    if (kcRig) kcRig.style.transform = 'rotateX(-20deg) rotateY(-24deg)';
+  async function build(scene) {
+    return viewer.update(
+      scene.text, scene.fontPath, scene.colors,
+      scene.layers, {}, scene.product, scene.wordartFonts || null
+    );
   }
 
-  /* ---------- 4. Card tilt micro-interaction ---------- */
-  if (!reduceMotion) {
-    var tiltCards = document.querySelectorAll('[data-tilt]');
-    tiltCards.forEach(function (card) {
-      card.addEventListener('pointermove', function (e) {
-        var r = card.getBoundingClientRect();
-        var px = (e.clientX - r.left) / r.width - 0.5;
-        var py = (e.clientY - r.top) / r.height - 0.5;
-        card.style.transform =
-          'perspective(700px) rotateY(' + (px * 10).toFixed(2) + 'deg) rotateX(' +
-          (-py * 10).toFixed(2) + 'deg) translateZ(8px)';
-      });
-      card.addEventListener('pointerleave', function () {
-        card.style.transform = '';
-      });
-    });
+  // Friendly text for the mock input (no raw "\n"; show LOVE's locked line).
+  function displayText(scene) {
+    if (scene.product === 'loveseries') return scene.text + ' ❤ LOVE';
+    return scene.text.replace('\n', ' · ');
   }
+
+  async function showScene(scene, idx, animate) {
+    if (animate) {
+      if (caption) caption.textContent = 'Building…';
+      await typeInto(mockText, displayText(scene));
+    } else {
+      mockText.textContent = displayText(scene);
+    }
+    setActive(chipEls, idx);
+    setActive(swatchEls, idx);
+    try { await build(scene); } catch (e) { console.error('build error', e); }
+    if (loading) loading.style.display = 'none';
+    if (caption) caption.textContent = scene.label;
+  }
+
+  (async function run() {
+    // wait for opentype + a frame so the canvas has size
+    await wait(60);
+    if (reduceMotion) {
+      await showScene(SCENES[0], 0, false);
+      viewer.toggleAutoRotate && viewer.toggleAutoRotate(); // off → static
+      return;
+    }
+    var idx = 0;
+    // first build (with typing)
+    await showScene(SCENES[0], 0, true);
+    await wait(2600);
+    // loop the rest forever
+    while (true) {
+      idx = (idx + 1) % SCENES.length;
+      await showScene(SCENES[idx], idx, true);
+      await wait(2600);
+    }
+  })();
 })();

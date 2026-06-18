@@ -459,200 +459,36 @@ footer { background: var(--ink); color: var(--paper); padding: 3rem clamp(1.25re
 @keyframes pop-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes underline-grow { to { transform: rotate(-1deg) scaleX(1); } }
 
+
 /* =========================================================
-   THE PRINT BED — live CSS-3D hero stage
+   HERO — SELF-PLAYING DEMO REEL
+   Left: copy. Right: a mock customizer that animates itself
+   beside a layered CSS-3D keychain preview.
    ========================================================= */
 .stage {
     position: relative;
     min-height: 100vh;
     display: grid;
-    place-items: center;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 4rem);
+    padding: clamp(7rem, 12vh, 9rem) clamp(1.5rem, 5vw, 4rem) 4rem;
+    max-width: 1440px;
+    margin: 0 auto;
     overflow: hidden;
-    background:
-        radial-gradient(120% 90% at 50% 8%, var(--paper) 0%, var(--paper-2) 55%, #E7DAC6 100%);
-    isolation: isolate;
 }
 
-/* perspective wrapper — the camera */
-.stage-perspective {
-    position: absolute;
-    inset: 0;
-    perspective: 1300px;
-    perspective-origin: 50% 42%;
-    z-index: 0;
-}
-
-.scene {
-    position: absolute;
-    left: 50%; top: 56%;
-    width: 0; height: 0;
-    transform-style: preserve-3d;
-    transform: translate(-50%, -50%) rotateX(58deg);
-}
-
-/* ---- Print bed floor ---- */
-.print-bed {
-    position: absolute;
-    left: 50%; top: 50%;
-    width: 760px; height: 760px;
-    transform: translate(-50%, -50%);
-    transform-style: preserve-3d;
-}
-.bed-grid {
-    position: absolute; inset: 0;
-    background-image:
-        linear-gradient(var(--cobalt-wash) 1px, transparent 1px),
-        linear-gradient(90deg, var(--cobalt-wash) 1px, transparent 1px),
-        linear-gradient(rgba(26,23,20,.10) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(26,23,20,.10) 1px, transparent 1px);
-    background-size: 152px 152px, 152px 152px, 38px 38px, 38px 38px;
-    border: 2px solid var(--ink);
-    border-radius: 12px;
-    box-shadow: inset 0 0 120px rgba(255,77,46,.08), var(--sh-lg);
-    background-color: var(--card);
-    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 55%, transparent 78%);
-    mask-image: radial-gradient(circle at 50% 50%, #000 55%, transparent 78%);
-}
-.bed-glow {
-    position: absolute; left: 50%; top: 50%;
-    width: 300px; height: 300px; transform: translate(-50%,-50%);
-    background: radial-gradient(circle, var(--vermilion-wash) 0%, transparent 70%);
-    border-radius: 50%;
-    animation: bedPulse 4s var(--ease) infinite;
-}
-@keyframes bedPulse { 0%,100% { opacity:.5; } 50% { opacity:1; } }
-
-/* ---- The rig that holds + rotates the keychain ---- */
-.kc-rig {
-    position: absolute;
-    left: 50%; top: 50%;
-    width: 0; height: 0;
-    transform-style: preserve-3d;
-    transform: rotateX(-20deg) rotateY(-24deg);
-    will-change: transform;
-}
-
-/* ---- Layered keychain: stack of extruded silhouettes ---- */
-.keychain {
-    position: absolute;
-    left: 50%; top: 50%;
-    width: 300px; height: 150px;
-    transform: translate(-50%, -50%);
-    transform-style: preserve-3d;
-}
-/* Each printed layer = the keychain silhouette via two radial holes
-   (the ring hole) cut from a rounded bar using mask. */
-.kc-layer {
-    position: absolute; inset: 0;
-    border-radius: 78px;
-    /* vermilion→cobalt filament gradient, darkened by depth */
-    background:
-        linear-gradient(135deg, var(--vermilion) 0%, #FF8A4D 45%, var(--cobalt) 120%);
-    filter: brightness(calc(0.74 + var(--depth, 0) * 0.32));
-    /* punch the keyring hole on the left */
-    -webkit-mask:
-        radial-gradient(circle 17px at 46px 75px, transparent 0 17px, #000 18px);
-    mask:
-        radial-gradient(circle 17px at 46px 75px, transparent 0 17px, #000 18px);
-    box-shadow: 0 0 1px rgba(0,0,0,.3);
-    opacity: 0;
-    transform-origin: center;
-}
-/* layer appears (the "print") */
-.kc-layer.printed {
-    opacity: 1;
-    animation: layerDrop .22s var(--ease-spring) both;
-}
-@keyframes layerDrop {
-    from { opacity: 0; transform: translateZ(var(--z,0)) scale(1.18); filter: brightness(2); }
-    to   { opacity: 1; }
-}
-/* top face gets a subtle spec sheen + the embossed initial */
-.kc-face-top {
-    background:
-        radial-gradient(circle at 38% 28%, rgba(255,255,255,.5), transparent 45%),
-        linear-gradient(135deg, var(--vermilion) 0%, #FF8A4D 45%, var(--cobalt) 120%) !important;
-}
-.kc-face-top::after {
-    content: "Y";
-    position: absolute; inset: 0;
-    display: grid; place-items: center;
-    padding-left: 38px;                 /* shift past the ring hole */
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 92px;
-    color: var(--paper);
-    text-shadow: 0 2px 0 var(--ink), 0 -1px 0 rgba(255,255,255,.4);
-    letter-spacing: -.04em;
-}
-
-/* metal keyring loop, standing in the hole */
-.keychain::before {
-    content: "";
-    position: absolute;
-    left: 30px; top: 56px;
-    width: 38px; height: 38px;
-    border: 6px solid #C9CDD6;
-    border-radius: 50%;
-    background: transparent;
-    transform: translateZ(50px) rotateX(90deg);
-    box-shadow: 0 0 6px rgba(0,0,0,.3), inset 0 0 4px rgba(0,0,0,.4);
-    z-index: 5;
-}
-
-/* ---- travelling print head / nozzle ---- */
-.print-head {
-    position: absolute;
-    left: 50%; bottom: 0;
-    width: 360px; height: 2px;
-    transform: translateX(-50%);
-    background: linear-gradient(90deg, transparent, var(--vermilion) 20%, #fff 50%, var(--vermilion) 80%, transparent);
-    box-shadow: 0 0 14px 2px var(--vermilion);
-    z-index: 8;
-    transition: bottom .07s linear;
-}
-.print-head .nozzle {
-    position: absolute; left: 50%; top: -10px;
-    width: 14px; height: 18px;
-    transform: translateX(-50%);
-    background: linear-gradient(#3a3a44, #15151b);
-    clip-path: polygon(20% 0, 80% 0, 100% 55%, 50% 100%, 0 55%);
-    box-shadow: 0 0 10px var(--vermilion);
-}
-.print-head.done { opacity: 0; transition: opacity .5s ease; }
-
-/* contact shadow on the bed */
-.kc-shadow {
-    position: absolute;
-    left: 50%; top: 50%;
-    width: 280px; height: 120px;
-    transform: translate(-50%,-50%) translateZ(-2px);
-    background: radial-gradient(ellipse, rgba(26,23,20,.35), transparent 70%);
-    filter: blur(8px);
-}
-
-/* ---- hero copy overlaid on the stage ---- */
-.hero-copy {
-    position: relative;
-    z-index: 3;
-    text-align: center;
-    max-width: 760px;
-    padding: 0 1.5rem;
-    margin-top: -6vh;
-    pointer-events: none;
-}
-.hero-copy .btn-primary, .hero-copy .btn-secondary { pointer-events: auto; }
-
+/* ---- copy column ---- */
+.hero-copy { position: relative; z-index: 3; max-width: 560px; }
 .hero-copy .hero-badge {
     display: inline-flex; align-items: center; gap: 8px;
-    background: var(--ink); color: var(--paper);
-    border-color: var(--ink);
+    background: var(--ink); color: var(--paper); border-color: var(--ink);
     box-shadow: 3px 3px 0 var(--vermilion);
+    animation: pop-in .6s var(--ease-spring) both;
 }
 .hero-copy .hero-badge .dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--vermilion);
-    box-shadow: 0 0 0 0 var(--vermilion);
     animation: liveDot 1.6s ease-out infinite;
 }
 @keyframes liveDot {
@@ -660,80 +496,143 @@ footer { background: var(--ink); color: var(--paper); padding: 3rem clamp(1.25re
     100% { box-shadow: 0 0 0 9px rgba(255,77,46,0); }
 }
 
-/* ---- 3D EXTRUDED TYPOGRAPHY ---- */
+/* ---- 3D extruded typography ---- */
 .t3d {
-    font-size: clamp(2.8rem, 8vw, 5.6rem);
-    line-height: .94;
-    letter-spacing: -.04em;
-    color: var(--ink);
+    font-size: clamp(2.6rem, 5.5vw, 4.4rem);
+    line-height: .96; letter-spacing: -.04em; color: var(--ink);
     text-shadow:
-        1px 1px 0 #d9cbb3, 2px 2px 0 #d2c2a8,
-        3px 3px 0 #c9b89a, 4px 4px 0 #c0ad8d,
-        5px 5px 0 #b7a280, 6px 6px 10px rgba(26,23,20,.35);
-    margin-bottom: 1.4rem;
+        1px 1px 0 #d9cbb3, 2px 2px 0 #d2c2a8, 3px 3px 0 #c9b89a,
+        4px 4px 0 #c0ad8d, 5px 5px 0 #b7a280, 6px 6px 10px rgba(26,23,20,.35);
+    margin-bottom: 1.3rem;
+    animation: pop-in .7s var(--ease-spring) .06s both;
 }
 .t3d .hl {
     color: var(--vermilion);
     text-shadow:
-        1px 1px 0 #c8341a, 2px 2px 0 #b62f17,
-        3px 3px 0 #a32a14, 4px 4px 0 #912511,
-        5px 5px 0 #7f2010, 6px 6px 12px rgba(255,77,46,.4);
+        1px 1px 0 #c8341a, 2px 2px 0 #b62f17, 3px 3px 0 #a32a14,
+        4px 4px 0 #912511, 5px 5px 0 #7f2010, 6px 6px 12px rgba(255,77,46,.4);
 }
-/* darker 3D headings for light sections */
-.t3d-dark {
-    text-shadow:
-        1px 1px 0 #d9cbb3, 2px 2px 0 #cdbb9d,
-        3px 3px 0 #bfa886, 4px 4px 8px rgba(26,23,20,.25);
-}
-.features .t3d-dark {
-    text-shadow:
-        1px 1px 0 #000, 2px 2px 0 rgba(0,0,0,.7),
-        3px 3px 0 rgba(0,0,0,.5), 4px 4px 10px rgba(0,0,0,.6);
+.t3d-dark { text-shadow: 1px 1px 0 #d9cbb3, 2px 2px 0 #cdbb9d, 3px 3px 0 #bfa886, 4px 4px 8px rgba(26,23,20,.25); }
+.features .t3d-dark { text-shadow: 1px 1px 0 #000, 2px 2px 0 rgba(0,0,0,.7), 3px 3px 0 rgba(0,0,0,.5), 4px 4px 10px rgba(0,0,0,.6); }
+
+/* ---- demo device (right column) ---- */
+.demo-device {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; gap: 1rem;
+    animation: pop-in .8s var(--ease-spring) .2s both;
 }
 
-.hero-hint {
-    margin-top: 1.6rem;
-    font-family: var(--font-mono);
-    font-size: .78rem;
-    color: var(--ink-muted);
-    transition: opacity .4s ease;
+/* the 3D preview window — a little print stage */
+.demo-preview {
+    position: relative;
+    height: 300px;
+    border: 2px solid var(--ink);
+    border-radius: var(--r-lg);
+    background:
+        radial-gradient(120% 90% at 50% 18%, var(--card) 0%, var(--paper-2) 70%),
+        repeating-linear-gradient(0deg, transparent 0 27px, rgba(26,23,20,.05) 27px 28px);
+    box-shadow: 8px 8px 0 var(--cobalt), 8px 8px 0 1.5px var(--ink);
+    overflow: hidden;
 }
+/* real Three.js canvas fills the preview window */
+.demo-canvas { position: absolute; inset: 0; }
+.demo-canvas canvas { display: block; width: 100% !important; height: 100% !important; }
+
+.demo-loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-muted); font-family: var(--font-mono); font-size: .75rem;
+    pointer-events: none;
+}
+.demo-loading .loader-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--line-strong);
+    border-top-color: var(--vermilion);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.demo-caption {
+    position: absolute; left: 14px; bottom: 12px;
+    font-family: var(--font-mono); font-size: .72rem; font-weight: 700;
+    color: var(--ink); background: var(--card);
+    border: 1.5px solid var(--ink); border-radius: var(--r-pill);
+    padding: 4px 12px; box-shadow: 2px 2px 0 var(--ink);
+}
+
+/* mock customizer UI */
+.demo-ui {
+    display: flex; flex-direction: column; gap: .8rem;
+    background: var(--card);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-lg);
+    padding: 1.1rem 1.2rem;
+    box-shadow: var(--sh-md);
+}
+.mini-step { display: flex; align-items: center; gap: .8rem; }
+.mini-label {
+    font-family: var(--font-mono); font-size: .66rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-muted); min-width: 64px;
+}
+.mini-field {
+    flex: 1; display: flex; align-items: center;
+    background: var(--paper); border: 1.5px solid var(--ink);
+    border-radius: var(--r-sm); padding: 8px 12px;
+    font-weight: 700; color: var(--ink); min-height: 38px;
+}
+.caret { width: 2px; height: 16px; background: var(--vermilion); margin-left: 2px; animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.mini-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.mini-chip {
+    padding: 5px 11px; border: 1.5px solid var(--ink); border-radius: var(--r-pill);
+    background: var(--card); color: var(--ink-soft);
+    font-size: .82rem; font-weight: 700;
+    transition: var(--t-fast);
+}
+.mini-chip.active { background: var(--ink); color: var(--paper); transform: translateY(-1px); }
+
+.mini-swatches { display: flex; gap: 7px; }
+.mini-swatch {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1.5px solid var(--ink);
+    transition: transform var(--t-fast), box-shadow var(--t-fast);
+}
+.mini-swatch.active { transform: scale(1.18); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--ink); }
 
 /* scroll cue */
 .scroll-cue {
     position: absolute; bottom: 22px; left: 50%;
     transform: translateX(-50%);
     width: 24px; height: 38px;
-    border: 2px solid var(--ink);
-    border-radius: 14px; z-index: 3;
+    border: 2px solid var(--ink); border-radius: 14px; z-index: 3;
 }
 .scroll-cue span {
     position: absolute; left: 50%; top: 7px;
     width: 4px; height: 8px; border-radius: 4px;
-    background: var(--vermilion);
-    transform: translateX(-50%);
+    background: var(--vermilion); transform: translateX(-50%);
     animation: scrollDot 1.6s var(--ease) infinite;
 }
 @keyframes scrollDot { 0% { opacity:0; top:7px; } 40% { opacity:1; } 100% { opacity:0; top:20px; } }
 
-/* feature cards get 3D depth */
 .feature-card { transform-style: preserve-3d; transition: transform .2s var(--ease), border-color var(--t), background var(--t); }
 
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 900px) {
-    .scene { top: 60%; transform: translate(-50%, -50%) rotateX(60deg) scale(.7); }
-    .hero-copy { margin-top: 2vh; }
+    .stage { grid-template-columns: 1fr; text-align: center; gap: 2.5rem; padding-top: 6.5rem; }
+    .hero-copy { max-width: none; margin: 0 auto; }
+    .hero-actions { justify-content: center; }
+    .demo-device { max-width: 460px; margin: 0 auto; width: 100%; }
     .nav-links { display: none; }
 }
 @media (max-width: 560px) {
-    .scene { transform: translate(-50%, -50%) rotateX(62deg) scale(.5); }
+    .demo-preview { height: 240px; }
     .t3d { text-shadow: 1px 1px 0 #d2c2a8, 2px 2px 0 #c0ad8d, 3px 3px 8px rgba(26,23,20,.35); }
 }
 
 /* ===================== REDUCED MOTION ===================== */
 @media (prefers-reduced-motion: reduce) {
-    .scene { transform: translate(-50%,-50%) rotateX(54deg) scale(.85); }
-    .bed-glow, .scroll-cue span, .hero-copy .hero-badge .dot { animation: none; }
-    .kc-layer.printed { animation: none; }
-    .print-head { display: none; }
+    .scroll-cue span, .hero-copy .hero-badge .dot, .caret { animation: none; }
+    .demo-device, .t3d, .hero-copy .hero-badge { animation: none; }
 }

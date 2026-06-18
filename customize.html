@@ -209,12 +209,11 @@
                         <div class="step-num">5</div>
                         <div class="step-content">
                             <h3 class="step-title">Ring Attachment Position</h3>
-                            <p class="step-description">Choose where the keyring attachment hole goes</p>
+                            <p class="step-description">Choose where the keyring loop sits on the design</p>
 
                             <div class="ring-position-toggle" id="ringPositionToggle" role="tablist">
-                                <button class="ring-opt active" data-val="left" role="tab" aria-selected="true">👈 Left Side</button>
-                                <button class="ring-opt" data-val="right" role="tab" aria-selected="false">👉 Right Side</button>
-                                <button class="ring-opt" data-val="none" role="tab" aria-selected="false">❌ No Ring</button>
+                                <button class="ring-opt active" data-val="top" role="tab" aria-selected="true">📐 Top Corner</button>
+                                <button class="ring-opt" data-val="center" role="tab" aria-selected="false">⭕ Centered</button>
                             </div>
                         </div>
                     </div>
@@ -369,7 +368,7 @@
     </script>
 
     <script type="module">
-        import { KeychainViewer } from './viewer3d.js';
+        import { KeychainViewer } from './viewer3d.js?v=poc4';
 
         var viewer      = null;
         var viewerReady = false;
@@ -404,6 +403,7 @@
         function getParamsPayload(detail) {
             return {
                 ringPosition:   detail.ringPosition,
+                ring:           { anchor: detail.ringAnchor || 'top' },
                 wave_mode:      detail.wave_mode,
                 wave_amplitude: detail.wave_amplitude,
                 wave_cycles:    detail.wave_cycles,

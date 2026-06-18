@@ -506,6 +506,10 @@ export class KeychainViewer {
                 bevelThickness: 0.5,
                 bevelSize:      0.5,
                 bevelSegments:  4,
+                // Vertical anchor of the keyring relative to the text run:
+                //   'top'    — sits at the top corner above the first letter (default, most attractive)
+                //   'center' — vertically centred on the keychain body
+                anchor:         'top',
             },
         };
     }
@@ -1090,40 +1094,36 @@ export class KeychainViewer {
                 ringMesh.position.y = linkedYAtMaxX;
                 this.keychainGroup.add(ringMesh);
             } else {
-                // Find rightmost edge of standard shapes (maxX)
+                // Find rightmost edge + the VERTICAL CENTRE of the whole text run.
+                // (Same fix as the left branch: anchor Y to the text mid-line, not to
+                // an arbitrary path point at the right edge, which jumped per-glyph.)
                 var maxX = -Infinity;
-                var yAtMaxX = 0;
-                var closestX = Infinity;
+                var rGlyphMinY = Infinity, rGlyphMaxY = -Infinity;
                 for (var si = 0; si < shapes.length; si++) {
                     var pts = shapes[si].extractPoints(8).shape;
                     for (var pi = 0; pi < pts.length; pi++) {
                         var pt = pts[pi];
-                        if (pt.x > maxX) {
-                            maxX = pt.x;
-                        }
+                        if (pt.x > maxX) maxX = pt.x;
+                        if (pt.y < rGlyphMinY) rGlyphMinY = pt.y;
+                        if (pt.y > rGlyphMaxY) rGlyphMaxY = pt.y;
                     }
                 }
                 if (maxX === -Infinity) {
                     maxX = fontSize * 3; // fallback
                 }
-
-                // Find the Y coordinate of the anchor point closest to the true right edge
-                for (var si = 0; si < shapes.length; si++) {
-                    var pts = shapes[si].extractPoints(8).shape;
-                    for (var pi = 0; pi < pts.length; pi++) {
-                        var pt = pts[pi];
-                        var dist = Math.abs(pt.x - maxX);
-                        if (dist < closestX) {
-                            closestX = dist;
-                            yAtMaxX = pt.y;
-                        }
-                    }
+                var ringY;
+                if (rGlyphMinY === Infinity) {
+                    ringY = 0;
+                } else if ((p.ring.anchor || 'top') === 'top') {
+                    ringY = rGlyphMinY + ringOuter * 0.5;   // top corner (opentype Y-down)
+                } else {
+                    ringY = (rGlyphMinY + rGlyphMaxY) / 2;
                 }
 
                 // Overlap by a safe amount
                 var overlap = Math.min(4, ringOuter * 0.8);
                 ringMesh.position.x = maxX + p.base.bevelSize + ringOuter - overlap;
-                ringMesh.position.y = yAtMaxX;
+                ringMesh.position.y = ringY;
                 this.keychainGroup.add(ringMesh);
             }
         } else {
@@ -1175,28 +1175,40 @@ export class KeychainViewer {
                 var firstChar = firstLine.charAt(0) || displayText.charAt(0) || ' ';
                 var firstCharPath = font.getPath(firstChar, 0, 0, fontSize);
                 var firstCharBox = firstCharPath.getBoundingBox();
-                
+
                 var minX = firstCharBox.x1;
-                var yAtMinX = firstCharBox.y1; // fallback
-                var closestX = Infinity;
-                
-                // Find the Y coordinate of the anchor point closest to the true left edge
-                for (var i = 0; i < firstCharPath.commands.length; i++) {
-                    var cmd = firstCharPath.commands[i];
-                    if (cmd.x !== undefined) {
-                        var dist = Math.abs(cmd.x - minX);
-                        if (dist < closestX) {
-                            closestX = dist;
-                            yAtMinX = cmd.y;
-                        }
+
+                // Anchor the ring to the VERTICAL CENTRE of the whole text run, not to
+                // some arbitrary path-command point on the first glyph's left edge.
+                // The old "closest command at min-X" logic gave a different Y per glyph
+                // (e.g. correct for Z, but too high/low for P), which is the placement bug.
+                // Compute the combined vertical span of every glyph shape and use its midpoint.
+                var glyphMinY = Infinity, glyphMaxY = -Infinity;
+                for (var si = 0; si < shapes.length; si++) {
+                    var gpts = shapes[si].extractPoints(8).shape;
+                    for (var pi = 0; pi < gpts.length; pi++) {
+                        if (gpts[pi].y < glyphMinY) glyphMinY = gpts[pi].y;
+                        if (gpts[pi].y > glyphMaxY) glyphMaxY = gpts[pi].y;
                     }
+                }
+                // Fallback to the first glyph's own box if shapes didn't yield points.
+                if (glyphMinY === Infinity) { glyphMinY = firstCharBox.y1; glyphMaxY = firstCharBox.y2; }
+
+                // Anchor mode: 'top' tucks the ring into the top corner above the first
+                // letter; 'center' keeps it on the body mid-line. (opentype is Y-down, so
+                // glyphMinY is the visual TOP of the run.)
+                var ringY;
+                if ((p.ring.anchor || 'top') === 'top') {
+                    ringY = glyphMinY + ringOuter * 0.5;   // nudge down so the ring meets the corner
+                } else {
+                    ringY = (glyphMinY + glyphMaxY) / 2;
                 }
 
                 // The base layer expands outward by p.base.bevelSize.
                 // We want the ring to overlap this expanded base by a safe amount (max 4mm or 80% of ring radius)
                 var overlap = Math.min(4, ringOuter * 0.8);
                 ringMesh.position.x = minX - p.base.bevelSize - ringOuter + overlap;
-                ringMesh.position.y = yAtMinX;
+                ringMesh.position.y = ringY;
                 this.keychainGroup.add(ringMesh);
             }
         }

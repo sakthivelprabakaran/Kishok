@@ -123,7 +123,8 @@ var state = {
     lang: 'en',
     layers: '3L',
     productType: 'keychain',
-    ringPosition: 'left',
+    ringPosition: 'left',     // which side the ring attaches (kept 'left')
+    ringAnchor: 'top',        // vertical placement: 'top' corner | 'center'
     fontCategory: 'all',
     
     // Wavy Nametag parameters
@@ -243,6 +244,7 @@ function dispatch3DFontSelected() {
             productType:  state.productType,
             wordartFonts: buildWordartFontsPayload(),
             ringPosition: state.ringPosition,
+            ringAnchor:   state.ringAnchor,
         }
     }));
 }
@@ -265,7 +267,8 @@ function dispatch3DDesignUpdated() {
             productType:  state.productType,
             wordartFonts: buildWordartFontsPayload(),
             ringPosition: state.ringPosition,
-            
+            ringAnchor:   state.ringAnchor,
+
             // Pass Wavy Nametag parameters
             wave_mode:      state.wave_mode,
             wave_amplitude: state.wave_amplitude,
@@ -753,7 +756,7 @@ function buildWhatsAppMessage() {
     
     // Add ring position to orders
     if (state.productType === 'keychain' || isTile || isLinked || isNametag) {
-        lines.push('⭕ Ring Position: ' + state.ringPosition.toUpperCase());
+        lines.push('⭕ Ring Position: ' + (state.ringAnchor === 'center' ? 'CENTERED' : 'TOP CORNER'));
     }
 
     lines.push(
@@ -1324,7 +1327,7 @@ function initRingPosition() {
             });
             btn.classList.add('active');
             btn.setAttribute('aria-selected', 'true');
-            state.ringPosition = btn.dataset.val;
+            state.ringAnchor = btn.dataset.val;   // 'top' | 'center'
             dispatch3DDesignUpdated();
         });
     });
