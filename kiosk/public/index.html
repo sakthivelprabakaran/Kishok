@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YoursGifts Kiosk — Instant Custom Keychains</title>
+    <title>Custom 3D Printed Keychains — See Your Name in 3D | YoursGifts</title>
+    <meta name="description" content="Design custom 3D-printed keychains, nameplates and word art at the YoursGifts kiosk. Watch your name build in real 3D, pay via UPI, and pick it up in 15–20 minutes.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght;500;600;700&family=Space+Mono:wght;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/kiosk.css">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css?v=reel1">
 </head>
 <body>
     <div class="kiosk-container">
@@ -25,9 +26,34 @@
 
         <!-- Hero Section -->
         <section class="kiosk-hero">
-            <h1 class="hero-title">Design Your Custom 3D Keychain</h1>
-            <p class="hero-subtitle">Customize in full 3D, pay via UPI, and pick it up in 15-20 minutes!</p>
+            <h1 class="hero-title">See your name in stunning 3D</h1>
+            <p class="hero-subtitle">Custom 3D-printed keychains, nameplates &amp; word art — watch it build live, pay via UPI, pick up in 15–20 min.</p>
         </section>
+
+        <!-- Self-playing 3D demo reel -->
+        <div class="demo-device">
+            <div class="demo-preview">
+                <div class="demo-canvas" id="demoCanvas" aria-hidden="true"></div>
+                <div class="demo-loading" id="demoLoading"><span class="loader-spinner"></span></div>
+                <div class="demo-caption" id="demoCaption">Live 3D Preview</div>
+            </div>
+            <div class="reel-dots" id="reelDots" aria-hidden="true"></div>
+            <div class="demo-ui" aria-hidden="true">
+                <div class="mini-step">
+                    <span class="mini-label">Your text</span>
+                    <div class="mini-field"><span id="mockText"></span><i class="caret"></i></div>
+                </div>
+                <div class="mini-step">
+                    <span class="mini-label">Font</span>
+                    <div class="mini-chips" id="mockFonts"></div>
+                </div>
+                <div class="mini-step">
+                    <span class="mini-label">Colours</span>
+                    <div class="mini-swatches" id="mockColors"></div>
+                </div>
+            </div>
+            <a href="customize.html" class="demo-cta">Start Designing →</a>
+        </div>
 
         <!-- Active Batch Savings Banner -->
         <div class="batch-savings-banner" id="batchBanner">
@@ -261,5 +287,18 @@
             setupCategoryFilters();
         });
     </script>
+
+    <!-- 3D demo reel libs (same stack as the customizer) -->
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clipper-lib@6.4.2/clipper.min.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="js/landing-reel.js?v=reel1"></script>
 </body>
 </html>

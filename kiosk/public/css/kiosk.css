@@ -309,3 +309,105 @@ body::before {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-color-hover); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* =========================================================
+   KIOSK LANDING — self-playing 3D demo reel
+   ========================================================= */
+.demo-device {
+    display: flex; flex-direction: column; gap: .75rem;
+    margin-bottom: 1.5rem;
+}
+.demo-preview {
+    position: relative;
+    height: 300px;
+    border: 2px solid var(--text-main);
+    border-radius: 18px;
+    background:
+        radial-gradient(120% 90% at 50% 18%, var(--bg-panel) 0%, var(--paper-2) 70%),
+        repeating-linear-gradient(0deg, transparent 0 27px, rgba(26,23,20,.05) 27px 28px);
+    box-shadow: 6px 6px 0 var(--cobalt), 6px 6px 0 1.5px var(--text-main);
+    overflow: hidden;
+}
+.demo-canvas { position: absolute; inset: 0; }
+.demo-canvas canvas { display: block; width: 100% !important; height: 100% !important; }
+.demo-loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+}
+.demo-loading .loader-spinner {
+    width: 34px; height: 34px;
+    border: 3px solid var(--border-color-hover);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.demo-caption {
+    position: absolute; left: 12px; bottom: 12px;
+    font-family: var(--font-mono); font-size: .7rem; font-weight: 700;
+    color: var(--text-main); background: var(--bg-panel);
+    border: 1.5px solid var(--text-main); border-radius: 999px;
+    padding: 4px 11px; box-shadow: 2px 2px 0 var(--text-main);
+}
+
+/* scene dots */
+.reel-dots { display: flex; justify-content: center; gap: 7px; }
+.reel-dots i {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--border-color-hover);
+    transition: background .2s, transform .2s;
+}
+.reel-dots i.active { background: var(--primary); transform: scale(1.35); }
+
+/* mock customizer UI */
+.demo-ui {
+    display: flex; flex-direction: column; gap: .7rem;
+    background: var(--bg-panel);
+    border: 2px solid var(--text-main);
+    border-radius: 18px;
+    padding: 1rem 1.1rem;
+    box-shadow: var(--card-shadow);
+}
+.mini-step { display: flex; align-items: center; gap: .7rem; }
+.mini-label {
+    font-family: var(--font-mono); font-size: .62rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-muted); min-width: 58px;
+}
+.mini-field {
+    flex: 1; display: flex; align-items: center;
+    background: var(--bg-dark); border: 1.5px solid var(--text-main);
+    border-radius: 10px; padding: 7px 11px;
+    font-weight: 700; color: var(--text-main); min-height: 36px;
+}
+.caret { width: 2px; height: 15px; background: var(--primary); margin-left: 2px; animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.mini-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.mini-chip {
+    padding: 4px 10px; border: 1.5px solid var(--text-main); border-radius: 999px;
+    background: var(--bg-panel); color: var(--text-muted);
+    font-size: .78rem; font-weight: 700;
+}
+.mini-chip.active { background: var(--text-main); color: var(--bg-panel); }
+.mini-swatches { display: flex; gap: 6px; }
+.mini-swatch {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1.5px solid var(--text-main);
+    transition: transform .15s, box-shadow .15s;
+}
+.mini-swatch.active { transform: scale(1.18); box-shadow: 0 0 0 2px var(--bg-panel), 0 0 0 4px var(--text-main); }
+
+/* reel CTA — stamped primary button */
+.demo-cta {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; margin-top: .25rem;
+    padding: .9rem 1.5rem;
+    background: var(--primary); color: #fff !important;
+    font-family: var(--font-display); font-weight: 800; font-size: 1.02rem;
+    text-decoration: none;
+    border: 1.5px solid var(--text-main); border-radius: 999px;
+    box-shadow: 3px 3px 0 var(--text-main);
+    transition: transform .15s, box-shadow .15s, background .15s;
+}
+.demo-cta:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--text-main); }
