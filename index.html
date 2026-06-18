@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YoursGifts | Custom 3D Printed Keychains</title>
-    <meta name="description" content="Design custom 3D printed keychains, word art and nameplates with a real-time 3D preview. Small Gifts, Big Meanings — by YoursGifts.">
+    <title>YoursGifts | 3D Printed Keychains, Built Before Your Eyes</title>
+    <meta name="description" content="A 3D-printed-keychain studio you can watch build itself. Design custom keychains, word art and nameplates in real 3D — Small Gifts, Big Meanings.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -30,202 +30,130 @@
         </div>
     </nav>
 
-    <!-- HERO SECTION -->
-    <section class="hero">
-        <div class="hero-content">
-            <span class="hero-badge">✨ New: Real-time 3D Preview</span>
-            <h1 class="hero-title">Bring your ideas to life in <span>3D</span>.</h1>
-            <p class="hero-subtitle">Design your own personalized 3D printed keychains, word art, and name plates. See your custom design in full 3D before you buy.</p>
+    <!-- ============ HERO: THE PRINT BED (live CSS-3D stage) ============ -->
+    <section class="stage" id="stage">
+        <div class="stage-perspective">
+            <div class="scene" id="scene">
+                <!-- Perspective print-bed floor -->
+                <div class="print-bed" aria-hidden="true">
+                    <div class="bed-grid"></div>
+                    <div class="bed-glow"></div>
+                </div>
+
+                <!-- The keychain — print layers injected by landing-3d.js -->
+                <div class="kc-rig" id="kcRig">
+                    <div class="keychain" id="keychain" data-layers="26" aria-hidden="true"></div>
+                    <!-- Travelling print nozzle line -->
+                    <div class="print-head" id="printHead" aria-hidden="true">
+                        <span class="nozzle"></span>
+                    </div>
+                    <div class="kc-shadow" aria-hidden="true"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlaid copy (kept in normal flow for a11y/SEO) -->
+        <div class="hero-copy">
+            <span class="hero-badge"><span class="dot"></span> NOW PRINTING · LAYER <span id="layerTick">01</span>/26</span>
+            <h1 class="hero-title t3d">Bring ideas<br>to life in <span class="hl">3D.</span></h1>
+            <p class="hero-subtitle">Watch your design rise off the print bed — layer by layer — in real, rotatable 3D before you ever pay a rupee.</p>
             <div class="hero-actions">
                 <a href="customize.html" class="btn-primary">Start Designing</a>
                 <a href="#products" class="btn-secondary">View Products</a>
             </div>
+            <p class="hero-hint" id="heroHint">↑ move your cursor — the bed tilts with you</p>
         </div>
-        <div class="hero-visual">
-            <img src="assets/hero.png" alt="A colourful collection of custom 3D printed name keychains" decoding="async" fetchpriority="high" />
-        </div>
+
+        <div class="scroll-cue" aria-hidden="true"><span></span></div>
     </section>
 
-    <!-- FEATURES SECTION -->
+    <!-- ============ FEATURES ============ -->
     <section id="how-it-works" class="features">
         <div class="section-header">
-            <h2>Why choose YoursGifts?</h2>
-            <p>We combine cutting-edge 3D printing technology with an easy-to-use customization experience to deliver premium personalized gifts.</p>
+            <h2 class="t3d-dark">Why choose YoursGifts?</h2>
+            <p>We pair real 3D printing with a studio you can see through — every design previewed in 3D before it’s made.</p>
         </div>
         <div class="features-grid">
-            <div class="feature-card">
+            <article class="feature-card" data-tilt>
                 <div class="feature-icon">👁️</div>
                 <h3>Real-time 3D Preview</h3>
-                <p>See exactly what you're getting. Our interactive 3D visualizer lets you inspect your design from every angle before placing an order.</p>
-            </div>
-            <div class="feature-card">
+                <p>Spin, zoom and inspect from every angle. What you see on screen is what comes off the printer.</p>
+            </article>
+            <article class="feature-card" data-tilt>
                 <div class="feature-icon">🎨</div>
                 <h3>Endless Customization</h3>
-                <p>Choose from dozens of premium fonts, vibrant colors, and unique styles. Mix and match to create something truly one-of-a-kind.</p>
-            </div>
-            <div class="feature-card">
+                <p>Dozens of characterful fonts, layered colours and styles. Mix into something genuinely one-of-a-kind.</p>
+            </article>
+            <article class="feature-card" data-tilt>
                 <div class="feature-icon">⚡</div>
-                <h3>Fast & High Quality</h3>
-                <p>Printed with precision using durable, high-quality materials. We ensure your custom items are crafted perfectly and shipped fast.</p>
-            </div>
+                <h3>Printed Fast, Built Right</h3>
+                <p>Durable PLA, precise layers, clean finishes. Crafted carefully and shipped quick.</p>
+            </article>
         </div>
     </section>
 
-    <!-- PRODUCTS SHOWCASE -->
+    <!-- ============ PRODUCTS (3D floating chips) ============ -->
     <section id="products" class="products">
         <div class="section-header">
-            <h2>Our Custom Products</h2>
-            <p>Select a product to start customizing with your own text, colors, and styles.</p>
+            <h2 class="t3d-dark">Pick a base. Make it yours.</h2>
+            <p>Each style drops you straight into the 3D customizer with your own text, colours and finish.</p>
         </div>
         <div class="marquee-wrapper">
             <div class="marquee-track">
-                
-                <!-- Product 1 -->
-                <div class="product-card">
-                    <div class="product-img-wrapper"><img src="assets/classic.png" alt="Classic Keychain" loading="lazy" decoding="async"></div>
-                    <div class="product-info">
-                        <h3>Classic Keychain</h3>
-                        <p>A sturdy, stylish text keychain. Perfect for names, brands, or short quotes.</p>
-                        <a href="customize.html?type=keychain" class="btn-secondary product-cta">Customize →</a>
-                    </div>
-                </div>
-
-                <!-- Product 2 -->
-                <div class="product-card">
-                    <div class="product-img-wrapper"><img src="assets/wordart.png" alt="Word Art" loading="lazy" decoding="async"></div>
-                    <div class="product-info">
-                        <h3>Word Art</h3>
-                        <p>Beautiful layered text designs mixing cursive and bold fonts. A stunning display piece.</p>
-                        <a href="customize.html?type=wordart" class="btn-secondary product-cta">Customize →</a>
-                    </div>
-                </div>
-
-                <!-- Product 3 -->
-                <div class="product-card">
-                    <div class="product-img-wrapper"><img src="assets/tiles.png" alt="Letter Tiles" loading="lazy" decoding="async"></div>
-                    <div class="product-info">
-                        <h3>Letter Tiles</h3>
-                        <p>Vertical keychain featuring individual square letter blocks. Clean and modern.</p>
-                        <a href="customize.html?type=tile" class="btn-secondary product-cta">Customize →</a>
-                    </div>
-                </div>
-
-                <!-- Product 4 -->
-                <div class="product-card">
-                    <div class="product-img-wrapper"><img src="assets/car.png" alt="Car Keychain" loading="lazy" decoding="async"></div>
-                    <div class="product-info">
-                        <h3>Car Keychain</h3>
-                        <p>Features your vehicle number in a sleek, dual-color design.</p>
-                        <a href="customize.html?type=carkeychain" class="btn-secondary product-cta">Customize →</a>
-                    </div>
-                </div>
-
-                <!-- DUPLICATE SET FOR INFINITE SCROLL -->
-                <!-- Product 1 -->
-                <div class="product-card">
-                    <div class="product-img-wrapper"><img src="assets/classic.png" alt="Classic Keychain" loading="lazy" decoding="async"></div>
-                    <div class="product-info">
-                        <h3>Classic Keychain</h3>
-                        <p>A sturdy, stylish text keychain. Perfect for names, brands, or short quotes.</p>
-                        <a href="customize.html?type=keychain" class="btn-secondary product-cta">Customize →</a>
-                    </div>
-                </div>
-
-                <!-- Product 2 -->
-                <div class="product-card">
-                    <div class="product-img-wrapper"><img src="assets/wordart.png" alt="Word Art" loading="lazy" decoding="async"></div>
-                    <div class="product-info">
-                        <h3>Word Art</h3>
-                        <p>Beautiful layered text designs mixing cursive and bold fonts. A stunning display piece.</p>
-                        <a href="customize.html?type=wordart" class="btn-secondary product-cta">Customize →</a>
-                    </div>
-                </div>
-
-                <!-- Product 3 -->
-                <div class="product-card">
-                    <div class="product-img-wrapper"><img src="assets/tiles.png" alt="Letter Tiles" loading="lazy" decoding="async"></div>
-                    <div class="product-info">
-                        <h3>Letter Tiles</h3>
-                        <p>Vertical keychain featuring individual square letter blocks. Clean and modern.</p>
-                        <a href="customize.html?type=tile" class="btn-secondary product-cta">Customize →</a>
-                    </div>
-                </div>
-
-                <!-- Product 4 -->
-                <div class="product-card">
-                    <div class="product-img-wrapper"><img src="assets/car.png" alt="Car Keychain" loading="lazy" decoding="async"></div>
-                    <div class="product-info">
-                        <h3>Car Keychain</h3>
-                        <p>Features your vehicle number in a sleek, dual-color design.</p>
-                        <a href="customize.html?type=carkeychain" class="btn-secondary product-cta">Customize →</a>
-                    </div>
-                </div>
-
+                <a href="customize.html?type=keychain" class="product-card"><div class="product-img-wrapper"><img src="assets/classic.png" alt="Classic text keychain" loading="lazy" decoding="async"></div><div class="product-info"><h3>Classic Keychain</h3><p>Sturdy, stylish text. Perfect for names, brands or short quotes.</p><span class="product-cta">Customize →</span></div></a>
+                <a href="customize.html?type=wordart" class="product-card"><div class="product-img-wrapper"><img src="assets/wordart.png" alt="Layered word art piece" loading="lazy" decoding="async"></div><div class="product-info"><h3>Word Art</h3><p>Layered cursive-and-bold designs. A stunning desk display piece.</p><span class="product-cta">Customize →</span></div></a>
+                <a href="customize.html?type=tile" class="product-card"><div class="product-img-wrapper"><img src="assets/tiles.png" alt="Letter tile keychain" loading="lazy" decoding="async"></div><div class="product-info"><h3>Letter Tiles</h3><p>Individual square letter blocks. Clean, modern, modular.</p><span class="product-cta">Customize →</span></div></a>
+                <a href="customize.html?type=carkeychain" class="product-card"><div class="product-img-wrapper"><img src="assets/car.png" alt="Car number plate keychain" loading="lazy" decoding="async"></div><div class="product-info"><h3>Car Keychain</h3><p>Your vehicle number in a sleek, dual-colour design.</p><span class="product-cta">Customize →</span></div></a>
+                <!-- duplicate set for infinite scroll -->
+                <a href="customize.html?type=keychain" class="product-card" aria-hidden="true" tabindex="-1"><div class="product-img-wrapper"><img src="assets/classic.png" alt="" loading="lazy" decoding="async"></div><div class="product-info"><h3>Classic Keychain</h3><p>Sturdy, stylish text. Perfect for names, brands or short quotes.</p><span class="product-cta">Customize →</span></div></a>
+                <a href="customize.html?type=wordart" class="product-card" aria-hidden="true" tabindex="-1"><div class="product-img-wrapper"><img src="assets/wordart.png" alt="" loading="lazy" decoding="async"></div><div class="product-info"><h3>Word Art</h3><p>Layered cursive-and-bold designs. A stunning desk display piece.</p><span class="product-cta">Customize →</span></div></a>
+                <a href="customize.html?type=tile" class="product-card" aria-hidden="true" tabindex="-1"><div class="product-img-wrapper"><img src="assets/tiles.png" alt="" loading="lazy" decoding="async"></div><div class="product-info"><h3>Letter Tiles</h3><p>Individual square letter blocks. Clean, modern, modular.</p><span class="product-cta">Customize →</span></div></a>
+                <a href="customize.html?type=carkeychain" class="product-card" aria-hidden="true" tabindex="-1"><div class="product-img-wrapper"><img src="assets/car.png" alt="" loading="lazy" decoding="async"></div><div class="product-info"><h3>Car Keychain</h3><p>Your vehicle number in a sleek, dual-colour design.</p><span class="product-cta">Customize →</span></div></a>
             </div>
         </div>
     </section>
 
-    <!-- INSPIRATION GALLERY -->
+    <!-- ============ GALLERY ============ -->
     <section id="gallery" class="gallery">
         <div class="section-header">
-            <h2>Customer Inspirations</h2>
-            <p>Take a look at some of the beautiful custom pieces we've printed.</p>
+            <h2 class="t3d-dark">Printed for real people</h2>
+            <p>A few pieces that have come off our bed.</p>
         </div>
         <div class="gallery-marquee">
             <div class="gallery-track">
-                <!-- User Saved Inspiration Images -->
-                <div class="gallery-card"><img src="assets/Unknown.png" alt="Custom 3D printed Word Art design"  loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-2.png" alt="Custom 3D printed Classic Keychain design"  loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-3.png" alt="Custom 3D printed Love Series design"  loading="lazy" decoding="async"><div class="gallery-label">Love Series</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-4.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-5.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-6.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                
-                <div class="gallery-card"><img src="assets/keychain-design-4k-16.png" alt="Custom 3D printed Classic Keychain design"  loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-17.png" alt="Custom 3D printed Word Art design"  loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-18.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-19.png" alt="Custom 3D printed Classic Keychain design"  loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-20.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-21.png" alt="Custom 3D printed Love Series design"  loading="lazy" decoding="async"><div class="gallery-label">Love Series</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-22.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-23.png" alt="Custom 3D printed Classic Keychain design"  loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-24.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-25.png" alt="Custom 3D printed Word Art design"  loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-26.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-
-                <!-- Duplicate Set for Infinite Scroll -->
-                <div class="gallery-card"><img src="assets/Unknown.png" alt="Custom 3D printed Word Art design"  loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-2.png" alt="Custom 3D printed Classic Keychain design"  loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-3.png" alt="Custom 3D printed Love Series design"  loading="lazy" decoding="async"><div class="gallery-label">Love Series</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-4.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-5.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/Unknown-6.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                
-                <div class="gallery-card"><img src="assets/keychain-design-4k-16.png" alt="Custom 3D printed Classic Keychain design"  loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-17.png" alt="Custom 3D printed Word Art design"  loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-18.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-19.png" alt="Custom 3D printed Classic Keychain design"  loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-20.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-21.png" alt="Custom 3D printed Love Series design"  loading="lazy" decoding="async"><div class="gallery-label">Love Series</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-22.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-23.png" alt="Custom 3D printed Classic Keychain design"  loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-24.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-25.png" alt="Custom 3D printed Word Art design"  loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
-                <div class="gallery-card"><img src="assets/keychain-design-4k-26.png" alt="A custom 3D printed keychain design by a YoursGifts customer"  loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
+                <div class="gallery-card"><img src="assets/Unknown.png" alt="Custom 3D printed Word Art design" loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
+                <div class="gallery-card"><img src="assets/Unknown-2.png" alt="Custom 3D printed Classic Keychain design" loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
+                <div class="gallery-card"><img src="assets/Unknown-3.png" alt="Custom 3D printed Love Series design" loading="lazy" decoding="async"><div class="gallery-label">Love Series</div></div>
+                <div class="gallery-card"><img src="assets/Unknown-4.png" alt="A custom 3D printed keychain by a YoursGifts customer" loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
+                <div class="gallery-card"><img src="assets/Unknown-5.png" alt="A custom 3D printed keychain by a YoursGifts customer" loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
+                <div class="gallery-card"><img src="assets/Unknown-6.png" alt="A custom 3D printed keychain by a YoursGifts customer" loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
+                <div class="gallery-card"><img src="assets/keychain-design-4k-16.png" alt="Custom 3D printed Classic Keychain design" loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
+                <div class="gallery-card"><img src="assets/keychain-design-4k-17.png" alt="Custom 3D printed Word Art design" loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
+                <div class="gallery-card"><img src="assets/keychain-design-4k-18.png" alt="A custom 3D printed keychain by a YoursGifts customer" loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
+                <div class="gallery-card"><img src="assets/keychain-design-4k-21.png" alt="Custom 3D printed Love Series design" loading="lazy" decoding="async"><div class="gallery-label">Love Series</div></div>
+                <!-- duplicate set for infinite scroll -->
+                <div class="gallery-card" aria-hidden="true"><img src="assets/Unknown.png" alt="" loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
+                <div class="gallery-card" aria-hidden="true"><img src="assets/Unknown-2.png" alt="" loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
+                <div class="gallery-card" aria-hidden="true"><img src="assets/Unknown-3.png" alt="" loading="lazy" decoding="async"><div class="gallery-label">Love Series</div></div>
+                <div class="gallery-card" aria-hidden="true"><img src="assets/Unknown-4.png" alt="" loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
+                <div class="gallery-card" aria-hidden="true"><img src="assets/keychain-design-4k-16.png" alt="" loading="lazy" decoding="async"><div class="gallery-label">Classic Keychain</div></div>
+                <div class="gallery-card" aria-hidden="true"><img src="assets/keychain-design-4k-17.png" alt="" loading="lazy" decoding="async"><div class="gallery-label">Word Art</div></div>
+                <div class="gallery-card" aria-hidden="true"><img src="assets/keychain-design-4k-18.png" alt="" loading="lazy" decoding="async"><div class="gallery-label">Custom Design</div></div>
+                <div class="gallery-card" aria-hidden="true"><img src="assets/keychain-design-4k-21.png" alt="" loading="lazy" decoding="async"><div class="gallery-label">Love Series</div></div>
             </div>
         </div>
     </section>
 
-    <!-- CTA SECTION -->
+    <!-- ============ CTA ============ -->
     <section class="cta-section">
         <div class="cta-content">
-            <h2>Ready to create your perfect gift?</h2>
-            <p>Jump into our 3D customizer and build your design in seconds. No design skills required.</p>
+            <h2>Your design is one print away.</h2>
+            <p>Jump into the 3D customizer and build it in seconds. No design skills required.</p>
             <a href="customize.html" class="btn-white">Start Designing Now</a>
         </div>
     </section>
 
-    <!-- FOOTER -->
+    <!-- ============ FOOTER ============ -->
     <footer>
         <div class="footer-content">
             <div class="footer-logo">YoursGifts</div>
@@ -240,5 +168,6 @@
         </div>
     </footer>
 
+    <script src="landing-3d.js" defer></script>
 </body>
 </html>
