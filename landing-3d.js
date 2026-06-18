@@ -60,6 +60,13 @@ import { KeychainViewer } from './viewer3d.js?v=poc4';
   var chipEls   = mockFonts.querySelectorAll('.mini-chip');
   var swatchEls = mockColors.querySelectorAll('.mini-swatch');
 
+  // scene dots (cycling indicator, mainly for mobile reel-first layout)
+  var reelDots = document.getElementById('reelDots');
+  if (reelDots) {
+    SCENES.forEach(function () { reelDots.appendChild(document.createElement('i')); });
+  }
+  var dotEls = reelDots ? reelDots.querySelectorAll('i') : [];
+
   function setActive(list, idx) {
     list.forEach(function (n, i) { n.classList.toggle('active', i === idx); });
   }
@@ -101,6 +108,7 @@ import { KeychainViewer } from './viewer3d.js?v=poc4';
     }
     setActive(chipEls, idx);
     setActive(swatchEls, idx);
+    setActive(dotEls, idx);
     try { await build(scene); } catch (e) { console.error('build error', e); }
     if (loading) loading.style.display = 'none';
     if (caption) caption.textContent = scene.label;
