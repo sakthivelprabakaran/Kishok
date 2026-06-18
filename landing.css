@@ -637,9 +637,9 @@ footer { background: var(--ink); color: var(--paper); padding: 3rem clamp(1.25re
     .nav-links { display: none; }
 }
 
-/* Phone: REEL-FIRST. The stage becomes a flex column and we reorder so the
-   3D preview leads, then condensed copy + CTA (above the fold), then the
-   mock-customizer UI and the rest of the page. */
+/* Phone: REEL-FIRST, but keep the whole studio device (preview + dots +
+   mock UI) together as ONE cohesive block on top, then the condensed copy
+   + CTA below it. The device stays intact — only its order moves. */
 @media (max-width: 640px) {
     .nav-links { display: none; }
 
@@ -648,33 +648,22 @@ footer { background: var(--ink); color: var(--paper); padding: 3rem clamp(1.25re
         flex-direction: column;
         min-height: auto;
         text-align: center;
-        gap: 1.1rem;
-        padding: 5rem 1.1rem 2rem;   /* clears the fixed navbar */
+        gap: 1.3rem;
+        padding: 4.8rem 1.1rem 2rem;   /* clears the fixed navbar */
     }
-    /* The device wrapper must let its two children be reordered against the copy,
-       so we "unwrap" it: it spans full width and its children participate in the
-       stage's flex order via display:contents. */
-    .demo-device { display: contents; }
+    /* whole device first, copy second — device stays one unit */
+    .demo-device { order: 1; max-width: 480px; margin: 0 auto; width: 100%; gap: .8rem; }
+    .hero-copy   { order: 2; max-width: none; margin: 0 auto; }
 
-    /* 1) reel preview on top */
-    .demo-preview { order: 1; width: 100%; height: 46vh; min-height: 280px; box-shadow: 6px 6px 0 var(--cobalt), 6px 6px 0 1.5px var(--ink); }
-    /* 2) scene dots */
-    .reel-dots    { order: 2; }
-    /* 3) condensed copy + CTA — above the fold */
-    .hero-copy    { order: 3; max-width: none; margin: 0; }
-    /* 4) mock customizer UI below the fold */
-    .demo-ui      { order: 4; }
+    .demo-preview { height: 42vh; min-height: 260px; }
 
-    /* condense the copy so the CTA stays visible */
-    .hero-copy .hero-badge { display: none; }      /* the reel's own pill covers this */
+    /* condense the copy so the CTA stays reachable */
+    .hero-copy .hero-badge { display: none; }   /* the reel's own caption covers this */
     .t3d { font-size: clamp(1.9rem, 8vw, 2.5rem); margin-bottom: .6rem;
            text-shadow: 1px 1px 0 #d2c2a8, 2px 2px 0 #c0ad8d, 3px 3px 8px rgba(26,23,20,.35); }
-    .hero-subtitle { font-size: .98rem; margin-bottom: 1rem; }
+    .hero-subtitle { font-size: .96rem; margin-bottom: 1rem; }
     .hero-actions { justify-content: center; }
     .scroll-cue { display: none; }
-}
-@media (min-width: 561px) and (max-width: 640px) {
-    .demo-preview { height: 300px; }
 }
 @media (max-width: 560px) {
     .t3d { text-shadow: 1px 1px 0 #d2c2a8, 2px 2px 0 #c0ad8d, 3px 3px 8px rgba(26,23,20,.35); }
