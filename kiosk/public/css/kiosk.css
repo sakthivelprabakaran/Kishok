@@ -411,3 +411,40 @@ body::before {
     transition: transform .15s, box-shadow .15s, background .15s;
 }
 .demo-cta:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--text-main); }
+
+/* =========================================================
+   DESKTOP / WIDE SCREENS (>= 880px) — kiosk landing.
+   Mobile (520px column) is untouched; this only widens + lays
+   out the hero side-by-side and the product grid multi-column.
+   ========================================================= */
+.hero-zone { display: contents; }   /* no effect on mobile; overridden below on desktop */
+
+@media (min-width: 880px) {
+    .kiosk-container { max-width: 1080px; padding: 1.25rem 1.5rem 3rem; }
+
+    /* hero: copy left, reel right */
+    .hero-zone {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+        gap: 2.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .kiosk-hero { text-align: left; margin-bottom: 0; padding: 0; }
+    .kiosk-hero .hero-title { font-size: clamp(2.4rem, 4vw, 3.4rem); }
+    .kiosk-hero .hero-title::after { margin-left: 0; }   /* left-align the accent underline */
+    .kiosk-hero .hero-subtitle { font-size: 1.05rem; max-width: 42ch; }
+    .demo-device { margin-bottom: 0; }
+    .demo-preview { height: 340px; }
+
+    /* product grid: more columns on wide screens */
+    .product-grid { grid-template-columns: repeat(4, 1fr); gap: 1.1rem; }
+    .card-img-wrap { height: 140px; }
+
+    /* category tabs don't need to stretch full width */
+    .category-tabs { max-width: 480px; }
+}
+
+@media (min-width: 1200px) {
+    .product-grid { grid-template-columns: repeat(5, 1fr); }
+}
