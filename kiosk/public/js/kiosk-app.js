@@ -476,6 +476,35 @@ function refreshFontPreviews() {
     _fontRefreshTimer = setTimeout(renderFontList, 300);
 }
 
+// Let a vertical mouse wheel scroll the horizontal font strip, and add
+// hover arrow buttons (desktop affordance). Wired once.
+let _fontNavWired = false;
+function setupFontStripNav() {
+    if (_fontNavWired || !el.fontStrip) return;
+    _fontNavWired = true;
+
+    // wheel → horizontal: translate vertical wheel delta into horizontal scroll
+    el.fontStrip.addEventListener('wheel', (e) => {
+        const dom = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+        if (dom === 0) return;
+        const max = el.fontStrip.scrollWidth - el.fontStrip.clientWidth;
+        if (max <= 0) return;                 // nothing to scroll
+        const atStart = el.fontStrip.scrollLeft <= 0 && dom < 0;
+        const atEnd   = el.fontStrip.scrollLeft >= max - 1 && dom > 0;
+        if (atStart || atEnd) return;         // let the page scroll at the edges
+        e.preventDefault();
+        el.fontStrip.scrollLeft += dom;
+    }, { passive: false });
+
+    // optional arrow buttons if present in the DOM
+    const wrap = el.fontStrip.parentElement;
+    const prev = wrap && wrap.querySelector('.font-nav-prev');
+    const next = wrap && wrap.querySelector('.font-nav-next');
+    const step = () => Math.max(160, el.fontStrip.clientWidth * 0.8);
+    if (prev) prev.addEventListener('click', () => el.fontStrip.scrollBy({ left: -step(), behavior: 'smooth' }));
+    if (next) next.addEventListener('click', () => el.fontStrip.scrollBy({ left:  step(), behavior: 'smooth' }));
+}
+
 function renderFontList() {
     el.fontStrip.innerHTML = '';
 
@@ -1014,6 +1043,7 @@ async function init() {
     
     renderFontList();
     renderColorSwatches();
+    setupFontStripNav();
     init3DViewer();
     update3DModel();
     renderStepper();

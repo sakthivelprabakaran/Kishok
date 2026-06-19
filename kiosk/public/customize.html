@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/kiosk.css?v=desk2">
-    <link rel="stylesheet" href="css/customize.css?v=desk2">
+    <link rel="stylesheet" href="css/kiosk.css?v=desk3">
+    <link rel="stylesheet" href="css/customize.css?v=desk3">
 </head>
 <body>
     <!-- Sticky 3D Canvas Pane (45% viewport height) -->
@@ -116,10 +116,15 @@
                 </button>
             </div>
 
-            <!-- Horizontal Font Scroll -->
-            <div class="font-selector-strip" id="fontSelectorStrip">
-                <!-- Injected via JS -->
+            <!-- Horizontal Font Scroll (wheel + arrow navigation) -->
+            <div class="font-strip-wrap">
+                <button class="font-nav-btn font-nav-prev" type="button" aria-label="Previous fonts">‹</button>
+                <div class="font-selector-strip" id="fontSelectorStrip">
+                    <!-- Injected via JS -->
+                </div>
+                <button class="font-nav-btn font-nav-next" type="button" aria-label="More fonts">›</button>
             </div>
+            <p class="font-scroll-hint">Scroll or tap ‹ › to see all 30+ fonts</p>
         </div>
 
         <!-- STEP 3: Colors Selection -->
