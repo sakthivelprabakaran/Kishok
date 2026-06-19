@@ -390,31 +390,43 @@ body {
 
 .font-card {
     scroll-snap-align: start;
-    flex: 0 0 100px;
-    height: 75px;
-    background: rgba(15, 23, 42, 0.03);
-    border: 1px solid var(--border-color);
+    flex: 0 0 116px;
+    height: 88px;
+    background: var(--bg-panel);
+    border: 1.5px solid var(--text-main);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
+    gap: 0.3rem;
+    padding: 6px;
     cursor: pointer;
+    box-shadow: 2px 2px 0 var(--text-main);
     transition: var(--transition-smooth);
 }
+.font-card:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--text-main); }
 
 .font-card.selected {
-    background: rgba(255, 77, 46, 0.12);
+    background: rgba(255, 77, 46, 0.1);
     border-color: var(--primary);
-    box-shadow: 0 0 8px var(--primary-glow);
+    box-shadow: 2px 2px 0 var(--primary);
 }
 
+/* the real glyph SVG preview */
 .font-preview-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 46px;
+    color: var(--text-main);
     font-size: 1rem;
     font-weight: 700;
-    color: var(--text-main);
+    overflow: hidden;
 }
+.font-preview-text svg { width: 100%; height: 100%; display: block; }
+.font-card.selected .font-preview-text { color: var(--primary-ink); }
 
 .font-card-name {
     font-size: 0.68rem;

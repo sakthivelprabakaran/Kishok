@@ -424,40 +424,85 @@ function renderStepper() {
 
 // ===== UI RENDERERS =====
 
+// ── Real glyph SVG previews via opentype.js ──
+// Cache parsed fonts so we only fetch/parse each TTF once.
+const _fontPreviewCache = {};
+function _loadPreviewFont(file) {
+    if (_fontPreviewCache[file]) return _fontPreviewCache[file];
+    const p = new Promise((resolve, reject) => {
+        if (typeof opentype === 'undefined') { reject(new Error('opentype missing')); return; }
+        opentype.load(file, (err, font) => err ? reject(err) : resolve(font));
+    });
+    _fontPreviewCache[file] = p;
+    return p;
+}
+
+// Build a crisp, auto-fitted SVG of `text` rendered in the given font.
+function buildFontPreviewSVG(font, text) {
+    const VB_W = 150, VB_H = 56, fontSize = 42;
+    const path = font.getPath(text, 0, 0, fontSize);
+    const bb = path.getBoundingBox();
+    const w = (bb.x2 - bb.x1) || 1, h = (bb.y2 - bb.y1) || 1;
+    // fit into the viewBox with padding
+    const pad = 8;
+    const scale = Math.min((VB_W - pad * 2) / w, (VB_H - pad * 2) / h, 1.4);
+    const tx = (VB_W - w * scale) / 2 - bb.x1 * scale;
+    const ty = (VB_H - h * scale) / 2 - bb.y1 * scale;
+    const d = path.toPathData(2);
+    return '<svg viewBox="0 0 ' + VB_W + ' ' + VB_H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' +
+           (font.names && font.names.fontFamily ? font.names.fontFamily.en : 'font') + ' preview">' +
+           '<g transform="translate(' + tx.toFixed(2) + ',' + ty.toFixed(2) + ') scale(' + scale.toFixed(3) + ')">' +
+           '<path d="' + d + '" fill="currentColor"/></g></svg>';
+}
+
+// Debounced refresh so rapid typing doesn't thrash 30 SVG re-renders.
+let _fontRefreshTimer = null;
+function refreshFontPreviews() {
+    clearTimeout(_fontRefreshTimer);
+    _fontRefreshTimer = setTimeout(renderFontList, 300);
+}
+
 function renderFontList() {
     el.fontStrip.innerHTML = '';
-    
+
     const filtered = FONTS.filter(f => f.lang === state.lang);
-    
+
+    // What text to preview: the user's typed name (first line), else "Abc".
+    let sample = (state.name || '').split('\n')[0].trim();
+    if (!sample) sample = 'Abc';
+    sample = sample.slice(0, 6);   // keep previews readable
+
     filtered.forEach(font => {
-        const isSelected = (state.productType === 'wordart') 
+        const isSelected = (state.productType === 'wordart')
             ? (state.wordartActiveSlot === 'top' ? state.wordartTopFont === font.name : state.wordartBottomFont === font.name)
             : (state.selectedFont === font.name);
-            
+
         const card = document.createElement('div');
         card.className = `font-card ${isSelected ? 'selected' : ''}`;
         card.dataset.name = font.name;
         card.dataset.file = font.file;
-        
-        // Preview styled representation
+
+        // Real glyph preview (filled while the font loads).
         const pText = document.createElement('span');
         pText.className = 'font-preview-text';
-        pText.textContent = 'Abc';
-        
-        // Try applying font preview dynamically if supported, else default styling
-        pText.style.fontFamily = `"${font.name}", sans-serif`;
-        
+        pText.textContent = '…';   // tiny placeholder until the SVG renders
+
         const cName = document.createElement('span');
         cName.className = 'font-card-name';
         cName.textContent = font.label;
-        
+
         card.appendChild(pText);
         card.appendChild(cName);
-        
+
+        // Render the SVG asynchronously; fall back to the family name on failure.
+        _loadPreviewFont(font.file)
+            .then(f => { pText.innerHTML = buildFontPreviewSVG(f, sample); })
+            .catch(() => { pText.textContent = sample; pText.style.fontFamily = `"${font.name}", sans-serif`; });
+
         card.addEventListener('click', () => {
             document.querySelectorAll('.font-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
-            
+
             if (state.productType === 'wordart') {
                 if (state.wordartActiveSlot === 'top') {
                     state.wordartTopFont = font.name;
@@ -470,10 +515,10 @@ function renderFontList() {
                 state.selectedFont = font.name;
                 state.selectedFontFile = font.file;
             }
-            
+
             update3DModel();
         });
-        
+
         el.fontStrip.appendChild(card);
     });
 }
@@ -783,6 +828,7 @@ function setupEvents() {
         e.target.value = state.name; // enforce uppercase in input field
         el.charCount.textContent = state.name.length;
         update3DModel();
+        refreshFontPreviews();   // re-render glyph previews with the typed name (debounced)
     });
     
     el.wordartLine1.addEventListener('input', (e) => {
