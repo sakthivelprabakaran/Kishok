@@ -360,24 +360,30 @@ function calculatePricing() {
     btnText.textContent = `PAY ₹${state.costs.finalAmount * state.quantity} VIA UPI`;
 }
 
+// Desktop shows every step at once in one scrolling sidebar; mobile keeps
+// the step-by-step wizard. Single source of truth for the breakpoint.
+function isDesktop() { return window.matchMedia('(min-width: 880px)').matches; }
+
 function renderStepper() {
-    // Hide all step elements
-    document.querySelectorAll('[data-step]').forEach(elem => {
-        elem.style.display = 'none';
-    });
-    
-    // Show current step elements
-    document.querySelectorAll(`[data-step="${state.currentStep}"]`).forEach(elem => {
-        // Special case for ringPositionSection
-        if (elem.id === 'ringPositionSection' && !state.hasRing) {
-             return;
-        }
-        // Special case for batchPromoAlert
-        if (elem.id === 'batchPromoAlert' && !state.matchedBatchSize) {
-             return;
-        }
-        elem.style.display = ''; 
-    });
+    const desktop = isDesktop();
+    document.body.classList.toggle('all-steps', desktop);
+
+    if (desktop) {
+        // Show ALL steps in the sidebar (respecting the conditional sections).
+        document.querySelectorAll('[data-step]').forEach(elem => {
+            if (elem.id === 'ringPositionSection' && !state.hasRing) { elem.style.display = 'none'; return; }
+            if (elem.id === 'batchPromoAlert' && !state.matchedBatchSize) { elem.style.display = 'none'; return; }
+            elem.style.display = '';
+        });
+    } else {
+        // Mobile wizard: hide all, show only the current step.
+        document.querySelectorAll('[data-step]').forEach(elem => { elem.style.display = 'none'; });
+        document.querySelectorAll(`[data-step="${state.currentStep}"]`).forEach(elem => {
+            if (elem.id === 'ringPositionSection' && !state.hasRing) return;
+            if (elem.id === 'batchPromoAlert' && !state.matchedBatchSize) return;
+            elem.style.display = '';
+        });
+    }
 
     // Update Progress Indicator
     el.stepDots.forEach(dot => {
@@ -400,6 +406,14 @@ function renderStepper() {
     if(el.stepperText) el.stepperText.textContent = stepTitles[state.currentStep];
 
     // Update Buttons
+    if (desktop) {
+        // All steps visible → no wizard nav, just the Pay button.
+        if(el.btnPrevStep) el.btnPrevStep.style.display = 'none';
+        if(el.btnNextStep) el.btnNextStep.style.display = 'none';
+        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'flex';
+        return;
+    }
+    if(el.btnPrevStep) el.btnPrevStep.style.display = '';   // restore for mobile
     if (state.currentStep === 1) {
         if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'hidden';
         if(el.btnNextStep) el.btnNextStep.style.display = '';
@@ -1003,6 +1017,14 @@ async function init() {
     init3DViewer();
     update3DModel();
     renderStepper();
+
+    // Re-render the stepper when crossing the desktop/mobile breakpoint so the
+    // layout switches between all-steps and wizard cleanly. Debounced.
+    let _rsTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(_rsTimer);
+        _rsTimer = setTimeout(renderStepper, 200);
+    });
 }
 
 window.addEventListener('DOMContentLoaded', init);

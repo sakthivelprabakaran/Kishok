@@ -982,32 +982,44 @@ body {
         flex-shrink: 0;
     }
 
-    /* RIGHT — scrolling customizer column */
+    /* RIGHT — scrolling customizer column (shows ALL steps at once) */
     .customizer-pane {
         width: 42%;
         max-width: none;
         margin: 0;
         height: 100vh;
         overflow-y: auto;
-        padding: 2rem 2rem 7rem 2rem;
+        padding: 2rem 2rem 3rem 2rem;
         scrollbar-width: thin;
     }
     .customizer-pane::-webkit-scrollbar { width: 10px; }
     .customizer-pane::-webkit-scrollbar-thumb { background: var(--border-color-hover); border-radius: 99px; border: 3px solid var(--bg-dark); }
 
     /* keep the panel content from stretching too wide on big monitors */
-    .panel-header, .stepper-progress, .stepper-text-indicator, .step-card,
-    .batch-suggestion-alert { max-width: 540px; margin-left: auto; margin-right: auto; }
+    .panel-header, .step-card { max-width: 560px; margin-left: auto; margin-right: auto; }
 
-    /* fixed checkout bar confined to the right column only */
-    .stepper-nav {
-        left: 58%;
-        width: 42%;
-        padding: 1rem 2rem;
+    /* All-steps mode: the wizard chrome is irrelevant when every step shows. */
+    body.all-steps .stepper-progress,
+    body.all-steps .stepper-text-indicator { display: none; }
+
+    /* The Pay button is no longer a fixed bar — it flows inline after the last
+       step inside the scrolling column. */
+    body.all-steps .stepper-nav {
+        position: static;
+        width: 100%;
+        max-width: 560px;
+        margin: .5rem auto 0;
+        padding: 0;
+        box-shadow: none;
+        border-top: none;
+        background: transparent;
     }
+    body.all-steps .primary-pay-btn { width: 100%; }
 
-    /* overlay controls back to top-corner on desktop (they were re-centred for mobile) */
-    .visualizer-overlay-controls { bottom: auto; top: 1.25rem; left: 1.25rem; right: auto; transform: none; }
+    /* FIX back-button collision: keep Back top-left, move the rotate/texture
+       controls to the TOP-RIGHT so they never overlap it. */
+    .floating-back-btn { top: 1.1rem; left: 1.1rem; z-index: 16; }
+    .visualizer-overlay-controls { bottom: auto; top: 1.1rem; left: auto; right: 1.1rem; transform: none; }
     .drag-hint { bottom: 1.25rem; }
 
     /* a touch larger typography on the spacious desktop column */
@@ -1015,10 +1027,8 @@ body {
     .step-card { padding: 1.5rem; }
 }
 
-/* Extra-wide: cap the preview so the model isn't lost in a huge pane,
-   and give the form a bit more room. */
+/* Extra-wide: cap the preview so the model isn't lost in a huge pane. */
 @media (min-width: 1400px) {
     .visualizer-pane { width: 60%; }
     .customizer-pane { width: 40%; padding-left: 3rem; padding-right: 3rem; }
-    .stepper-nav { left: 60%; width: 40%; }
 }
