@@ -7,16 +7,27 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/kiosk.css">
-    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/kiosk.css?v=admin2">
+    <link rel="stylesheet" href="css/admin.css?v=admin2">
 </head>
 <body>
-    <div class="admin-container">
+    <!-- PIN LOGIN GATE -->
+    <div class="login-gate" id="loginGate" style="display:none;">
+        <div class="login-card">
+            <h2>Admin Access</h2>
+            <p>Enter the operator PIN to manage orders.</p>
+            <input type="password" id="pinInput" inputmode="numeric" placeholder="••••" autocomplete="off">
+            <div class="login-error" id="loginError" style="display:none;"></div>
+            <button id="btnLogin">Unlock Dashboard</button>
+        </div>
+    </div>
+
+    <div class="admin-container" id="adminMain" style="display:none;">
         <!-- Sidebar/Header -->
         <header class="admin-header">
             <div class="header-logo">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="2" y="2" width="20" height="20" rx="6" fill="#7b2fff"/>
+                    <rect x="2" y="2" width="20" height="20" rx="6" fill="#FF4D2E"/>
                     <path d="M7 12L10 15L17 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <span>YoursGifts Admin</span>
@@ -43,6 +54,18 @@
             </div>
         </section>
 
+        <!-- Production Queue grouped by colour combo -->
+        <section class="queue-section">
+            <div class="panel-header-row">
+                <h3>🖨️ Production Queue — by Colour</h3>
+                <button class="refresh-btn" id="btnSummary">📊 Day Summary</button>
+            </div>
+            <div class="summary-box" id="summaryBox" style="display:none;"></div>
+            <div class="queue-list" id="queueList">
+                <div class="empty-state" style="padding:1rem;font-size:.78rem;">Loading queue…</div>
+            </div>
+        </section>
+
         <div class="admin-content-layout">
             <!-- Left: Orders List -->
             <section class="orders-section">
@@ -50,7 +73,17 @@
                     <h3>Incoming Order Feed</h3>
                     <button class="refresh-btn" id="btnRefresh">🔄 Refresh</button>
                 </div>
-                
+                <div class="order-filters">
+                    <input type="text" id="searchInput" placeholder="🔍 Search name / phone / order # / text">
+                    <select id="statusFilter">
+                        <option value="all">All statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Verified">Verified (to print)</option>
+                        <option value="Printed">Printed</option>
+                        <option value="PickedUp">Picked Up</option>
+                    </select>
+                </div>
+
                 <div class="order-list" id="orderList">
                     <div class="empty-state">Loading orders...</div>
                 </div>
@@ -94,6 +127,6 @@
     <!-- Hidden Audio element for chime -->
     <audio id="orderChime" src="https://assets.mixkit.co/active_storage/sfx/911/911-200.wav" preload="auto"></audio>
 
-    <script type="module" src="js/admin-dashboard.js"></script>
+    <script type="module" src="js/admin-dashboard.js?v=admin2"></script>
 </body>
 </html>

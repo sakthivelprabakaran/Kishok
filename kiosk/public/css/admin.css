@@ -454,3 +454,96 @@
     50% { transform: scale(1.1); opacity: 0.8; }
     100% { transform: scale(1); opacity: 1; }
 }
+
+/* =========================================================
+   ADMIN ADDITIONS — login gate, production queue, filters,
+   day summary, pickup/whatsapp actions
+   ========================================================= */
+
+/* PIN login gate */
+.login-gate {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-dark);
+    padding: 1.5rem;
+}
+.login-card {
+    background: var(--bg-panel);
+    border: 2px solid var(--text-main);
+    border-radius: 18px;
+    box-shadow: 6px 6px 0 var(--primary);
+    padding: 2rem 1.75rem;
+    width: 100%; max-width: 340px;
+    text-align: center;
+}
+.login-card h2 { font-family: var(--font-display); font-size: 1.5rem; color: var(--text-main); margin-bottom: .4rem; }
+.login-card p { font-size: .85rem; color: var(--text-muted); margin-bottom: 1.2rem; }
+.login-card input {
+    width: 100%; text-align: center; letter-spacing: .5em;
+    font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700;
+    padding: .7rem; border: 1.5px solid var(--text-main); border-radius: 12px;
+    background: var(--bg-dark); color: var(--text-main); margin-bottom: .8rem;
+}
+.login-card #btnLogin {
+    width: 100%; padding: .85rem; border: 1.5px solid var(--text-main);
+    border-radius: 12px; background: var(--primary); color: #fff;
+    font-family: var(--font-display); font-weight: 800; font-size: 1rem;
+    cursor: pointer; box-shadow: 3px 3px 0 var(--text-main);
+}
+.login-card #btnLogin:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--text-main); }
+.login-error { color: #d8341a; font-weight: 700; font-size: .8rem; margin-bottom: .6rem; }
+
+/* Production Queue */
+.queue-section {
+    background: var(--bg-panel);
+    border: 1.5px solid var(--text-main);
+    border-radius: 16px;
+    box-shadow: 3px 3px 0 var(--text-main);
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.25rem;
+}
+.queue-list { display: flex; flex-direction: column; gap: .6rem; margin-top: .6rem; }
+.queue-combo {
+    border: 1.5px solid var(--border-color-hover);
+    border-radius: 12px; padding: .65rem .8rem;
+    background: var(--bg-dark);
+}
+.queue-combo.active-batch { border-color: var(--accent); background: var(--accent-glow); }
+.queue-combo-head { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.combo-swatches { display: inline-flex; gap: 3px; }
+.combo-swatches .mini-swatch { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--text-main); display: inline-block; }
+.combo-count { font-weight: 800; color: var(--text-main); font-size: .9rem; }
+.combo-grams { font-family: var(--font-mono); font-size: .72rem; color: var(--text-muted); }
+.combo-active-tag { margin-left: auto; font-family: var(--font-mono); font-size: .66rem; font-weight: 700; color: var(--accent); }
+.queue-combo-orders { font-size: .72rem; color: var(--text-muted); margin-top: .35rem; line-height: 1.4; }
+
+/* Order filters */
+.order-filters { display: flex; gap: .5rem; margin: .6rem 0; flex-wrap: wrap; }
+.order-filters input, .order-filters select {
+    flex: 1; min-width: 140px;
+    padding: .55rem .7rem; border: 1.5px solid var(--text-main); border-radius: 10px;
+    background: var(--bg-panel); color: var(--text-main);
+    font-family: var(--font-family); font-size: .82rem; font-weight: 600;
+}
+
+/* Day summary */
+.summary-box {
+    margin-top: .6rem; padding: .8rem;
+    border: 1.5px dashed var(--border-color-hover); border-radius: 12px;
+    background: var(--bg-dark);
+}
+.sum-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: .7rem; }
+.sum-grid > div { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sum-grid span { font-family: var(--font-mono); font-size: .6rem; text-transform: uppercase; color: var(--text-muted); }
+.sum-grid b { font-family: var(--font-display); font-size: 1.1rem; color: var(--text-main); }
+.sum-combos-title { font-family: var(--font-mono); font-size: .66rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: .4rem; }
+.sum-combo { display: flex; align-items: center; gap: 5px; font-size: .75rem; font-weight: 700; color: var(--text-main); margin-bottom: .25rem; }
+.sum-combo .mini-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--text-main); display: inline-block; }
+
+/* Pickup + WhatsApp action buttons + done tag */
+.action-btn.pickup { background: var(--cobalt); color: #fff; }
+.action-btn.wa { background: #1FAE5A; color: #fff; text-decoration: none; display: inline-flex; align-items: center; }
+.done-tag {
+    text-align: center; color: var(--accent); font-size: .8rem; width: 100%;
+    font-weight: 700; background: var(--accent-glow); padding: .35rem; border-radius: 8px;
+}

@@ -13,6 +13,25 @@ const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || '';
 app.use(cors());
 app.use(express.json());
 
+// ===== ADMIN AUTH =====
+// Shared-secret PIN. Set ADMIN_PIN in the environment for production; the
+// default is only a dev fallback. The kiosk customer flow stays public —
+// only admin/operator actions are gated.
+const ADMIN_PIN = process.env.ADMIN_PIN || '1234';
+
+function requireAdmin(req, res, next) {
+    const pin = req.headers['x-admin-pin'];
+    if (pin && pin === ADMIN_PIN) return next();
+    return res.status(401).json({ error: 'Unauthorized — admin PIN required' });
+}
+
+// Login: validate a PIN, let the client cache it for subsequent x-admin-pin headers.
+app.post('/api/admin/login', (req, res) => {
+    const { pin } = req.body || {};
+    if (pin && pin === ADMIN_PIN) return res.json({ success: true });
+    return res.status(401).json({ success: false, error: 'Invalid PIN' });
+});
+
 // Serve public static files
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -160,8 +179,8 @@ app.get('/api/batches', (req, res) => {
     res.json(activeBatches);
 });
 
-// Update active batches
-app.post('/api/batches', (req, res) => {
+// Update active batches (admin only)
+app.post('/api/batches', requireAdmin, (req, res) => {
     const { baseColor, fontColor, count } = req.body;
     if (!baseColor || !fontColor) {
         return res.status(400).json({ error: 'Missing baseColor or fontColor' });
@@ -290,8 +309,8 @@ app.get('/api/orders/today', async (req, res) => {
     res.json(activeOrders);
 });
 
-// Update order status
-app.patch('/api/order/:id', async (req, res) => {
+// Update order status (admin only)
+app.patch('/api/order/:id', requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const { status, upiTxnId } = req.body;
@@ -352,6 +371,32 @@ app.patch('/api/order/:id', async (req, res) => {
         console.error('Error updating order:', err);
         res.status(500).json({ error: 'Failed to update order status' });
     }
+});
+
+// End-of-day summary (admin only): totals + top colour combos + filament grams
+app.get('/api/summary/today', requireAdmin, (req, res) => {
+    const paid = activeOrders.filter(o => o.status === 'Verified' || o.status === 'Printed');
+    const revenue = paid.reduce((s, o) => s + (o.finalAmount || 0), 0);
+    const grams = paid.reduce((s, o) => s + (o.weightG || 0), 0);
+
+    // group paid orders by base/font colour combo
+    const comboMap = {};
+    paid.forEach(o => {
+        const key = `${o.baseColor}|${o.fontColor}`;
+        if (!comboMap[key]) comboMap[key] = { baseColor: o.baseColor, fontColor: o.fontColor, count: 0, grams: 0 };
+        comboMap[key].count += 1;
+        comboMap[key].grams += (o.weightG || 0);
+    });
+    const topCombos = Object.values(comboMap).sort((a, b) => b.count - a.count);
+
+    res.json({
+        totalOrders: activeOrders.length,
+        paidOrders: paid.length,
+        pendingPrints: activeOrders.filter(o => o.status === 'Verified').length,
+        revenue,
+        filamentGrams: Math.round(grams * 10) / 10,
+        topCombos
+    });
 });
 
 // Serve the index.html fallback for client-side routing
