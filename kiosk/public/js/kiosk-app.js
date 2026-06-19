@@ -824,8 +824,15 @@ function setupEvents() {
 
     // Text inputs
     el.nameInput.addEventListener('input', (e) => {
-        state.name = e.target.value.toUpperCase();
-        e.target.value = state.name; // enforce uppercase in input field
+        // Letter Tiles are single capital letters by design — force caps there.
+        // Every other product (keychain, nameplate, etc.) keeps the user's
+        // own casing so names like "Priya" aren't shouted as "PRIYA".
+        if (state.productType === 'tilekey') {
+            state.name = e.target.value.toUpperCase();
+            e.target.value = state.name;
+        } else {
+            state.name = e.target.value;
+        }
         el.charCount.textContent = state.name.length;
         update3DModel();
         refreshFontPreviews();   // re-render glyph previews with the typed name (debounced)
