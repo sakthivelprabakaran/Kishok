@@ -126,6 +126,43 @@ let activeBatches = [
 // Active orders cache
 let activeOrders = [];
 
+function normalizeOrderRow(row) {
+    if (!row || typeof row !== 'object') return null;
+
+    const firstCol = row.orderNum || row['Order #'] || row['YoursGifts Kiosk Orders'] || '';
+    const statusCol = row.status || row.Status || row[''] || 'Pending';
+    const orderNum = String(firstCol || '').trim();
+
+    if (!orderNum || orderNum.toLowerCase() === 'order #') return null;
+
+    return {
+        orderNum,
+        timestamp: row.timestamp || row.Timestamp || '',
+        name: row.name || row['Customer Name'] || '',
+        phone: row.phone || row.Phone || '',
+        productType: row.productType || row['Product Type'] || 'keychain',
+        text: row.text || row.Text || '',
+        font: row.font || row.Font || 'Standard',
+        baseColor: row.baseColor || row['Base Color'] || '#FFFFFF',
+        fontColor: row.fontColor || row['Font Color'] || '#000000',
+        weightG: parseFloat(row.weightG || row['Weight (g)']) || 0,
+        printTimeMins: parseFloat(row.printTimeMins || row['Print Time (min)']) || 0,
+        materialCost: parseFloat(row.materialCost || row['Material Cost (₹)']) || 0,
+        machineCost: parseFloat(row.machineCost || row['Machine Cost (₹)']) || 0,
+        laborCost: parseFloat(row.laborCost || row['Labor Cost (₹)']) || 0,
+        productionCost: parseFloat(row.productionCost || row['Production Cost (₹)']) || 0,
+        finalAmount: parseFloat(row.finalAmount || row['Final (w/ buffer) (₹)']) || 0,
+        batchSize: parseInt(row.batchSize || row['Batch Size Used']) || 5,
+        upiTxnId: row.upiTxnId || row['UPI Txn ID'] || '',
+        status: String(statusCol || 'Pending').trim()
+    };
+}
+
+function normalizeOrders(rows) {
+    if (!Array.isArray(rows)) return [];
+    return rows.map(normalizeOrderRow).filter(Boolean);
+}
+
 // Load orders from source on startup
 async function loadActiveOrders() {
     if (GOOGLE_SCRIPT_URL) {
@@ -133,7 +170,7 @@ async function loadActiveOrders() {
             console.log('Fetching initial orders from Google Sheets...');
             const response = await fetch(GOOGLE_SCRIPT_URL);
             const data = await response.json();
-            activeOrders = data;
+            activeOrders = normalizeOrders(data);
             console.log(`Loaded ${activeOrders.length} orders from Google Sheets.`);
         } catch(err) {
             console.error('Failed to connect to Google Sheets on startup:', err);
@@ -306,7 +343,7 @@ app.get('/api/orders/today', async (req, res) => {
         try {
             const response = await fetch(GOOGLE_SCRIPT_URL);
             const data = await response.json();
-            activeOrders = data;
+            activeOrders = normalizeOrders(data);
             return res.json(activeOrders);
         } catch(err) {
             console.error('Error pulling live Google Sheets orders:', err);

@@ -254,7 +254,7 @@ function renderOrders() {
             card.dataset.order = order.orderNum;
             card.dataset.sig = '';
         }
-        const sig = order.status + '|' + order.upiTxnId; // cheap change signature
+        const sig = JSON.stringify(order);
         if (card.dataset.sig !== sig) {
             card.innerHTML = html;
             card.dataset.sig = sig;
