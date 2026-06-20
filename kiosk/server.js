@@ -17,19 +17,27 @@ app.use(express.json());
 // Shared-secret PIN. Set ADMIN_PIN in the environment for production; the
 // default is only a dev fallback. The kiosk customer flow stays public —
 // only admin/operator actions are gated.
-const ADMIN_PIN = process.env.ADMIN_PIN || '1234';
+const ADMIN_PIN = String(process.env.ADMIN_PIN || '1234').trim();
 
 function requireAdmin(req, res, next) {
-    const pin = req.headers['x-admin-pin'];
+    const pin = String(req.headers['x-admin-pin'] || '').trim();
     if (pin && pin === ADMIN_PIN) return next();
     return res.status(401).json({ error: 'Unauthorized — admin PIN required' });
 }
 
 // Login: validate a PIN, let the client cache it for subsequent x-admin-pin headers.
 app.post('/api/admin/login', (req, res) => {
-    const { pin } = req.body || {};
+    const pin = String((req.body || {}).pin || '').trim();
     if (pin && pin === ADMIN_PIN) return res.json({ success: true });
     return res.status(401).json({ success: false, error: 'Invalid PIN' });
+});
+
+// Non-secret deployment check for debugging environment configuration.
+app.get('/api/admin/health', (req, res) => {
+    res.json({
+        adminPinConfigured: Boolean(process.env.ADMIN_PIN),
+        adminPinLength: ADMIN_PIN.length
+    });
 });
 
 // Serve public static files
