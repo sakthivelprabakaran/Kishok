@@ -6,6 +6,7 @@ const ExcelJS = require('exceljs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const IS_VERCEL = Boolean(process.env.VERCEL);
 
 // Cloud Sync URL (Google Sheets App Script Web App URL)
 const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || '';
@@ -44,9 +45,9 @@ app.get('/api/admin/health', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Ensure data folder exists
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = IS_VERCEL ? path.join('/tmp', 'kishok-data') : path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR);
+    fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
 const EXCEL_PATH = path.join(DATA_DIR, 'orders.xlsx');
@@ -412,8 +413,11 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start the server
-loadActiveOrders().then(() => {
+const ready = loadActiveOrders();
+
+// Start the server locally. Vercel's Node runtime imports the Express app.
+if (!IS_VERCEL) {
+ready.then(() => {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`Roadside Kiosk Backend running on http://localhost:${PORT}`);
         if (GOOGLE_SCRIPT_URL) {
@@ -423,3 +427,6 @@ loadActiveOrders().then(() => {
         }
     });
 });
+}
+
+module.exports = app;
