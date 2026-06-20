@@ -57,7 +57,7 @@ function showApp() {
 /* ---------- data ---------- */
 async function loadOrders(silent = false) {
     try {
-        const res = await fetch('/api/orders/today');
+        const res = await fetch(`/api/orders/today?t=${Date.now()}`);
         const data = await res.json();
 
         // reliable new-order detection by id (not array length)
@@ -82,7 +82,7 @@ async function loadOrders(silent = false) {
 
 async function loadBatches() {
     try {
-        const res = await fetch('/api/batches');
+        const res = await fetch(`/api/batches?t=${Date.now()}`);
         state.batches = await res.json();
         renderBatches();
     } catch (err) { console.error('Failed to load batches:', err); }
@@ -306,7 +306,7 @@ function renderBatches() {
 async function loadSummary() {
     if (!el.summaryBox) return;
     try {
-        const res = await fetch('/api/summary/today', { headers: authHeaders(false) });
+        const res = await fetch(`/api/summary/today?t=${Date.now()}`, { headers: authHeaders(false) });
         if (res.status === 401) { alert('Session expired — re-enter PIN.'); return location.reload(); }
         const s = await res.json();
         const combos = (s.topCombos || []).slice(0, 5).map(c =>
