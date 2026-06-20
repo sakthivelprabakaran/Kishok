@@ -187,8 +187,8 @@ function orderCardHTML(order) {
     const statusClass = (order.status || '').toLowerCase();
     const upiVerified = order.status !== 'Pending' ? 'verified-txn' : '';
     
-    // Link to the root admin console with URL query parameters representing the design choices
-    const designLink = `/admin.html?text=${encodeURIComponent(order.text)}&productType=${order.productType}&font=${encodeURIComponent(order.font)}&baseColor=${encodeURIComponent(order.baseColor)}&fontColor=${encodeURIComponent(order.fontColor)}`;
+    // Link to the studio console with URL query parameters representing the design choices
+    const designLink = `studio.html?text=${encodeURIComponent(order.text)}&productType=${order.productType}&font=${encodeURIComponent(order.font)}&baseColor=${encodeURIComponent(order.baseColor)}&fontColor=${encodeURIComponent(order.fontColor)}`;
     const designBtn = `<a class="action-btn design" href="${designLink}" target="_blank">📐 DESIGN</a>`;
 
     let actions = '';

@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STL Generation Console — YoursGifts Admin</title>
+    <meta name="description" content="Admin console for generating STL files for 3D-printed keychains. Fine-tune all parameters with real-time preview.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles-root.css">
+    <link rel="stylesheet" href="admin-console.css">
+</head>
+<body>
+
+<div class="admin-console" id="adminConsole">
+
+    <!-- ========== LEFT: 3D Viewport (60%) ========== -->
+    <div class="admin-viewport" id="adminViewport">
+
+        <!-- Three.js canvas is injected here by JS -->
+
+        <!-- Floating Dimension Readout (top-right) -->
+        <div class="viewport-dims" id="viewportDims">
+            <div class="dim-row">
+                <span class="dim-label">W</span>
+                <span class="dim-value" id="dimWidth">—</span>
+                <span class="dim-unit">mm</span>
+            </div>
+            <div class="dim-row">
+                <span class="dim-label">H</span>
+                <span class="dim-value" id="dimHeight">—</span>
+                <span class="dim-unit">mm</span>
+            </div>
+            <div class="dim-row">
+                <span class="dim-label">D</span>
+                <span class="dim-value" id="dimDepth">—</span>
+                <span class="dim-unit">mm</span>
+            </div>
+        </div>
+
+        <!-- Floating Action Bar (bottom-center) -->
+        <div class="viewport-floating-bar">
+            <button class="viewport-btn active" id="autoRotateBtn" title="Toggle auto-rotate">🔄</button>
+            <button class="viewport-btn" id="vpDownloadPNG" title="Download Hi-Res PNG">📷</button>
+            <button class="viewport-btn" id="vpDownloadSVG" title="Download SVG">📐</button>
+            <button class="viewport-btn" id="vpDownloadSTL" title="Quick Export STL">🖨️</button>
+        </div>
+
+        <!-- Hint -->
+        <div class="viewport-hint">Drag to rotate · Scroll to zoom</div>
+
+        <!-- Loading Overlay -->
+        <div class="admin-loading" id="adminLoading" style="display: none;">
+            <div class="admin-spinner"></div>
+            <span>Loading 3D model…</span>
+        </div>
+    </div>
+
+    <!-- ========== RIGHT: STL Controls (40%) ========== -->
+    <div class="admin-controls">
+
+        <!-- Header -->
+        <div class="controls-header">
+            <h2>🖨️ STL Generation Console</h2>
+            <a href="index.html" class="back-link" id="backToStore">← Back to Store</a>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div class="controls-body" id="controlsBody">
+
+            <!-- ───── Text & Language ───── -->
+            <div class="ctrl-section">
+                <div class="ctrl-section-title">✏️ Text & Language</div>
+                <div class="ctrl-input-row">
+                    <div class="ctrl-input-wrap">
+                        <textarea id="adminNameInput" class="ctrl-text-input" placeholder="e.g. Priya, SAKTHI…  (Enter for 2nd line)" maxlength="31" rows="2" autocomplete="off">Sample</textarea>
+                        <span class="ctrl-char-count"><span id="adminCharCount">6</span>/15</span>
+                    </div>
+                    <button class="ctrl-lang-btn" id="adminLangToggle" title="Toggle English / Tamil">EN</button>
+                </div>
+            </div>
+
+            <!-- ───── Product Style ───── -->
+            <div class="ctrl-section">
+                <div class="ctrl-section-title">📦 Product Style</div>
+                <div class="ctrl-input-row">
+                    <select id="adminProductType" class="ctrl-select-input" style="width: 100%; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 10px; font-weight: 500; font-family: inherit; font-size: 14px; outline: none; cursor: pointer; transition: all 0.2s;">
+                        <option value="keychain" selected>🔑 Classic Keychain</option>
+                        <option value="nameplate">🪧 Nameplate</option>
+                        <option value="wordart">✨ Word Art</option>
+                        <option value="loveseries">❤ LOVE Series</option>
+                        <option value="tilekey">🎴 Letter Tiles</option>
+                        <option value="linked_initials">🔗 Linked Initials</option>
+                        <option value="nametag">🌊 Wavy Nametag</option>
+                        <option value="girly_keychain">🎀 Girly Keychain</option>
+                        <option value="bordered_keychain">🔲 Bordered Keychain</option>
+                        <option value="supported_text">🧱 Supported Nameplate</option>
+                        <option value="flower_keychain">🌸 Flower Initial</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ───── Font Selection ───── -->
+            <div class="ctrl-section">
+                <div class="ctrl-section-title">🔤 Font Style</div>
+                <div class="font-chips" id="adminFontChips">
+                    <!-- Font chips generated by JS -->
+                </div>
+            </div>
+
+            <!-- ───── Colors ───── -->
+            <div class="ctrl-section" id="adminColorsSection">
+                <div class="ctrl-section-title-row">
+                    <span class="ctrl-section-title">🎨 Colors</span>
+                    <div class="layer-toggle-wrap" id="adminLayerToggleWrap">
+                        <button class="ctrl-layer-toggle" id="adminLayerToggle" title="Toggle 2-Layer / 3-Layer">
+                            <span class="layer-opt" data-val="2L">2L</span>
+                            <span class="layer-opt active" data-val="3L">3L</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="swatch-group" id="adminBaseSwatchGroup">
+                    <span class="swatch-label">Base Color</span>
+                    <div class="swatch-row" id="adminBaseSwatches"></div>
+                </div>
+                <div class="swatch-group" id="adminFontSwatchGroup">
+                    <span class="swatch-label">Text Color</span>
+                    <div class="swatch-row" id="adminFontSwatches"></div>
+                </div>
+                <div class="swatch-group" id="adminOutlineSwatchGroup">
+                    <span class="swatch-label">Outline Color</span>
+                    <div class="swatch-row" id="adminOutlineSwatches"></div>
+                </div>
+            </div>
+
+            <!-- ───── Overall Scale ───── -->
+            <div class="ctrl-section">
+                <div class="ctrl-section-title">🔍 Overall Scale</div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Scale Factor</span>
+                    <input type="range" id="adminScaleFactor" min="0.5" max="3.0" step="0.1" value="1.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminScaleNum" min="0.5" max="3.0" step="0.1" value="1.0">
+                        <span class="val-suffix">×</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── Base Layer ───── -->
+            <div class="ctrl-section" id="adminBaseSection">
+                <div class="ctrl-section-title">🟧 Base Layer</div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Depth</span>
+                    <input type="range" id="adminBaseDepth" min="1" max="10" step="0.5" value="4">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBaseDepthNum" min="1" max="10" step="0.5" value="4">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Bevel Thickness</span>
+                    <input type="range" id="adminBaseBevelThk" min="0" max="4" step="0.25" value="2">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBaseBevelThkNum" min="0" max="4" step="0.25" value="2">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Bevel Size</span>
+                    <input type="range" id="adminBaseBevelSize" min="0" max="8" step="0.5" value="4.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBaseBevelSizeNum" min="0" max="8" step="0.5" value="4.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Smoothness</span>
+                    <input type="range" id="adminBaseBevelSeg" min="1" max="12" step="1" value="8">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBaseBevelSegNum" min="1" max="12" step="1" value="8">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── Outline Layer ───── -->
+            <div class="ctrl-section" id="adminOutlineSection">
+                <div class="ctrl-section-title">🔲 Outline Layer</div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Depth</span>
+                    <input type="range" id="adminOutlineDepth" min="0.5" max="5" step="0.25" value="1.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminOutlineDepthNum" min="0.5" max="5" step="0.25" value="1.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Bevel Thickness</span>
+                    <input type="range" id="adminOutlineBevelThk" min="0" max="2" step="0.1" value="0.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminOutlineBevelThkNum" min="0" max="2" step="0.1" value="0.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Bevel Size</span>
+                    <input type="range" id="adminOutlineBevelSize" min="0" max="4" step="0.25" value="1.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminOutlineBevelSizeNum" min="0" max="4" step="0.25" value="1.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── Text Layer ───── -->
+            <div class="ctrl-section" id="adminFontSection">
+                <div class="ctrl-section-title">✏️ Text Layer</div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Depth</span>
+                    <input type="range" id="adminFontDepth" min="0.5" max="5" step="0.25" value="1.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFontDepthNum" min="0.5" max="5" step="0.25" value="1.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Bevel Thickness</span>
+                    <input type="range" id="adminFontBevelThk" min="0" max="2" step="0.1" value="0.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFontBevelThkNum" min="0" max="2" step="0.1" value="0.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Bevel Size</span>
+                    <input type="range" id="adminFontBevelSize" min="0" max="2" step="0.1" value="0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFontBevelSizeNum" min="0" max="2" step="0.1" value="0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── Ring Attachment ───── -->
+            <div class="ctrl-section" id="adminRingSection">
+                <div class="ctrl-section-title">⭕ Ring Attachment</div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Outer Radius</span>
+                    <input type="range" id="adminRingOuter" min="4" max="16" step="0.5" value="8">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminRingOuterNum" min="4" max="16" step="0.5" value="8">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Inner Radius</span>
+                    <input type="range" id="adminRingInner" min="1.5" max="8" step="0.5" value="3.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminRingInnerNum" min="1.5" max="8" step="0.5" value="3.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── Wavy Nametag Settings ───── -->
+            <div class="ctrl-section" id="adminNametagSection" style="display: none;">
+                <div class="ctrl-section-title">🌊 Wavy Nametag Settings</div>
+                
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Wave Mode</span>
+                    <select id="adminWaveMode" class="ctrl-select-input" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+                        <option value="wave" selected>Wave (Sine Y)</option>
+                        <option value="zigzag">Zigzag (Flat Y)</option>
+                    </select>
+                </div>
+                
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Wave Amplitude</span>
+                    <input type="range" id="adminWaveAmplitude" min="0" max="20" step="0.5" value="5.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminWaveAmplitudeNum" min="0" max="20" step="0.5" value="5.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Wave Cycles</span>
+                    <input type="range" id="adminWaveCycles" min="0.5" max="4.0" step="0.1" value="1.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminWaveCyclesNum" min="0.5" max="4.0" step="0.1" value="1.0">
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Text Size (Height)</span>
+                    <input type="range" id="adminTextSize" min="6" max="40" step="1" value="22">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminTextSizeNum" min="6" max="40" step="1" value="22">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Letter Gap</span>
+                    <input type="range" id="adminLetterGap" min="-5.0" max="5.0" step="0.1" value="-2.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminLetterGapNum" min="-5.0" max="5.0" step="0.1" value="-2.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Base Thickness</span>
+                    <input type="range" id="adminBaseThickness" min="1.0" max="5.0" step="0.1" value="2.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBaseThicknessNum" min="1.0" max="5.0" step="0.1" value="2.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Even Letter Height</span>
+                    <input type="range" id="adminHeightEven" min="1.0" max="10.0" step="0.5" value="4.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminHeightEvenNum" min="1.0" max="10.0" step="0.5" value="4.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Odd Letter Height</span>
+                    <input type="range" id="adminHeightOdd" min="1.0" max="10.0" step="0.5" value="2.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminHeightOddNum" min="1.0" max="10.0" step="0.5" value="2.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Outer Dia</span>
+                    <input type="range" id="adminRingOuterD" min="4" max="20" step="0.5" value="10">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminRingOuterDNum" min="4" max="20" step="0.5" value="10">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Inner Dia</span>
+                    <input type="range" id="adminRingInnerD" min="2" max="16" step="0.5" value="5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminRingInnerDNum" min="2" max="16" step="0.5" value="5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Height</span>
+                    <input type="range" id="adminRingHeight" min="1" max="10" step="0.5" value="4.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminRingHeightNum" min="1" max="10" step="0.5" value="4.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring X Offset</span>
+                    <input type="range" id="adminRingX" min="-30" max="30" step="0.5" value="-1">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminRingXNum" min="-30" max="30" step="0.5" value="-1">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Y Offset</span>
+                    <input type="range" id="adminRingY" min="-20" max="20" step="0.5" value="10">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminRingYNum" min="-20" max="20" step="0.5" value="10">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── Bordered Keychain Settings ───── -->
+            <div class="ctrl-section" id="adminBorderedSection" style="display: none;">
+                <div class="ctrl-section-title">𔓲 Bordered Keychain Settings</div>
+                
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Border Thickness</span>
+                    <input type="range" id="adminBorderedThickness" min="1.0" max="10.0" step="0.1" value="3.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedThicknessNum" min="1.0" max="10.0" step="0.1" value="3.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Border Height</span>
+                    <input type="range" id="adminBorderedHeight" min="1.0" max="10.0" step="0.1" value="3.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedHeightNum" min="1.0" max="10.0" step="0.1" value="3.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Text Height (Negative=Engrave)</span>
+                    <input type="range" id="adminBorderedTextHeight" min="-5.0" max="5.0" step="0.1" value="1.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedTextHeightNum" min="-5.0" max="5.0" step="0.1" value="1.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Text Size</span>
+                    <input type="range" id="adminBorderedTextSize" min="6" max="30" step="1" value="12">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedTextSizeNum" min="6" max="30" step="1" value="12">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Line Spacing</span>
+                    <input type="range" id="adminBorderedLineSpacing" min="0.5" max="2.5" step="0.1" value="1.2">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedLineSpacingNum" min="0.5" max="2.5" step="0.1" value="1.2">
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Show Ring</span>
+                    <select id="adminBorderedShowRing" class="ctrl-select-input" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+                        <option value="yes" selected>Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Outer Dia</span>
+                    <input type="range" id="adminBorderedRingOuterD" min="4" max="20" step="0.5" value="11">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedRingOuterDNum" min="4" max="20" step="0.5" value="11">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Inner Dia</span>
+                    <input type="range" id="adminBorderedRingInnerD" min="2" max="16" step="0.5" value="4">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedRingInnerDNum" min="2" max="16" step="0.5" value="4">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Height</span>
+                    <input type="range" id="adminBorderedRingHeight" min="1" max="10" step="0.5" value="3.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedRingHeightNum" min="1" max="10" step="0.5" value="3.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring X Offset</span>
+                    <input type="range" id="adminBorderedRingX" min="-30" max="30" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedRingXNum" min="-30" max="30" step="0.5" value="0.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Y Offset</span>
+                    <input type="range" id="adminBorderedRingY" min="-20" max="20" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminBorderedRingYNum" min="-20" max="20" step="0.5" value="0.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── Supported Nameplate Settings ───── -->
+            <div class="ctrl-section" id="adminSupportedSection" style="display: none;">
+                <div class="ctrl-section-title">🧱 Supported Nameplate Settings</div>
+                
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Extrusion Height</span>
+                    <input type="range" id="adminSupportedExtrusion" min="1.0" max="10.0" step="0.1" value="3.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedExtrusionNum" min="1.0" max="10.0" step="0.1" value="3.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Text Offs (Thickness)</span>
+                    <input type="range" id="adminSupportedOffs" min="0.0" max="2.0" step="0.01" value="0.01">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedOffsNum" min="0.0" max="2.0" step="0.01" value="0.01">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Text Size</span>
+                    <input type="range" id="adminSupportedTextSize" min="6" max="30" step="1" value="12">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedTextSizeNum" min="6" max="30" step="1" value="12">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <!-- Heart 1 Support -->
+                <div class="ctrl-slider-row" style="margin-top: 15px; border-top: 1px dashed var(--border-default); padding-top: 10px;">
+                    <span class="ctrl-slider-label" style="font-weight: bold;">Heart 1 Support</span>
+                    <select id="adminSupportedHeart1Enable" class="ctrl-select-input" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+                        <option value="no" selected>No</option>
+                        <option value="yes">Yes</option>
+                    </select>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Heart 1 Size</span>
+                    <input type="range" id="adminSupportedHeart1Size" min="1.0" max="20.0" step="0.5" value="5.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedHeart1SizeNum" min="1.0" max="20.0" step="0.5" value="5.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Heart 1 X Position</span>
+                    <input type="range" id="adminSupportedHeart1X" min="-50.0" max="50.0" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedHeart1XNum" min="-50.0" max="50.0" step="0.5" value="0.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Heart 1 Y Position</span>
+                    <input type="range" id="adminSupportedHeart1Y" min="-30.0" max="30.0" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedHeart1YNum" min="-30.0" max="30.0" step="0.5" value="0.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Heart 1 Angle</span>
+                    <input type="range" id="adminSupportedHeart1Angle" min="-180" max="180" step="5" value="-45">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedHeart1AngleNum" min="-180" max="180" step="5" value="-45">
+                        <span class="val-suffix">°</span>
+                    </div>
+                </div>
+
+                <!-- Heart 2 Support -->
+                <div class="ctrl-slider-row" style="margin-top: 15px; border-top: 1px dashed var(--border-default); padding-top: 10px;">
+                    <span class="ctrl-slider-label" style="font-weight: bold;">Heart 2 Support</span>
+                    <select id="adminSupportedHeart2Enable" class="ctrl-select-input" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+                        <option value="no" selected>No</option>
+                        <option value="yes">Yes</option>
+                    </select>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Heart 2 Size</span>
+                    <input type="range" id="adminSupportedHeart2Size" min="1.0" max="20.0" step="0.5" value="5.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedHeart2SizeNum" min="1.0" max="20.0" step="0.5" value="5.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Heart 2 X Position</span>
+                    <input type="range" id="adminSupportedHeart2X" min="-50.0" max="50.0" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedHeart2XNum" min="-50.0" max="50.0" step="0.5" value="0.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Heart 2 Y Position</span>
+                    <input type="range" id="adminSupportedHeart2Y" min="-30.0" max="30.0" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedHeart2YNum" min="-30.0" max="30.0" step="0.5" value="0.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Heart 2 Angle</span>
+                    <input type="range" id="adminSupportedHeart2Angle" min="-180" max="180" step="5" value="-45">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedHeart2AngleNum" min="-180" max="180" step="5" value="-45">
+                        <span class="val-suffix">°</span>
+                    </div>
+                </div>
+
+                <!-- Star 1 Support -->
+                <div class="ctrl-slider-row" style="margin-top: 15px; border-top: 1px dashed var(--border-default); padding-top: 10px;">
+                    <span class="ctrl-slider-label" style="font-weight: bold;">Star 1 Support</span>
+                    <select id="adminSupportedStar1Enable" class="ctrl-select-input" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+                        <option value="no" selected>No</option>
+                        <option value="yes">Yes</option>
+                    </select>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Star 1 Size</span>
+                    <input type="range" id="adminSupportedStar1Size" min="1.0" max="20.0" step="0.5" value="5.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedStar1SizeNum" min="1.0" max="20.0" step="0.5" value="5.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Star 1 X Position</span>
+                    <input type="range" id="adminSupportedStar1X" min="-50.0" max="50.0" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedStar1XNum" min="-50.0" max="50.0" step="0.5" value="0.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Star 1 Y Position</span>
+                    <input type="range" id="adminSupportedStar1Y" min="-30.0" max="30.0" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedStar1YNum" min="-30.0" max="30.0" step="0.5" value="0.0">
+                    </div>
+                </div>
+
+                <!-- Star 2 Support -->
+                <div class="ctrl-slider-row" style="margin-top: 15px; border-top: 1px dashed var(--border-default); padding-top: 10px;">
+                    <span class="ctrl-slider-label" style="font-weight: bold;">Star 2 Support</span>
+                    <select id="adminSupportedStar2Enable" class="ctrl-select-input" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+                        <option value="no" selected>No</option>
+                        <option value="yes">Yes</option>
+                    </select>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Star 2 Size</span>
+                    <input type="range" id="adminSupportedStar2Size" min="1.0" max="20.0" step="0.5" value="5.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedStar2SizeNum" min="1.0" max="20.0" step="0.5" value="5.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Star 2 X Position</span>
+                    <input type="range" id="adminSupportedStar2X" min="-50.0" max="50.0" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedStar2XNum" min="-50.0" max="50.0" step="0.5" value="0.0">
+                    </div>
+                </div>
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Star 2 Y Position</span>
+                    <input type="range" id="adminSupportedStar2Y" min="-30.0" max="30.0" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminSupportedStar2YNum" min="-30.0" max="30.0" step="0.5" value="0.0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── Flower Keychain Settings ───── -->
+            <div class="ctrl-section" id="adminFlowerSection" style="display: none;">
+                <div class="ctrl-section-title">🌸 Flower Keychain Settings</div>
+                
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Number of Petals</span>
+                    <input type="range" id="adminFlowerNumPetals" min="8" max="24" step="1" value="12">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerNumPetalsNum" min="8" max="24" step="1" value="12">
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Base Thickness</span>
+                    <input type="range" id="adminFlowerBaseThickness" min="1.0" max="10.0" step="0.1" value="3.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerBaseThicknessNum" min="1.0" max="10.0" step="0.1" value="3.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Center Disc Thickness</span>
+                    <input type="range" id="adminFlowerCenterDiscThickness" min="0.0" max="5.0" step="0.1" value="1.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerCenterDiscThicknessNum" min="0.0" max="5.0" step="0.1" value="1.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Initial Letter Thickness</span>
+                    <input type="range" id="adminFlowerLetterThickness" min="0.5" max="5.0" step="0.1" value="1.5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerLetterThicknessNum" min="0.5" max="5.0" step="0.1" value="1.5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Outer Dia</span>
+                    <input type="range" id="adminFlowerRingOuterD" min="4" max="20" step="0.5" value="10">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerRingOuterDNum" min="4" max="20" step="0.5" value="10">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Inner Dia</span>
+                    <input type="range" id="adminFlowerRingInnerD" min="2" max="16" step="0.5" value="5">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerRingInnerDNum" min="2" max="16" step="0.5" value="5">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Height</span>
+                    <input type="range" id="adminFlowerRingHeight" min="1" max="10" step="0.5" value="3.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerRingHeightNum" min="1" max="10" step="0.5" value="3.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Ring Offset (Y)</span>
+                    <input type="range" id="adminFlowerRingOffset" min="-10.0" max="10.0" step="0.5" value="0.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerRingOffsetNum" min="-10.0" max="10.0" step="0.5" value="0.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Base Radius</span>
+                    <input type="range" id="adminFlowerBaseRadius" min="10.0" max="50.0" step="0.5" value="25.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerBaseRadiusNum" min="10.0" max="50.0" step="0.5" value="25.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+
+                <div class="ctrl-slider-row">
+                    <span class="ctrl-slider-label">Petal Amplitude</span>
+                    <input type="range" id="adminFlowerPetalAmplitude" min="2.0" max="15.0" step="0.5" value="6.0">
+                    <div class="ctrl-slider-val">
+                        <input type="number" id="adminFlowerPetalAmplitudeNum" min="2.0" max="15.0" step="0.5" value="6.0">
+                        <span class="val-suffix">mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───── Quick Presets ───── -->
+            <div class="ctrl-section" id="adminPresetsSection">
+                <div class="ctrl-section-title">⚡ Quick Presets</div>
+                <div class="preset-row">
+                    <button class="preset-btn" data-preset="thin">
+                        Thin
+                        <span>5mm total</span>
+                    </button>
+                    <button class="preset-btn active" data-preset="standard">
+                        Standard
+                        <span>8mm total</span>
+                    </button>
+                    <button class="preset-btn" data-preset="thick">
+                        Thick
+                        <span>12mm total</span>
+                    </button>
+                </div>
+            </div>
+
+        </div><!-- /controls-body -->
+
+        <!-- Sticky Export Section -->
+        <div class="ctrl-export">
+            <div class="ctrl-export-filename">
+                <label class="ctrl-export-label" for="adminFilename">Filename</label>
+                <div class="ctrl-export-input-wrap">
+                    <input type="text" id="adminFilename" class="ctrl-filename-input" value="keychain_3d_print" placeholder="filename">
+                    <span class="ctrl-export-ext">.stl</span>
+                </div>
+            </div>
+            <button class="ctrl-export-btn" id="adminExportSTL">🖨️ Export STL for 3D Printing</button>
+            <button class="ctrl-reset-btn" id="adminResetBtn">↻ Reset All to Defaults</button>
+        </div>
+
+    </div><!-- /admin-controls -->
+
+</div><!-- /admin-console -->
+
+<!-- ===== Scripts ===== -->
+
+<!-- opentype.js for TTF font parsing -->
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<!-- Clipper for 2D boolean CAD operations -->
+<script src="https://cdn.jsdelivr.net/npm/clipper-lib@6.4.2/clipper.min.js"></script>
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+}
+</script>
+
+<!-- Admin Console Logic (ES module) -->
+<script type="module" src="admin-console.js?v=2"></script>
+
+</body>
+</html>
