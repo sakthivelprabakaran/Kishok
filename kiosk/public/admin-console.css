@@ -4,6 +4,62 @@
    ============================================================ */
 
 /* ----------------------------------------------------------
+   0. Design Tokens — Dark Purple Theme (Achuva-style)
+   These variables are required by every rule below.
+   ---------------------------------------------------------- */
+:root {
+    /* — Core palette — */
+    --purple-deep:   #050510;
+    --purple-brand:  #8b5cf6;
+    --purple-light:  #a78bfa;
+    --purple-mid:    rgba(139, 92, 246, 0.25);
+
+    /* — Glass surfaces — */
+    --glass-bg:      rgba(255, 255, 255, 0.04);
+    --glass-border:  rgba(255, 255, 255, 0.08);
+    --glass-hover:   rgba(255, 255, 255, 0.07);
+
+    /* — 3D viewport — */
+    --viewer-bg:     radial-gradient(ellipse 120% 120% at 50% 50%,
+                         #0f0f2e 0%, #050510 70%);
+    --viewer-overlay: rgba(5, 5, 16, 0.85);
+
+    /* — Text — */
+    --text-primary:   #f0f0ff;
+    --text-secondary: #a0a0c0;
+    --text-muted:     #6b6b8a;
+
+    /* — Borders — */
+    --border-default: rgba(255, 255, 255, 0.1);
+    --border-hover:   rgba(139, 92, 246, 0.3);
+
+    /* — Accents — */
+    --orange-light:   #ffb347;
+    --bg-tertiary:    #0f0f24;
+
+    /* — Motion — */
+    --transition:     0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* — Radii — */
+    --radius-sm:  8px;
+    --radius-md:  12px;
+    --radius-lg:  16px;
+    --radius-xl:  24px;
+
+    /* — Shadows — */
+    --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 30px rgba(139, 92, 246, 0.15);
+}
+
+/* Force dark background when admin-console is active */
+body:has(.admin-console) {
+    background: var(--purple-deep) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ----------------------------------------------------------
    1. Root Layout
    ---------------------------------------------------------- */
 .admin-console {
