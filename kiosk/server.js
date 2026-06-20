@@ -17,17 +17,19 @@ const CACHE_DURATION_MS = 15000; // 15 seconds cache
 
 // Timeout-based fetch helper to prevent serverless gateway timeouts (504)
 async function fetchWithTimeout(url, options = {}, timeout = 5000) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Fetch timed out')), timeout);
+    });
     try {
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal
-        });
-        clearTimeout(id);
+        const response = await Promise.race([
+            fetch(url, options),
+            timeoutPromise
+        ]);
+        clearTimeout(timeoutId);
         return response;
     } catch (err) {
-        clearTimeout(id);
+        clearTimeout(timeoutId);
         throw err;
     }
 }
