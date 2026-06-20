@@ -26,6 +26,13 @@ function cacheEls() {
     ].forEach(id => { el[id] = document.getElementById(id); });
 }
 
+function renderColorSwatches(colorVal, title, extraStyle = '') {
+    if (!colorVal) return '';
+    return colorVal.split('/').map(c => 
+        `<span class="mini-swatch" style="background-color:${c.trim()};${extraStyle}" title="${title}"></span>`
+    ).join('');
+}
+
 /* ---------- auth helpers ---------- */
 function authHeaders(json) {
     const h = { 'x-admin-pin': state.pin };
@@ -151,8 +158,8 @@ function renderQueue() {
         <div class="queue-combo ${isActive ? 'active-batch' : ''}">
             <div class="queue-combo-head">
                 <span class="combo-swatches">
-                    <span class="mini-swatch" style="background:${c.baseColor}" title="Base"></span>
-                    <span class="mini-swatch" style="background:${c.fontColor}" title="Font"></span>
+                    ${renderColorSwatches(c.baseColor, 'Base')}
+                    ${renderColorSwatches(c.fontColor, 'Font')}
                 </span>
                 <span class="combo-count">${c.items.length} to print</span>
                 <span class="combo-grams">${Math.round(c.grams * 10) / 10}g</span>
@@ -206,8 +213,8 @@ function orderCardHTML(order) {
             <div style="margin-top:.25rem;">
                 🌈 <strong>Colors:</strong>
                 <div class="color-indicator-swatches">
-                    <span class="mini-swatch" style="background-color:${order.baseColor};" title="Base"></span>
-                    <span class="mini-swatch" style="background-color:${order.fontColor};" title="Font"></span>
+                    ${renderColorSwatches(order.baseColor, 'Base')}
+                    ${renderColorSwatches(order.fontColor, 'Font')}
                 </div>
                 <span>(Base/Text)</span>
                 &nbsp;&nbsp;⚖️ <strong>Weight:</strong> ${order.weightG}g · 🖨️ <strong>Print:</strong> ${order.printTimeMins}m
@@ -283,8 +290,8 @@ function renderBatches() {
         item.className = 'batch-item-card';
         item.innerHTML = `
             <div class="batch-colors-preview">
-                <span class="mini-swatch" style="background-color:${batch.baseColor};width:16px;height:16px;"></span>
-                <span class="mini-swatch" style="background-color:${batch.fontColor};width:16px;height:16px;"></span>
+                ${renderColorSwatches(batch.baseColor, 'Base', 'width:16px;height:16px;')}
+                ${renderColorSwatches(batch.fontColor, 'Font', 'width:16px;height:16px;')}
                 <span class="batch-name-label">${batch.name}</span>
                 <span class="batch-qty-badge">${batch.count} items</span>
             </div>
@@ -303,7 +310,7 @@ async function loadSummary() {
         if (res.status === 401) { alert('Session expired — re-enter PIN.'); return location.reload(); }
         const s = await res.json();
         const combos = (s.topCombos || []).slice(0, 5).map(c =>
-            `<div class="sum-combo"><span class="mini-swatch" style="background:${c.baseColor}"></span><span class="mini-swatch" style="background:${c.fontColor}"></span> ×${c.count} · ${Math.round(c.grams*10)/10}g</div>`).join('');
+            `<div class="sum-combo">${renderColorSwatches(c.baseColor, 'Base')}${renderColorSwatches(c.fontColor, 'Font')} ×${c.count} · ${Math.round(c.grams*10)/10}g</div>`).join('');
         el.summaryBox.innerHTML = `
             <div class="sum-grid">
                 <div><span>Orders</span><b>${s.totalOrders}</b></div>

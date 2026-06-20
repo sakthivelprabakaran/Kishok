@@ -982,14 +982,29 @@ function setupEvents() {
             ? `${state.wordartTopFont}/${state.wordartBottomFont}` 
             : state.selectedFont;
 
+        let baseColor = state.colors.base;
+        let fontColor = state.colors.font;
+
+        if (state.productType === 'wordart' || state.productType === 'loveseries') {
+            baseColor = state.colors.outline; // background
+            fontColor = state.colors.font === state.colors.line2 
+                ? state.colors.font 
+                : `${state.colors.font}/${state.colors.line2}`;
+        } else if (state.productType === 'tilekey') {
+            fontColor = `${state.colors.font}/${state.colors.line2}`;
+        } else if (state.productType === 'linked_initials') {
+            baseColor = state.colors.font;
+            fontColor = state.colors.line2;
+        }
+
         const payload = {
             name: el.custName.value.trim(),
             phone: el.custPhone.value.trim(),
             productType: state.productType,
             text: state.productType === 'wordart' ? `${el.wordartLine1.value}/${el.wordartLine2.value}` : state.name,
             font: activeFont,
-            baseColor: state.colors.base,
-            fontColor: state.colors.font,
+            baseColor: baseColor,
+            fontColor: fontColor,
             weightG: state.costs.weight,
             printTimeMins: state.costs.printTimeMins,
             materialCost: state.costs.materialCost,
