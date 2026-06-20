@@ -86,7 +86,7 @@
 .stat-value {
     font-size: 1.75rem;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--text-dark);
 }
 
 /* Split Layout */
@@ -128,9 +128,9 @@
 }
 
 .refresh-btn {
-    background: rgba(255,255,255,0.05);
+    background: var(--paper-2);
     border: 1px solid var(--border-color);
-    color: #ffffff;
+    color: var(--text-dark);
     font-size: 0.75rem;
     font-weight: 700;
     padding: 0.35rem 0.75rem;
@@ -189,7 +189,7 @@
 .order-badge-id {
     font-size: 1rem;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--text-dark);
 }
 
 .order-time {
@@ -242,7 +242,7 @@
 }
 
 .spec-details-row strong {
-    color: #ffffff;
+    color: var(--text-dark);
 }
 
 .color-indicator-swatches {
@@ -262,22 +262,22 @@
 
 .txn-id-row {
     font-size: 0.78rem;
-    background: rgba(239, 68, 68, 0.05);
-    border: 1px solid rgba(239, 68, 68, 0.15);
+    background: rgba(255, 77, 46, 0.08);
+    border: 1px solid rgba(255, 77, 46, 0.2);
     padding: 0.5rem;
     border-radius: 8px;
-    color: #fca5a5;
+    color: #D8341A;
     word-break: break-all;
 }
 
 .txn-id-row.verified-txn {
-    background: rgba(16, 185, 129, 0.05);
-    border: 1px solid rgba(16, 185, 129, 0.15);
-    color: #a7f3d0;
+    background: rgba(31, 142, 77, 0.08);
+    border: 1px solid rgba(31, 142, 77, 0.2);
+    color: #1F8E4D;
 }
 
 .txn-id-row strong {
-    color: #ffffff;
+    color: var(--text-dark);
 }
 
 .card-actions-row {
