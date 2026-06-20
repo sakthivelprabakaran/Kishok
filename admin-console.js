@@ -1241,6 +1241,78 @@ function applyProductTypeUI() {
     updateViewer();
 }
 
+function parseURLParameters() {
+    const params = new URLSearchParams(window.location.search);
+    
+    const textParam = params.get('text');
+    if (textParam) {
+        state.name = decodeURIComponent(textParam);
+        nameInput.value = state.name;
+        charCountEl.textContent = state.name.length;
+    }
+    
+    const productTypeParam = params.get('productType');
+    if (productTypeParam) {
+        state.productType = productTypeParam;
+        const productTypeSelect = $('adminProductType');
+        if (productTypeSelect) {
+            productTypeSelect.value = state.productType;
+        }
+    }
+    
+    const fontParam = params.get('font');
+    if (fontParam) {
+        const decodedFont = decodeURIComponent(fontParam);
+        const singleFontName = decodedFont.includes('/') ? decodedFont.split('/')[0] : decodedFont;
+        const foundFontIndex = FONTS.findIndex(f => f.name.toLowerCase() === singleFontName.toLowerCase());
+        if (foundFontIndex > -1) {
+            state.selectedFontIndex = foundFontIndex;
+            state.selectedFont = FONTS[foundFontIndex];
+            state.lang = state.selectedFont.lang || 'en';
+            langToggle.textContent = state.lang.toUpperCase();
+        }
+    }
+    
+    const baseColorParam = params.get('baseColor');
+    if (baseColorParam) {
+        state.colors.base = decodeURIComponent(baseColorParam);
+    }
+    
+    const fontColorParam = params.get('fontColor');
+    if (fontColorParam) {
+        const decodedFontColor = decodeURIComponent(fontColorParam);
+        if (decodedFontColor.includes('/')) {
+            const parts = decodedFontColor.split('/');
+            if (state.productType === 'keychain') {
+                state.colors.outline = parts[0];
+                state.colors.font = parts[1];
+                state.layers = '3L';
+            } else if (state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey') {
+                state.colors.font = parts[0];
+                state.colors.line2 = parts[1];
+            } else {
+                state.colors.font = parts[0];
+            }
+        } else {
+            state.colors.font = decodedFontColor;
+            if (state.productType === 'keychain') {
+                state.layers = '2L';
+            }
+        }
+    }
+
+    // Sync UI elements for layers / outlines
+    if (state.productType === 'keychain') {
+        const is3L = state.layers === '3L';
+        const opts = layerToggle.querySelectorAll('.layer-opt');
+        opts.forEach(o => {
+            o.classList.toggle('active', o.dataset.val === state.layers);
+        });
+        outlineGroup.style.display = is3L ? '' : 'none';
+        outlineSection.style.display = is3L ? '' : 'none';
+    }
+}
+
 // ===== INIT =====
 
 function init() {
@@ -1249,6 +1321,9 @@ function init() {
 
     // Restore saved state
     restoreState();
+
+    // Parse URL parameters to override saved state
+    parseURLParameters();
 
     // Build UI
     buildFontChips();

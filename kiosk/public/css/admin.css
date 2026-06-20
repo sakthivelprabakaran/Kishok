@@ -543,6 +543,7 @@
 /* Pickup + WhatsApp action buttons + done tag */
 .action-btn.pickup { background: var(--cobalt); color: #fff; }
 .action-btn.wa { background: #1FAE5A; color: #fff; text-decoration: none; display: inline-flex; align-items: center; }
+.action-btn.design { background: #1F4FD8; color: #fff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 .done-tag {
     text-align: center; color: var(--accent); font-size: .8rem; width: 100%;
     font-weight: 700; background: var(--accent-glow); padding: .35rem; border-radius: 8px;

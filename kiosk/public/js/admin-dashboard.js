@@ -186,17 +186,23 @@ function visibleOrders() {
 function orderCardHTML(order) {
     const statusClass = (order.status || '').toLowerCase();
     const upiVerified = order.status !== 'Pending' ? 'verified-txn' : '';
+    
+    // Link to the root admin console with URL query parameters representing the design choices
+    const designLink = `/admin.html?text=${encodeURIComponent(order.text)}&productType=${order.productType}&font=${encodeURIComponent(order.font)}&baseColor=${encodeURIComponent(order.baseColor)}&fontColor=${encodeURIComponent(order.fontColor)}`;
+    const designBtn = `<a class="action-btn design" href="${designLink}" target="_blank">📐 DESIGN</a>`;
+
     let actions = '';
     if (order.status === 'Pending')
-        actions = `<button class="action-btn verify" data-id="${order.orderNum}">Verify Payment</button>`;
+        actions = `<button class="action-btn verify" data-id="${order.orderNum}">Verify Payment</button> ${designBtn}`;
     else if (order.status === 'Verified')
-        actions = `<button class="action-btn print" data-id="${order.orderNum}">Mark as Printed</button>`;
+        actions = `<button class="action-btn print" data-id="${order.orderNum}">Mark as Printed</button> ${designBtn}`;
     else if (order.status === 'Printed')
         actions = `<button class="action-btn pickup" data-id="${order.orderNum}">Mark Picked Up</button>
                    <a class="action-btn wa" target="_blank" rel="noopener"
-                      href="https://wa.me/91${(order.phone||'').replace(/\D/g,'').slice(-10)}?text=${encodeURIComponent('Hi ' + order.name + ', your YoursGifts order ' + order.orderNum + ' is printed and ready for pickup! 🎁')}">WhatsApp Ready</a>`;
+                      href="https://wa.me/91${(order.phone||'').replace(/\D/g,'').slice(-10)}?text=${encodeURIComponent('Hi ' + order.name + ', your YoursGifts order ' + order.orderNum + ' is printed and ready for pickup! 🎁')}">WhatsApp Ready</a>
+                   ${designBtn}`;
     else if (order.status === 'PickedUp')
-        actions = `<div class="done-tag">✓ Picked Up</div>`;
+        actions = `<div class="done-tag">✓ Picked Up</div> ${designBtn}`;
 
     return `
         <div class="card-header-row">
