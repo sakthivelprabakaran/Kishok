@@ -445,6 +445,27 @@ app.get('/api/summary/today', requireAdmin, (req, res) => {
     });
 });
 
+// Debug Google Sheets payload structure
+app.get('/api/debug-sheets', async (req, res) => {
+    try {
+        if (!GOOGLE_SCRIPT_URL) {
+            return res.json({ error: 'GOOGLE_SCRIPT_URL is not set' });
+        }
+        const response = await fetch(GOOGLE_SCRIPT_URL);
+        const data = await response.json();
+        res.json({
+            url: GOOGLE_SCRIPT_URL,
+            type: typeof data,
+            isArray: Array.isArray(data),
+            length: data.length,
+            firstItem: data[0] || null,
+            rawSample: data.slice ? data.slice(0, 3) : data
+        });
+    } catch (err) {
+        res.json({ error: err.message, stack: err.stack });
+    }
+});
+
 // Serve the index.html fallback for client-side routing
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
