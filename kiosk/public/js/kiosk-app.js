@@ -302,11 +302,41 @@ function calculatePricing() {
     const weight = state.dims.weightGrams || 2.0; // fallback if zero
     
     // 1. Check if user's color combo matches any active printing batches
-    const customerComboName = `${state.colors.base.toUpperCase()}/${state.colors.font.toUpperCase()}`;
     const matchedBatch = state.activeBatches.find(b => {
-        // For wordart or letter tiles, base color is relevant. For standard, base color + font color matter.
-        return b.baseColor.toLowerCase() === state.colors.base.toLowerCase() &&
-               b.fontColor.toLowerCase() === state.colors.font.toLowerCase();
+        const bBase = b.baseColor.toLowerCase();
+        const bFont = b.fontColor.toLowerCase();
+        const sBase = state.colors.base.toLowerCase();
+        const sFont = state.colors.font.toLowerCase();
+        const sOutline = state.colors.outline ? state.colors.outline.toLowerCase() : '';
+
+        // If standard 3-layer keychain
+        if (state.productType === 'keychain' && state.layers === '3L') {
+            if (bFont.includes('/')) {
+                return bBase === sBase && bFont === `${sOutline}/${sFont}`;
+            }
+            return bBase === sBase && bFont === sFont;
+        }
+
+        // Wordart or Loveseries
+        if (state.productType === 'wordart' || state.productType === 'loveseries') {
+            const sLine2 = state.colors.line2 ? state.colors.line2.toLowerCase() : '';
+            if (bFont.includes('/')) {
+                return bBase === sOutline && bFont === `${sFont}/${sLine2}`;
+            }
+            return bBase === sOutline && (bFont === sFont || bFont === sLine2);
+        }
+
+        // Tilekey
+        if (state.productType === 'tilekey') {
+            const sLine2 = state.colors.line2 ? state.colors.line2.toLowerCase() : '';
+            if (bFont.includes('/')) {
+                return bBase === sBase && bFont === `${sFont}/${sLine2}`;
+            }
+            return bBase === sBase && (bFont === sFont || bFont === sLine2);
+        }
+
+        // Default 2-layer match
+        return bBase === sBase && bFont === sFont;
     });
     
     let batchSize = DEFAULT_BATCH_SIZE;
@@ -995,6 +1025,10 @@ function setupEvents() {
         } else if (state.productType === 'linked_initials') {
             baseColor = state.colors.font;
             fontColor = state.colors.line2;
+        } else if (state.productType === 'keychain') {
+            if (state.layers === '3L') {
+                fontColor = `${state.colors.outline}/${state.colors.font}`;
+            }
         }
 
         const payload = {

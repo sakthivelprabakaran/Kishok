@@ -11,6 +11,27 @@ const IS_VERCEL = Boolean(process.env.VERCEL);
 // Cloud Sync URL (Google Sheets App Script Web App URL)
 const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || '';
 
+// SWR Cache for Google Sheets data to avoid lock contentions and rate-limiting
+let lastFetchTime = 0;
+const CACHE_DURATION_MS = 15000; // 15 seconds cache
+
+// Timeout-based fetch helper to prevent serverless gateway timeouts (504)
+async function fetchWithTimeout(url, options = {}, timeout = 5000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (err) {
+        clearTimeout(id);
+        throw err;
+    }
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -98,10 +119,17 @@ async function initExcel() {
 // Helper to get next order number
 async function getNextOrderNum() {
     if (GOOGLE_SCRIPT_URL) {
+        const now = Date.now();
+        // If our cache is fresh (less than 10s old), use it directly to save execution time
+        if (activeOrders.length > 0 && (now - lastFetchTime) < 10000) {
+            return `KSK-${String(activeOrders.length + 1).padStart(3, '0')}`;
+        }
         try {
-            const response = await fetch(GOOGLE_SCRIPT_URL);
+            const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL + (GOOGLE_SCRIPT_URL.includes('?') ? '&' : '?') + 't=' + now, {}, 4000);
             const data = await response.json();
-            return `KSK-${String(data.length + 1).padStart(3, '0')}`;
+            activeOrders = normalizeOrders(data);
+            lastFetchTime = now;
+            return `KSK-${String(activeOrders.length + 1).padStart(3, '0')}`;
         } catch(err) {
             console.error('Failed to get count from Google Sheets:', err);
             return `KSK-${String(activeOrders.length + 1).padStart(3, '0')}`;
@@ -168,9 +196,11 @@ async function loadActiveOrders() {
     if (GOOGLE_SCRIPT_URL) {
         try {
             console.log('Fetching initial orders from Google Sheets...');
-            const response = await fetch(GOOGLE_SCRIPT_URL);
+            const now = Date.now();
+            const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL + (GOOGLE_SCRIPT_URL.includes('?') ? '&' : '?') + 't=' + now, {}, 6000);
             const data = await response.json();
             activeOrders = normalizeOrders(data);
+            lastFetchTime = now;
             console.log(`Loaded ${activeOrders.length} orders from Google Sheets.`);
         } catch(err) {
             console.error('Failed to connect to Google Sheets on startup:', err);
@@ -287,14 +317,19 @@ app.post('/api/order', async (req, res) => {
         if (GOOGLE_SCRIPT_URL) {
             // Post to Google Sheet App Script
             console.log('Forwarding order to Google Sheets...');
-            const response = await fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(order)
-            });
-            const sheetRes = await response.json();
-            if (!sheetRes.success) {
-                throw new Error(sheetRes.error || 'Failed to save order to Google Sheets');
+            try {
+                const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(order)
+                }, 8000);
+                const sheetRes = await response.json();
+                if (!sheetRes.success) {
+                    throw new Error(sheetRes.error || 'Failed to save order to Google Sheets');
+                }
+            } catch (sheetErr) {
+                console.error('Google Sheets order save timed out or failed:', sheetErr);
+                throw new Error('Database connection timed out. Please click verify/submit again.');
             }
         } else {
             // Append to local Excel file
@@ -337,13 +372,20 @@ app.post('/api/order', async (req, res) => {
     }
 });
 
-// Get all orders (with live fetch support for Google Sheets)
+// Get all orders (with live fetch support for Google Sheets and caching)
 app.get('/api/orders/today', async (req, res) => {
     if (GOOGLE_SCRIPT_URL) {
+        const now = Date.now();
+        // If we have cached orders and the cache is fresh, return it instantly (blazing fast!)
+        if (activeOrders.length > 0 && (now - lastFetchTime) < CACHE_DURATION_MS) {
+            return res.json(activeOrders);
+        }
+        
         try {
-            const response = await fetch(GOOGLE_SCRIPT_URL);
+            const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL + (GOOGLE_SCRIPT_URL.includes('?') ? '&' : '?') + 't=' + now, {}, 5000);
             const data = await response.json();
             activeOrders = normalizeOrders(data);
+            lastFetchTime = now;
             return res.json(activeOrders);
         } catch(err) {
             console.error('Error pulling live Google Sheets orders:', err);
@@ -361,21 +403,37 @@ app.patch('/api/order/:id', requireAdmin, async (req, res) => {
         const { id } = req.params;
         const { status, upiTxnId } = req.body;
 
+        // 1. Update in-memory cache first so subsequent GET reads instantly reflect the changes
+        const cacheIndex = activeOrders.findIndex(o => o.orderNum === id);
+        if (cacheIndex > -1) {
+            if (status) activeOrders[cacheIndex].status = status;
+            if (upiTxnId !== undefined) activeOrders[cacheIndex].upiTxnId = upiTxnId;
+        }
+
+        // Force a cache refresh on next loadOrders GET polling call
+        lastFetchTime = 0;
+
         if (GOOGLE_SCRIPT_URL) {
-            // Forward patch action to Google Sheets App Script
             console.log(`Patching status to Google Sheets for ${id}...`);
-            const response = await fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'updateStatus',
-                    orderNum: id,
-                    status: status
-                })
-            });
-            const sheetRes = await response.json();
-            if (!sheetRes.success) {
-                return res.status(404).json({ error: sheetRes.error || 'Failed to update Google Sheets' });
+            try {
+                // Fetch with a 6-second timeout to prevent serverless gateway timeout.
+                // Google Apps Script will continue execution on Google side anyway.
+                const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateStatus',
+                        orderNum: id,
+                        status: status
+                    })
+                }, 6000);
+                
+                const sheetRes = await response.json();
+                if (!sheetRes.success) {
+                    console.error('Google Sheets update reported error:', sheetRes.error);
+                }
+            } catch (sheetErr) {
+                console.warn(`Failed to wait for Google Sheets update (timeout/network): ${sheetErr.message}. Relying on cache/background completion.`);
             }
         } else {
             // Excel update
@@ -405,14 +463,7 @@ app.patch('/api/order/:id', requireAdmin, async (req, res) => {
             await workbook.xlsx.writeFile(EXCEL_PATH);
         }
 
-        // Update local memory cache
-        const cacheIndex = activeOrders.findIndex(o => o.orderNum === id);
-        if (cacheIndex > -1) {
-            if (status) activeOrders[cacheIndex].status = status;
-            if (upiTxnId !== undefined) activeOrders[cacheIndex].upiTxnId = upiTxnId;
-        }
-
-        res.json({ success: true, order: activeOrders[cacheIndex] });
+        res.json({ success: true, order: cacheIndex > -1 ? activeOrders[cacheIndex] : null });
     } catch (err) {
         console.error('Error updating order:', err);
         res.status(500).json({ error: 'Failed to update order status' });
