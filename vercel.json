@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "functions": {
+    "kiosk/server.js": {
+      "runtime": "@vercel/node"
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "kiosk/server.js"
+    },
+    {
+      "src": "/kiosk",
+      "dest": "kiosk/public/index.html"
+    },
+    {
+      "src": "/kiosk/",
+      "dest": "kiosk/public/index.html"
+    },
+    {
+      "src": "/kiosk/(.*)",
+      "dest": "kiosk/public/$1"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ]
+}
