@@ -405,6 +405,15 @@ app.patch('/api/order/:id', requireAdmin, async (req, res) => {
         const { id } = req.params;
         const { status, upiTxnId } = req.body;
 
+        // Ensure cache is loaded
+        if (activeOrders.length === 0) {
+            try {
+                await loadActiveOrders();
+            } catch (loadErr) {
+                console.error('Failed to load active orders on patch:', loadErr);
+            }
+        }
+
         // 1. Update in-memory cache first so subsequent GET reads instantly reflect the changes
         const cacheIndex = activeOrders.findIndex(o => o.orderNum === id);
         if (cacheIndex > -1) {
@@ -412,8 +421,9 @@ app.patch('/api/order/:id', requireAdmin, async (req, res) => {
             if (upiTxnId !== undefined) activeOrders[cacheIndex].upiTxnId = upiTxnId;
         }
 
-        // Force a cache refresh on next loadOrders GET polling call
-        lastFetchTime = 0;
+        // Keep the cache valid for the next 10 seconds to let the background write finish
+        // without getting blocked by immediate GET polling requests.
+        lastFetchTime = Date.now() - CACHE_DURATION_MS + 10000;
 
         if (GOOGLE_SCRIPT_URL) {
             console.log(`Patching status to Google Sheets for ${id}...`);
