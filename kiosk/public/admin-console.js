@@ -342,7 +342,7 @@ function buildFontChips() {
     });
 }
 
-function selectFont(index) {
+function selectFont(index, skipRender = false) {
     state.selectedFont = FONTS[index];
     state.selectedFontIndex = index;
 
@@ -351,8 +351,11 @@ function selectFont(index) {
     const active = fontChipsWrap.querySelector(`[data-font-index="${index}"]`);
     if (active) active.classList.add('active');
 
-    // Trigger 3D update
-    updateViewer();
+    // If manually clicked, clear word art font override so both lines update to the new choice
+    if (!skipRender) {
+        state.wordartFonts = null;
+        updateViewer();
+    }
 }
 
 // ===== BUILD COLOR SWATCHES =====
@@ -893,7 +896,8 @@ async function updateViewer() {
             state.colors,
             state.layers,
             params,
-            state.productType
+            state.productType,
+            state.wordartFonts
         );
     } catch(err) {
         console.error('Admin console 3D viewer error:', err);
@@ -1285,6 +1289,19 @@ function parseURLParameters() {
             state.lang = state.selectedFont.lang || 'en';
             langToggle.textContent = state.lang.toUpperCase();
         }
+
+        // Support dual fonts for Word Art
+        if (decodedFont.includes('/')) {
+            const bottomFontName = decodedFont.split('/')[1].trim();
+            const foundTop = FONTS.find(f => f.name.toLowerCase() === singleFontName.toLowerCase());
+            const foundBottom = FONTS.find(f => f.name.toLowerCase() === bottomFontName.toLowerCase());
+            if (foundTop && foundBottom) {
+                state.wordartFonts = {
+                    top: foundTop.file,
+                    bottom: foundBottom.file
+                };
+            }
+        }
     }
     
     const baseColorParam = params.get('baseColor');
@@ -1373,19 +1390,18 @@ function init() {
         });
     }
 
-    // Initial product UI apply
-    applyProductTypeUI();
-
-    // Auto-select first font and trigger initial render if we have a saved font
-    if (state.selectedFont) {
-        selectFont(state.selectedFontIndex);
-    } else {
-        // Auto-select the first font
+    // Auto-select font FIRST (skipping render so we don't trigger twice)
+    if (!state.selectedFont) {
         const firstFont = FONTS.find(f => f.lang === state.lang);
         if (firstFont) {
-            selectFont(FONTS.indexOf(firstFont));
+            selectFont(FONTS.indexOf(firstFont), true);
         }
+    } else {
+        selectFont(state.selectedFontIndex, true);
     }
+
+    // Initial product UI apply (This will finally call updateViewer correctly!)
+    applyProductTypeUI();
 }
 
 // Start
