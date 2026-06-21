@@ -371,17 +371,19 @@ function buildSwatches() {
 
         COLOR_PALETTES[type].forEach(item => {
             const swatch = document.createElement('div');
-            swatch.className = 'ctrl-swatch' + (state.colors[type] === item.hex ? ' active' : '');
+            const currentColor = (state.colors[type] || '').toUpperCase();
+            swatch.className = 'ctrl-swatch' + (currentColor === item.hex.toUpperCase() ? ' active' : '');
             swatch.style.backgroundColor = item.hex;
             swatch.title = item.label;
 
             // White swatch needs inner border
-            if (item.hex === '#FFFFFF' || item.hex === '#fff') {
+            if (item.hex === '#FFFFFF' || item.hex === '#fff' || item.hex.toUpperCase() === '#FFFFFF') {
                 swatch.style.boxShadow = 'inset 0 0 0 1.5px rgba(200,200,200,0.6)';
             }
 
             swatch.addEventListener('click', () => {
                 state.colors[type] = item.hex;
+                if (type === 'outline') state.colors.line2 = item.hex; // sync line2 with outline for wordart
                 container.querySelectorAll('.ctrl-swatch').forEach(s => s.classList.remove('active'));
                 swatch.classList.add('active');
                 updateViewer();
@@ -1069,6 +1071,11 @@ function restoreState() {
 // ===== ENSURE PRODUCT DEFAULTS =====
 
 function ensureDefaultsForProductType() {
+    if (window.loadedFromURL) {
+        window.loadedFromURL = false;
+        return; // Prevent overriding URL-provided colors on first load
+    }
+
     if (state.productType === 'nametag') {
         const selectedAllowed = state.selectedFont && NAMETAG_FONT_ALLOWLIST.includes(state.selectedFont.name);
         if (!selectedAllowed) {
@@ -1244,13 +1251,7 @@ function applyProductTypeUI() {
 function parseURLParameters() {
     const params = new URLSearchParams(window.location.search);
     
-    const textParam = params.get('text');
-    if (textParam) {
-        state.name = decodeURIComponent(textParam);
-        nameInput.value = state.name;
-        charCountEl.textContent = state.name.length;
-    }
-    
+    // 1. Parse Product Type first to guide text/color parsing
     const productTypeParam = params.get('productType');
     if (productTypeParam) {
         state.productType = productTypeParam;
@@ -1260,10 +1261,23 @@ function parseURLParameters() {
         }
     }
     
+    // 2. Parse Text
+    const textParam = params.get('text');
+    if (textParam) {
+        let decodedText = decodeURIComponent(textParam);
+        // Wordart, loveseries, tilekey send text as Line1/Line2. Convert back to newline for the textarea.
+        if (decodedText.includes('/') && (state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey')) {
+            decodedText = decodedText.replace(/\//g, '\n');
+        }
+        state.name = decodedText;
+        nameInput.value = state.name;
+        charCountEl.textContent = longestLineLen(state.name);
+    }
+    
     const fontParam = params.get('font');
     if (fontParam) {
         const decodedFont = decodeURIComponent(fontParam);
-        const singleFontName = decodedFont.includes('/') ? decodedFont.split('/')[0] : decodedFont;
+        const singleFontName = decodedFont.includes('/') ? decodedFont.split('/')[0].trim() : decodedFont.trim();
         const foundFontIndex = FONTS.findIndex(f => f.name.toLowerCase() === singleFontName.toLowerCase());
         if (foundFontIndex > -1) {
             state.selectedFontIndex = foundFontIndex;
@@ -1289,6 +1303,7 @@ function parseURLParameters() {
                 state.layers = '3L';
             } else if (state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey') {
                 state.colors.font = parts[0];
+                state.colors.outline = parts[1]; // bind outline UI swatch to line2
                 state.colors.line2 = parts[1];
             } else {
                 state.colors.font = parts[0];
@@ -1300,6 +1315,9 @@ function parseURLParameters() {
             }
         }
     }
+    
+    window.loadedFromURL = true; // Mark as loaded from URL so ensureDefaults doesn't obliterate these colors immediately
+}
 
     // Sync UI elements for layers / outlines
     if (state.productType === 'keychain') {
