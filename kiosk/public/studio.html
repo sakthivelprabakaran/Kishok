@@ -4,15 +4,89 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>STL Generation Console — Achuva Replica</title>
+<title>STL Studio — YoursGifts Admin</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="styles-root.css" rel="stylesheet"/>
 <link href="admin-console.css" rel="stylesheet"/>
+<style>
+/* ── PIN Gate ── */
+#studioLoginGate {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #08081a;
+  z-index: 9999;
+}
+#studioLoginCard {
+  background: #13132a;
+  border: 1px solid rgba(139,92,246,.35);
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 320px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.6);
+  text-align: center;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+#studioLoginCard h2 {
+  color: #e2d9ff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+#studioLoginCard p {
+  color: #7c7ca0;
+  font-size: .85rem;
+  margin: 0 0 24px;
+}
+#studioPinInput {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(139,92,246,.4);
+  background: #1e1e40;
+  color: #e2d9ff;
+  font-size: 1.4rem;
+  letter-spacing: .3em;
+  text-align: center;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 14px;
+}
+#studioPinInput:focus { border-color: #8b5cf6; }
+#studioBtnLogin {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  background: #8b5cf6;
+  color: #fff;
+  font-size: .95rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background .2s;
+}
+#studioBtnLogin:hover { background: #7c3aed; }
+#studioLoginError {
+  color: #f87171;
+  font-size: .82rem;
+  margin-top: 10px;
+  display: none;
+}
+</style>
 </head>
 <body>
-<div class="studio" id="adminConsole">
+<!-- ===== PIN GATE ===== -->
+<div id="studioLoginGate">
+  <div id="studioLoginCard">
+    <h2>🔐 Admin Access</h2>
+    <p>Enter the operator PIN to open STL Studio.</p>
+    <input id="studioPinInput" type="password" inputmode="numeric" placeholder="••••" autocomplete="off" />
+    <button id="studioBtnLogin">Unlock Studio</button>
+    <div id="studioLoginError">Incorrect PIN — try again.</div>
+  </div>
+</div>
+<div class="studio" id="adminConsole" style="display:none">
 <!-- ===== TOOLBAR ===== -->
 <div class="toolbar">
 <div class="toolbarLeft">
@@ -671,6 +745,60 @@
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
     }
   }
+</script>
+<!-- ===== PIN GATE AUTH ===== -->
+<script>
+(function () {
+  const gate    = document.getElementById('studioLoginGate');
+  const studio  = document.getElementById('adminConsole');
+  const pinEl   = document.getElementById('studioPinInput');
+  const btnEl   = document.getElementById('studioBtnLogin');
+  const errEl   = document.getElementById('studioLoginError');
+
+  async function tryLogin(pin) {
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+      return res.ok;
+    } catch (_) { return false; }
+  }
+
+  function unlock() {
+    gate.style.display = 'none';
+    studio.style.display = '';
+  }
+
+  async function boot() {
+    const cached = sessionStorage.getItem('ygAdminPin') || '';
+    if (cached && await tryLogin(cached)) { unlock(); return; }
+    // Show gate
+    gate.style.display = 'flex';
+  }
+
+  btnEl.addEventListener('click', async () => {
+    const pin = (pinEl.value || '').trim();
+    if (!pin) return;
+    btnEl.disabled = true;
+    btnEl.textContent = 'Checking…';
+    if (await tryLogin(pin)) {
+      sessionStorage.setItem('ygAdminPin', pin);
+      unlock();
+    } else {
+      errEl.style.display = 'block';
+      btnEl.disabled = false;
+      btnEl.textContent = 'Unlock Studio';
+      pinEl.value = '';
+      pinEl.focus();
+    }
+  });
+
+  pinEl.addEventListener('keydown', e => { if (e.key === 'Enter') btnEl.click(); });
+
+  boot();
+})();
 </script>
 <script src="admin-console.js?v=3" type="module"></script>
 </body>
