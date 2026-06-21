@@ -285,6 +285,11 @@ export class KeychainViewer {
         this.controls.maxDistance      = 400;
         this.controls.enablePan        = false;
 
+        this.controls.addEventListener('start', () => {
+            this.setAutoRotate(false);
+            this.container.dispatchEvent(new CustomEvent('autorotatestop'));
+        });
+
         // Resize observer
         this._resizeObserver = new ResizeObserver(() => this._onResize());
         this._resizeObserver.observe(this.container);
@@ -775,7 +780,7 @@ export class KeychainViewer {
         this._applyFDMTexture(baseMat, p);
 
         var outlineMat = new THREE.MeshPhysicalMaterial({
-            color:              new THREE.Color(outlineColor),
+            color:              new THREE.Color(isWordart ? baseColor : outlineColor),
             roughness:          0.30,
             metalness:          0.0,
             clearcoat:          0.90,
@@ -863,7 +868,7 @@ export class KeychainViewer {
         var stackParent = this.keychainGroup;
 
         // ── Outline Layer (Medium width, middle) — only in 3L mode ──
-        if (p.layers === '3L' && !isLinkedInitials) {
+        if ((p.layers === '3L' || isWordart) && !isLinkedInitials) {
             var outlineSettings = {
                 depth:         p.outline.depth,
                 bevelEnabled:  true,

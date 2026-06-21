@@ -299,6 +299,9 @@ for (const key in SLIDER_MAP) {
 
 function initViewer() {
     viewer = new KeychainViewer(viewportEl);
+    viewer.container.addEventListener('autorotatestop', () => {
+        if (autoRotBtn) autoRotBtn.classList.remove('active');
+    });
 }
 
 function showLoading() { loadingEl.style.display = 'flex'; }
@@ -1215,6 +1218,11 @@ function ensureDefaultsForProductType() {
 // ===== APPLY PRODUCT TYPE UI =====
 
 function applyProductTypeUI() {
+    const isWordartLikeMultiLine = state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey';
+    if (isWordartLikeMultiLine && nameInput.value.includes('/')) {
+        nameInput.value = nameInput.value.replace(/\//g, '\n');
+        state.name = nameInput.value;
+    }
     const isNametag = state.productType === 'nametag';
     const isBordered = state.productType === 'bordered_keychain';
     const isSupported = state.productType === 'supported_text';
@@ -1253,7 +1261,8 @@ function applyProductTypeUI() {
     const hideOutlineAndLayers = isNametag || isBordered || isSupported || isFlower;
 
     if (fontSwatchGroup) fontSwatchGroup.style.display = isNametag ? 'none' : '';
-    if (outlineSwatchGroup) outlineSwatchGroup.style.display = (hideOutlineAndLayers || state.layers !== '3L') ? 'none' : '';
+    const isWordartLike = state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey' || state.productType === 'linked_initials';
+    if (outlineSwatchGroup) outlineSwatchGroup.style.display = (hideOutlineAndLayers || (state.layers !== '3L' && !isWordartLike)) ? 'none' : '';
     if (layerToggleWrap) layerToggleWrap.style.display = hideOutlineAndLayers ? 'none' : '';
 
     if (isNametag) {
