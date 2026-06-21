@@ -81,7 +81,7 @@
   <div id="studioLoginCard">
     <h2>🔐 Admin Access</h2>
     <p>Enter the operator PIN to open STL Studio.</p>
-    <input id="studioPinInput" type="password" inputmode="numeric" placeholder="••••" autocomplete="off" />
+    <input id="studioPinInput" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="••••" autocomplete="off" />
     <button id="studioBtnLogin">Unlock Studio</button>
     <div id="studioLoginError">Incorrect PIN — try again.</div>
   </div>

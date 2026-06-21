@@ -16,7 +16,7 @@
         <div class="login-card">
             <h2>Admin Access</h2>
             <p>Enter the operator PIN to manage orders.</p>
-            <input type="password" id="pinInput" inputmode="numeric" placeholder="••••" autocomplete="off">
+            <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="••••" autocomplete="off">
             <div class="login-error" id="loginError" style="display:none;"></div>
             <button id="btnLogin">Unlock Dashboard</button>
         </div>

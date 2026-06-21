@@ -66,9 +66,11 @@ app.use(express.json({ limit: '50kb' })); // prevent oversized payloads
 // only admin/operator actions are gated.
 const ADMIN_PIN = String(process.env.ADMIN_PIN || '1234').trim();
 
+const VALID_PIN_RE = /^\d{4}$/; // PIN must be exactly 4 digits
+
 function requireAdmin(req, res, next) {
     const pin = String(req.headers['x-admin-pin'] || '').trim();
-    if (pin && pin === ADMIN_PIN) return next();
+    if (VALID_PIN_RE.test(pin) && pin === ADMIN_PIN) return next();
     return res.status(401).json({ error: 'Unauthorized — admin PIN required' });
 }
 
@@ -79,13 +81,14 @@ const loginLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: 'Too many login attempts — try again in 15 minutes.' },
-    skipSuccessfulRequests: true, // don't count successful logins against the limit
+    skipSuccessfulRequests: true,
 });
 
 // Login: validate a PIN, let the client cache it for subsequent x-admin-pin headers.
 app.post('/api/admin/login', loginLimiter, (req, res) => {
     const pin = String((req.body || {}).pin || '').trim();
-    if (pin && pin === ADMIN_PIN) return res.json({ success: true });
+    if (!VALID_PIN_RE.test(pin)) return res.status(400).json({ success: false, error: 'PIN must be exactly 4 digits' });
+    if (pin === ADMIN_PIN) return res.json({ success: true });
     return res.status(401).json({ success: false, error: 'Invalid PIN' });
 });
 
