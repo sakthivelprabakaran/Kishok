@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
@@ -34,8 +36,29 @@ async function fetchWithTimeout(url, options = {}, timeout = 5000) {
     }
 }
 
-app.use(cors());
-app.use(express.json());
+// ===== SECURITY HEADERS =====
+// helmet sets X-Frame-Options, X-Content-Type-Options, HSTS, etc.
+app.use(helmet({
+    contentSecurityPolicy: false, // disabled — we load Three.js from CDN
+}));
+
+// ===== CORS =====
+// Only allow requests from our own Vercel domain (or localhost in dev).
+// The ALLOWED_ORIGIN env var should be set in Vercel to your production URL.
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:3001';
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow same-origin (no origin header) or the configured domain
+        if (!origin || origin === ALLOWED_ORIGIN || /^http:\/\/localhost/.test(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS: Origin not allowed'));
+    },
+    methods: ['GET', 'POST', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'x-admin-pin'],
+}));
+
+app.use(express.json({ limit: '50kb' })); // prevent oversized payloads
 
 // ===== ADMIN AUTH =====
 // Shared-secret PIN. Set ADMIN_PIN in the environment for production; the
@@ -49,18 +72,28 @@ function requireAdmin(req, res, next) {
     return res.status(401).json({ error: 'Unauthorized — admin PIN required' });
 }
 
+// Login rate limiter: max 10 attempts per IP per 15 minutes.
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many login attempts — try again in 15 minutes.' },
+    skipSuccessfulRequests: true, // don't count successful logins against the limit
+});
+
 // Login: validate a PIN, let the client cache it for subsequent x-admin-pin headers.
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', loginLimiter, (req, res) => {
     const pin = String((req.body || {}).pin || '').trim();
     if (pin && pin === ADMIN_PIN) return res.json({ success: true });
     return res.status(401).json({ success: false, error: 'Invalid PIN' });
 });
 
-// Non-secret deployment check for debugging environment configuration.
-app.get('/api/admin/health', (req, res) => {
+// Non-secret deployment check (no PIN length exposed).
+app.get('/api/admin/health', requireAdmin, (req, res) => {
     res.json({
         adminPinConfigured: Boolean(process.env.ADMIN_PIN),
-        adminPinLength: ADMIN_PIN.length
+        status: 'ok',
     });
 });
 
@@ -281,13 +314,32 @@ app.post('/api/batches', requireAdmin, (req, res) => {
     res.json({ success: true, activeBatches });
 });
 
-// Submit a new order
+// Submit a new order (public — customer-facing)
 app.post('/api/order', async (req, res) => {
     try {
         const orderData = req.body;
-        
+
+        // ── Presence check ──
         if (!orderData.name || !orderData.phone || !orderData.productType || !orderData.text) {
             return res.status(400).json({ error: 'Missing required order details' });
+        }
+
+        // ── Length / type validation ──
+        if (typeof orderData.name !== 'string' || orderData.name.length > 80)
+            return res.status(400).json({ error: 'Name must be a string ≤ 80 characters' });
+        if (typeof orderData.phone !== 'string' || orderData.phone.length > 20)
+            return res.status(400).json({ error: 'Phone must be ≤ 20 characters' });
+        if (typeof orderData.text !== 'string' || orderData.text.length > 100)
+            return res.status(400).json({ error: 'Text must be ≤ 100 characters' });
+        if (typeof orderData.productType !== 'string' || orderData.productType.length > 40)
+            return res.status(400).json({ error: 'Invalid productType' });
+        if (orderData.font && (typeof orderData.font !== 'string' || orderData.font.length > 60))
+            return res.status(400).json({ error: 'Invalid font value' });
+        // Numeric fields must be finite numbers
+        const numFields = ['weightG','printTimeMins','materialCost','machineCost','laborCost','productionCost','finalAmount'];
+        for (const f of numFields) {
+            if (orderData[f] !== undefined && !Number.isFinite(Number(orderData[f])))
+                return res.status(400).json({ error: `Invalid value for ${f}` });
         }
 
         const orderNum = await getNextOrderNum();
@@ -374,8 +426,8 @@ app.post('/api/order', async (req, res) => {
     }
 });
 
-// Get all orders (with live fetch support for Google Sheets and caching)
-app.get('/api/orders/today', async (req, res) => {
+// Get all orders — admin only (contains customer PII: names, phones, UPI IDs)
+app.get('/api/orders/today', requireAdmin, async (req, res) => {
     if (GOOGLE_SCRIPT_URL) {
         const now = Date.now();
         // If we have cached orders and the cache is fresh, return it instantly (blazing fast!)
@@ -508,26 +560,7 @@ app.get('/api/summary/today', requireAdmin, (req, res) => {
     });
 });
 
-// Debug Google Sheets payload structure
-app.get('/api/debug-sheets', async (req, res) => {
-    try {
-        if (!GOOGLE_SCRIPT_URL) {
-            return res.json({ error: 'GOOGLE_SCRIPT_URL is not set' });
-        }
-        const response = await fetch(GOOGLE_SCRIPT_URL);
-        const data = await response.json();
-        res.json({
-            url: GOOGLE_SCRIPT_URL,
-            type: typeof data,
-            isArray: Array.isArray(data),
-            length: data.length,
-            firstItem: data[0] || null,
-            rawSample: data.slice ? data.slice(0, 3) : data
-        });
-    } catch (err) {
-        res.json({ error: err.message, stack: err.stack });
-    }
-});
+// ⚠️ /api/debug-sheets removed — was leaking Google Sheets URL and raw order data publicly.
 
 // Serve the index.html fallback for client-side routing
 app.get('*', (req, res) => {

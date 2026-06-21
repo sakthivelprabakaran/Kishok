@@ -26,6 +26,17 @@ function cacheEls() {
     ].forEach(id => { el[id] = document.getElementById(id); });
 }
 
+/* ---------- XSS protection ---------- */
+// Escape all user-supplied data before inserting into innerHTML.
+function esc(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function renderColorSwatches(colorVal, title, extraStyle = '') {
     if (!colorVal) return '';
     return colorVal.split('/').map(c => 
@@ -184,38 +195,38 @@ function visibleOrders() {
 }
 
 function orderCardHTML(order) {
-    const statusClass = (order.status || '').toLowerCase();
+    const statusClass = esc((order.status || '').toLowerCase());
     const upiVerified = order.status !== 'Pending' ? 'verified-txn' : '';
-    
+
     // Link to the studio console with URL query parameters representing the design choices
-    const designLink = `studio.html?text=${encodeURIComponent(order.text)}&productType=${order.productType}&font=${encodeURIComponent(order.font)}&baseColor=${encodeURIComponent(order.baseColor)}&fontColor=${encodeURIComponent(order.fontColor)}`;
+    const designLink = `studio.html?text=${encodeURIComponent(order.text)}&productType=${encodeURIComponent(order.productType)}&font=${encodeURIComponent(order.font)}&baseColor=${encodeURIComponent(order.baseColor)}&fontColor=${encodeURIComponent(order.fontColor)}`;
     const designBtn = `<a class="action-btn design" href="${designLink}" target="_blank">📐 DESIGN</a>`;
 
     let actions = '';
     if (order.status === 'Pending')
-        actions = `<button class="action-btn verify" data-id="${order.orderNum}">Verify Payment</button> ${designBtn}`;
+        actions = `<button class="action-btn verify" data-id="${esc(order.orderNum)}">Verify Payment</button> ${designBtn}`;
     else if (order.status === 'Verified')
-        actions = `<button class="action-btn print" data-id="${order.orderNum}">Mark as Printed</button> ${designBtn}`;
+        actions = `<button class="action-btn print" data-id="${esc(order.orderNum)}">Mark as Printed</button> ${designBtn}`;
     else if (order.status === 'Printed')
-        actions = `<button class="action-btn pickup" data-id="${order.orderNum}">Mark Picked Up</button>
+        actions = `<button class="action-btn pickup" data-id="${esc(order.orderNum)}">Mark Picked Up</button>
                    <a class="action-btn wa" target="_blank" rel="noopener"
-                      href="https://wa.me/91${(order.phone||'').replace(/\D/g,'').slice(-10)}?text=${encodeURIComponent('Hi ' + order.name + ', your YoursGifts order ' + order.orderNum + ' is printed and ready for pickup! 🎁')}">WhatsApp Ready</a>
+                      href="https://wa.me/91${encodeURIComponent((order.phone||'').replace(/\D/g,'').slice(-10))}?text=${encodeURIComponent('Hi ' + order.name + ', your YoursGifts order ' + order.orderNum + ' is printed and ready for pickup! 🎁')}">WhatsApp Ready</a>
                    ${designBtn}`;
     else if (order.status === 'PickedUp')
         actions = `<div class="done-tag">✓ Picked Up</div> ${designBtn}`;
 
     return `
         <div class="card-header-row">
-            <span class="order-badge-id">${order.orderNum}</span>
-            <span class="order-time">${order.timestamp}</span>
-            <span class="order-status-tag ${statusClass}">${order.status}</span>
+            <span class="order-badge-id">${esc(order.orderNum)}</span>
+            <span class="order-time">${esc(order.timestamp)}</span>
+            <span class="order-status-tag ${statusClass}">${esc(order.status)}</span>
         </div>
         <div class="cust-details-row">
-            <span>👤 <strong>Name:</strong> ${order.name}</span>
-            <span>📞 <strong>Phone:</strong> <a href="tel:${order.phone}" style="color:var(--primary-ink);">${order.phone}</a></span>
+            <span>👤 <strong>Name:</strong> ${esc(order.name)}</span>
+            <span>📞 <strong>Phone:</strong> <a href="tel:${esc(order.phone)}" style="color:var(--primary-ink);">${esc(order.phone)}</a></span>
         </div>
         <div class="spec-details-row">
-            <div>🎨 <strong>Specs:</strong> ${plabel(order.productType)} · "${order.text}" (Font: ${order.font})</div>
+            <div>🎨 <strong>Specs:</strong> ${esc(plabel(order.productType))} · &quot;${esc(order.text)}&quot; (Font: ${esc(order.font)})</div>
             <div style="margin-top:.25rem;">
                 🌈 <strong>Colors:</strong>
                 <div class="color-indicator-swatches">
@@ -223,14 +234,14 @@ function orderCardHTML(order) {
                     ${renderColorSwatches(order.fontColor, 'Font')}
                 </div>
                 <span>(Base/Text)</span>
-                &nbsp;&nbsp;⚖️ <strong>Weight:</strong> ${order.weightG}g · 🖨️ <strong>Print:</strong> ${order.printTimeMins}m
+                &nbsp;&nbsp;⚖️ <strong>Weight:</strong> ${esc(order.weightG)}g · 🖨️ <strong>Print:</strong> ${esc(order.printTimeMins)}m
             </div>
             <div style="margin-top:.25rem;">
-                💰 <strong>Price:</strong> Raw ₹${order.productionCost} | <strong>Paid: ₹${order.finalAmount}</strong>
+                💰 <strong>Price:</strong> Raw ₹${esc(order.productionCost)} | <strong>Paid: ₹${esc(order.finalAmount)}</strong>
             </div>
         </div>
         <div class="txn-id-row ${upiVerified}">
-            🔑 <strong>UPI Ref:</strong> <code>${order.upiTxnId || 'N/A'}</code>
+            🔑 <strong>UPI Ref:</strong> <code>${esc(order.upiTxnId || 'N/A')}</code>
         </div>
         <div class="card-actions-row">${actions}</div>`;
 }
