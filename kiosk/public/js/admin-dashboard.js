@@ -68,7 +68,8 @@ function showApp() {
 /* ---------- data ---------- */
 async function loadOrders(silent = false) {
     try {
-        const res = await fetch(`/api/orders/today?t=${Date.now()}`);
+        const res = await fetch(`/api/orders/today?t=${Date.now()}`, { headers: authHeaders(false) });
+        if (res.status === 401) { alert('Session expired — re-enter PIN.'); return location.reload(); }
         const data = await res.json();
 
         // reliable new-order detection by id (not array length)
