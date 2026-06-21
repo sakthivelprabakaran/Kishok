@@ -1317,7 +1317,6 @@ function parseURLParameters() {
     }
     
     window.loadedFromURL = true; // Mark as loaded from URL so ensureDefaults doesn't obliterate these colors immediately
-}
 
     // Sync UI elements for layers / outlines
     if (state.productType === 'keychain') {
