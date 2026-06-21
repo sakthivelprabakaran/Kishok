@@ -308,6 +308,13 @@ function hideLoading() { loadingEl.style.display = 'none'; }
 
 function buildFontChips() {
     fontChipsWrap.innerHTML = '';
+    const bottomFontWrap = document.getElementById('adminFontChipsBottom');
+    if (bottomFontWrap) bottomFontWrap.innerHTML = '';
+    
+    const wrapper = document.getElementById('adminWordartBottomFontWrapper');
+    if (wrapper) {
+        wrapper.style.display = (state.productType === 'wordart') ? 'block' : 'none';
+    }
     
     let filteredFonts = FONTS.filter(f => f.lang === state.lang);
     if (state.productType === 'nametag') {
@@ -322,38 +329,66 @@ function buildFontChips() {
     }
 
     filteredFonts.forEach((font, idx) => {
-        const chip = document.createElement('button');
-        chip.className = 'font-chip' + (font.lang === 'ta' ? ' tamil' : '');
-        chip.textContent = font.label;
-        chip.style.fontFamily = `'${font.name}', sans-serif`;
-        chip.dataset.fontIndex = FONTS.indexOf(font);
-        chip.title = font.label;
+        const createChip = (isBottom) => {
+            const chip = document.createElement('button');
+            chip.className = 'font-chip' + (font.lang === 'ta' ? ' tamil' : '');
+            chip.textContent = font.label;
+            chip.style.fontFamily = `'${font.name}', sans-serif`;
+            chip.dataset.fontIndex = FONTS.indexOf(font);
+            chip.title = font.label;
 
-        // Mark active if this was previously selected
-        if (state.selectedFont && state.selectedFont.name === font.name) {
-            chip.classList.add('active');
+            if (!isBottom && state.selectedFont && state.selectedFont.name === font.name) {
+                chip.classList.add('active');
+            }
+            if (isBottom && state.selectedFontBottomIndex !== undefined && FONTS.indexOf(font) === state.selectedFontBottomIndex) {
+                chip.classList.add('active');
+            }
+
+            chip.addEventListener('click', () => {
+                selectFont(FONTS.indexOf(font), false, isBottom);
+            });
+            return chip;
+        };
+
+        fontChipsWrap.appendChild(createChip(false));
+        if (bottomFontWrap && state.productType === 'wordart') {
+            bottomFontWrap.appendChild(createChip(true));
         }
-
-        chip.addEventListener('click', () => {
-            selectFont(FONTS.indexOf(font));
-        });
-
-        fontChipsWrap.appendChild(chip);
     });
 }
 
-function selectFont(index, skipRender = false) {
-    state.selectedFont = FONTS[index];
-    state.selectedFontIndex = index;
+function selectFont(index, skipRender = false, isBottom = false) {
+    if (isBottom) {
+        state.selectedFontBottomIndex = index;
+        const bottomWrap = document.getElementById('adminFontChipsBottom');
+        if (bottomWrap) {
+            bottomWrap.querySelectorAll('.font-chip').forEach(c => c.classList.remove('active'));
+            const active = bottomWrap.querySelector(`[data-font-index="${index}"]`);
+            if (active) active.classList.add('active');
+        }
+    } else {
+        state.selectedFont = FONTS[index];
+        state.selectedFontIndex = index;
 
-    // Update active chip
-    fontChipsWrap.querySelectorAll('.font-chip').forEach(c => c.classList.remove('active'));
-    const active = fontChipsWrap.querySelector(`[data-font-index="${index}"]`);
-    if (active) active.classList.add('active');
+        // Update active chip
+        fontChipsWrap.querySelectorAll('.font-chip').forEach(c => c.classList.remove('active'));
+        const active = fontChipsWrap.querySelector(`[data-font-index="${index}"]`);
+        if (active) active.classList.add('active');
+    }
 
-    // If manually clicked, clear word art font override so both lines update to the new choice
-    if (!skipRender) {
+    // Always update word art fonts explicitly based on both top and bottom selections
+    if (state.productType === 'wordart') {
+        const topIdx = state.selectedFontIndex !== undefined ? state.selectedFontIndex : 0;
+        const botIdx = state.selectedFontBottomIndex !== undefined ? state.selectedFontBottomIndex : topIdx;
+        state.wordartFonts = {
+            top: FONTS[topIdx].file,
+            bottom: FONTS[botIdx].file
+        };
+    } else {
         state.wordartFonts = null;
+    }
+
+    if (!skipRender) {
         updateViewer();
     }
 }
@@ -1300,6 +1335,7 @@ function parseURLParameters() {
                     top: foundTop.file,
                     bottom: foundBottom.file
                 };
+                state.selectedFontBottomIndex = FONTS.indexOf(foundBottom);
             }
         }
     }
