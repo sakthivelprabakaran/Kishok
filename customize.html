@@ -90,6 +90,8 @@
                                 <button class="ptype-opt" data-val="bordered_keychain" role="tab" aria-selected="false">🔲 Bordered Keychain</button>
                                 <button class="ptype-opt" data-val="supported_text" role="tab" aria-selected="false">🧱 Supported Nameplate</button>
                                 <button class="ptype-opt" data-val="flower_keychain" role="tab" aria-selected="false">🌸 Flower Initial</button>
+                                <button class="ptype-opt" data-val="led_word_stand" role="tab" aria-selected="false">🔦 LED Word Stand</button>
+                                <button class="ptype-opt" data-val="led_word_art" role="tab" aria-selected="false">🪧 LED Word Art</button>
                             </div>
                         </div>
                     </div>
@@ -362,13 +364,15 @@
     {
         "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+            "three-mesh-bvh": "https://esm.sh/three-mesh-bvh@0.7.8?external=three",
+            "three-bvh-csg": "https://esm.sh/three-bvh-csg@0.0.16?external=three,three-mesh-bvh"
         }
     }
     </script>
 
     <script type="module">
-        import { KeychainViewer } from './viewer3d.js?v=poc4';
+        import { KeychainViewer } from './viewer3d.js?v=led1';
 
         var viewer      = null;
         var viewerReady = false;

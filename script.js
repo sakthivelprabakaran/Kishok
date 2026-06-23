@@ -148,6 +148,7 @@ var state = {
     _borderedColorsApplied: false,
     _supportedColorsApplied: false,
     _flowerColorsApplied: false,
+    _ledColorsApplied: false,
 };
 
 var WORDART_DEFAULT_TOP    = 'OleoScript';
@@ -936,6 +937,9 @@ function applyProductTypeUI() {
     var isBordered   = state.productType === 'bordered_keychain';
     var isSupported  = state.productType === 'supported_text';
     var isFlower     = state.productType === 'flower_keychain';
+    var isLedStand   = state.productType === 'led_word_stand';
+    var isLedArt     = state.productType === 'led_word_art';
+    var isLed        = isLedStand || isLedArt;
     var isWordartLike = isWordart || isLoveSeries;
 
     var line2Row    = $('line2ColorRow');
@@ -978,6 +982,10 @@ function applyProductTypeUI() {
                 joinedName = joinedName.slice(0, 15);
             } else if (isFlower) {
                 joinedName = joinedName.slice(0, 1).toUpperCase();
+            } else if (isLedStand) {
+                joinedName = joinedName.slice(0, 3).toUpperCase();
+            } else if (isLedArt) {
+                joinedName = joinedName.slice(0, 15);
             }
             if (nameInput) nameInput.value = joinedName;
             state.name = joinedName;
@@ -1004,7 +1012,7 @@ function applyProductTypeUI() {
         if (line2Row)   line2Row.style.display   = '';
         if (baseRow)    baseRow.style.display    = 'none';
         if (outlineRow) outlineRow.style.display = 'none';
-    } else if (isNametag || isGirly || isBordered || isFlower) {
+    } else if (isNametag || isGirly || isBordered || isFlower || isLed) {
         if (line2Row)   line2Row.style.display   = 'none';
         if (baseRow)    baseRow.style.display    = '';
         if (outlineRow) outlineRow.style.display = 'none';
@@ -1023,7 +1031,7 @@ function applyProductTypeUI() {
         nametagSection.style.display = isNametag ? '' : 'none';
     }
 
-    if (layerToggle) layerToggle.style.display = (isLinkedInitials || isNametag || isGirly || isBordered || isSupported || isFlower) ? 'none' : '';
+    if (layerToggle) layerToggle.style.display = (isLinkedInitials || isNametag || isGirly || isBordered || isSupported || isFlower || isLed) ? 'none' : '';
     if (hint)     hint.style.display     = isWordart ? '' : 'none';
     if (slotTabs) slotTabs.style.display = isWordart ? '' : 'none';
 
@@ -1038,6 +1046,8 @@ function applyProductTypeUI() {
         else if (isBordered)   previewSub.textContent = 'Double line keychain with raised or engraved text and customized border.';
         else if (isSupported)  previewSub.textContent = 'Custom nameplate supported by heart or star bridges.';
         else if (isFlower)     previewSub.textContent = 'Flower initial keychain with a custom radial petal pattern.';
+        else if (isLedStand)   previewSub.textContent = 'Modular LED letters that clip onto a hollow channel stand (up to 3 letters).';
+        else if (isLedArt)     previewSub.textContent = 'Unified hollow LED tray; the text doubles as a snap-in diffuser cover.';
         else                   previewSub.textContent = 'Pick a font style to preview your text';
     }
 
@@ -1050,6 +1060,8 @@ function applyProductTypeUI() {
         else if (isBordered)   nameLabelText.textContent = 'Keychain Text';
         else if (isSupported)  nameLabelText.textContent = 'Nameplate Text';
         else if (isFlower)     nameLabelText.textContent = 'Initial Letter';
+        else if (isLedStand)   nameLabelText.textContent = 'LED Letters';
+        else if (isLedArt)     nameLabelText.textContent = 'LED Word';
         else                   nameLabelText.textContent = 'Custom Name / Text';
     }
     if (nameLabelDesc) {
@@ -1061,6 +1073,8 @@ function applyProductTypeUI() {
         else if (isBordered)   nameLabelDesc.textContent = 'Enter 1 or 2 lines of text (maximum 31 characters)';
         else if (isSupported)  nameLabelDesc.textContent = 'Enter name to print (maximum 15 characters)';
         else if (isFlower)     nameLabelDesc.textContent = 'Enter a single uppercase initial (maximum 1 character)';
+        else if (isLedStand)   nameLabelDesc.textContent = 'Auto uppercase, up to 3 letters (each prints separately)';
+        else if (isLedArt)     nameLabelDesc.textContent = 'Enter a short word for the LED sign (maximum 15 characters)';
         else                   nameLabelDesc.textContent = 'Pick name/text to print on your item';
     }
 
@@ -1069,6 +1083,7 @@ function applyProductTypeUI() {
         else if (isLoveSeries) fontLabel.textContent = 'Your Name';
         else if (isWordart)    fontLabel.textContent = 'Line 1';
         else if (isLinkedInitials) fontLabel.textContent = 'Left Init.';
+        else if (isLed)        fontLabel.textContent = 'Diffuser';
         else                   fontLabel.textContent = 'Text';
     }
     if (line2Label) {
@@ -1078,12 +1093,12 @@ function applyProductTypeUI() {
         else                   line2Label.textContent = 'Line 2';
     }
     if (baseLabel) {
-        baseLabel.textContent = isTileKey ? 'Strip' : (isNametag ? 'Tag Color' : (isGirly ? 'Base & Bow' : 'Base'));
+        baseLabel.textContent = isTileKey ? 'Strip' : (isNametag ? 'Tag Color' : (isGirly ? 'Base & Bow' : (isLed ? 'Housing' : 'Base')));
     }
 
     if (nameInput) {
-        var rows = (isLoveSeries || isTileKey || isLinkedInitials || isNametag || isGirly || isSupported || isFlower) ? '1' : '2';
-        var max = isTileKey ? String(TILEKEY_MAX_CHARS) : (isLinkedInitials ? '2' : (isFlower ? '1' : (isLoveSeries || isNametag || isGirly || isSupported ? '15' : '31')));
+        var rows = (isLoveSeries || isTileKey || isLinkedInitials || isNametag || isGirly || isSupported || isFlower || isLed) ? '1' : '2';
+        var max = isTileKey ? String(TILEKEY_MAX_CHARS) : (isLinkedInitials ? '2' : (isFlower ? '1' : (isLedStand ? '3' : (isLoveSeries || isNametag || isGirly || isSupported || isLedArt ? '15' : '31'))));
         nameInput.setAttribute('rows', rows);
         nameInput.setAttribute('maxlength', max);
         if (isTileKey)         nameInput.setAttribute('placeholder', 'e.g. ALEXA…');
@@ -1092,6 +1107,8 @@ function applyProductTypeUI() {
         else if (isNametag)    nameInput.setAttribute('placeholder', 'e.g. PRIYA…');
         else if (isFlower)     nameInput.setAttribute('placeholder', 'e.g. S…');
         else if (isSupported)  nameInput.setAttribute('placeholder', 'e.g. SAKTHI…');
+        else if (isLedStand)   nameInput.setAttribute('placeholder', 'e.g. LED…');
+        else if (isLedArt)     nameInput.setAttribute('placeholder', 'e.g. Love…');
         else                   nameInput.setAttribute('placeholder', 'e.g. Priya, SAKTHI…');
     }
 
@@ -1104,6 +1121,7 @@ function applyProductTypeUI() {
     if (isBordered)   { ensureBorderedDefaults(); }
     if (isSupported)  { ensureSupportedDefaults(); }
     if (isFlower)     { ensureFlowerDefaults(); }
+    if (isLed)        { ensureLedDefaults(); }
 }
 
 function ensureGirlyDefaults() {
@@ -1152,6 +1170,23 @@ function ensureFlowerDefaults() {
         state.colors.font    = '#FFFFFF';
         state.colors.outline = '#000000';
         state._flowerColorsApplied = true;
+        buildSwatches();
+    }
+}
+
+function ensureLedDefaults() {
+    // Bold, high-coverage font reads best as a hollow LED housing.
+    var idx = FONTS.findIndex(function(f) { return f.name === 'Fredoka One' || f.name === 'BagelFatOne' || f.name === 'Brandy'; });
+    if (idx < 0) idx = 0;
+    state.selectedFontIndex = idx;
+    state.selectedFont      = FONTS[idx];
+
+    if (!state._ledColorsApplied) {
+        // base = opaque housing, font = translucent diffuser cover.
+        state.colors.base    = '#1b1b1b';
+        state.colors.font    = '#ffd166';
+        state.colors.outline = '#000000';
+        state._ledColorsApplied = true;
         buildSwatches();
     }
 }
@@ -1301,7 +1336,8 @@ function initProductType() {
             state._borderedColorsApplied = false;
             state._supportedColorsApplied = false;
             state._flowerColorsApplied = false;
-            
+            state._ledColorsApplied = false;
+
             // Sync text inputs
             if (nameInput) {
                 nameInput.value = clampMultiline(nameInput.value);
