@@ -7,6 +7,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { SVGLoader }     from 'three/addons/loaders/SVGLoader.js';
 import { STLExporter }   from 'three/addons/exporters/STLExporter.js';
+// Mesh-boolean engine for the LED Word Stand (hollow channels, peg tabs, slots).
+import { Evaluator, Brush, SUBTRACTION, ADDITION } from 'three-bvh-csg';
 
 // ===================================================================
 // Clipper CAD helpers for boolean difference operations
@@ -194,6 +196,83 @@ function offsetShapes(shapes, delta) {
     const polyTree = new ClipperLib.PolyTree();
     co.Execute(polyTree, delta * scale);
     return polyTreeToShapes(polyTree, scale);
+}
+
+// Union all glyph shapes, then offset outward by `padding` to get the box/cover
+// footprint. When `isHollow`, also offset by `padding - wallThk` and subtract to
+// produce a wall ring. Returns { coverShapes, wallShapes } or null on failure.
+// Used by the LED Word Art / LED Word Stand builders. (Ported from Achuva.)
+function clipperUnionAndOffset(baseShapes, padding, wallThk, isHollow) {
+    if (typeof ClipperLib === 'undefined') {
+        console.warn('ClipperLib not loaded; cannot build LED housing.');
+        return null;
+    }
+    const scale = 1000;
+
+    try {
+        // 1. Boolean union of all character shapes.
+        const clipper = new ClipperLib.Clipper();
+        for (let i = 0; i < baseShapes.length; i++) {
+            const paths = shapeToClipperPaths(baseShapes[i], scale);
+            clipper.AddPaths(paths, ClipperLib.PolyType.ptSubject, true);
+        }
+
+        const unionedTree = new ClipperLib.PolyTree();
+        clipper.Execute(
+            ClipperLib.ClipType.ctUnion,
+            unionedTree,
+            ClipperLib.PolyFillType.pftNonZero,
+            ClipperLib.PolyFillType.pftNonZero
+        );
+
+        const unionedPaths = ClipperLib.Clipper.PolyTreeToPaths(unionedTree);
+
+        // 2. Offset by `padding` for the outer contour (round joins fillet corners).
+        const coOuter = new ClipperLib.ClipperOffset();
+        coOuter.AddPaths(unionedPaths, ClipperLib.JoinType.jtRound, ClipperLib.EndType.etClosedPolygon);
+        coOuter.ArcTolerance = 0.25 * scale;
+
+        const outerTree = new ClipperLib.PolyTree();
+        coOuter.Execute(outerTree, padding * scale);
+
+        const outerShapes = polyTreeToShapes(outerTree, scale);
+
+        if (!isHollow) {
+            return { coverShapes: outerShapes, wallShapes: [] };
+        }
+
+        // 3. Inner contour = offset by (padding - wallThk).
+        const coInner = new ClipperLib.ClipperOffset();
+        coInner.AddPaths(unionedPaths, ClipperLib.JoinType.jtRound, ClipperLib.EndType.etClosedPolygon);
+        coInner.ArcTolerance = 0.25 * scale;
+
+        const innerTree = new ClipperLib.PolyTree();
+        coInner.Execute(innerTree, (padding - wallThk) * scale);
+
+        // 4. Wall ring = outer minus inner.
+        const clipperDiff = new ClipperLib.Clipper();
+        const outerPaths = ClipperLib.Clipper.PolyTreeToPaths(outerTree);
+        const innerPaths = ClipperLib.Clipper.PolyTreeToPaths(innerTree);
+
+        clipperDiff.AddPaths(outerPaths, ClipperLib.PolyType.ptSubject, true);
+        clipperDiff.AddPaths(innerPaths, ClipperLib.PolyType.ptClip, true);
+
+        const wallTree = new ClipperLib.PolyTree();
+        clipperDiff.Execute(
+            ClipperLib.ClipType.ctDifference,
+            wallTree,
+            ClipperLib.PolyFillType.pftNonZero,
+            ClipperLib.PolyFillType.pftNonZero
+        );
+
+        const wallShapes = polyTreeToShapes(wallTree, scale);
+
+        return { coverShapes: outerShapes, wallShapes: wallShapes };
+
+    } catch (err) {
+        console.error('clipperUnionAndOffset failed:', err);
+        return null;
+    }
 }
 
 // ===================================================================
@@ -628,6 +707,18 @@ export class KeychainViewer {
         var isGirly = p.productType === 'girly_keychain';
         if (isGirly) {
             this._buildGirlyKeychain(text, font, baseColor, fontColor, outlineColor, p);
+            return;
+        }
+
+        var isLedWordStand = p.productType === 'led_word_stand';
+        if (isLedWordStand) {
+            this._buildLedWordStand(text, font, baseColor, fontColor, p);
+            return;
+        }
+
+        var isLedWordArt = p.productType === 'led_word_art';
+        if (isLedWordArt) {
+            this._buildLedWordArt(text, font, baseColor, fontColor, p);
             return;
         }
 
@@ -2352,6 +2443,570 @@ export class KeychainViewer {
         this._lastFontColor = fontColor;
         this._lastOutlineColor = outlineColor;
         this._lastParams = p;
+    }
+
+    // ── LED Word Stand / LED Word Art (ported from Achuva) ──
+    _buildLedWordStand(text, font, baseColor, coverColor, p) {
+        function isPointInPolygon(pt, polygon) {
+            var isInside = false;
+            for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                var xi = polygon[i].x, yi = polygon[i].y;
+                var xj = polygon[j].x, yj = polygon[j].y;
+                var intersect = ((yi > pt.y) !== (yj > pt.y)) &&
+                                (pt.x < (xj - xi) * (pt.y - yi) / (yj - yi) + xi);
+                if (intersect) isInside = !isInside;
+            }
+            return isInside;
+        }
+
+        this._clearKeychain();
+        this.keychainGroup = new THREE.Group();
+
+        // ── Parameters ───────────────────────────────────────────────────────
+        var font_size              = p.font_size              !== undefined ? parseFloat(p.font_size)              : 100.0;
+        var body_depth             = p.body_depth             !== undefined ? parseFloat(p.body_depth)             : 25.0;
+        var wall_thickness         = p.wall_thickness         !== undefined ? parseFloat(p.wall_thickness)         : 2.0;
+        var back_wall_thickness    = p.back_wall_thickness    !== undefined ? parseFloat(p.back_wall_thickness)    : 2.0;
+        var cover_thickness        = p.cover_thickness        !== undefined ? parseFloat(p.cover_thickness)        : 2.0;
+        var cover_lip_depth        = p.cover_lip_depth        !== undefined ? parseFloat(p.cover_lip_depth)        : 3.0;
+        var cover_lip_width        = p.cover_lip_width        !== undefined ? parseFloat(p.cover_lip_width)        : 1.5;
+        var cover_tolerance        = p.cover_tolerance        !== undefined ? parseFloat(p.cover_tolerance)        : 0.15;
+        var stand_height           = p.stand_height           !== undefined ? parseFloat(p.stand_height)           : 18.0;
+        var stand_wall             = p.stand_wall             !== undefined ? parseFloat(p.stand_wall)             : 2.5;
+        var letter_spacing         = p.letter_spacing         !== undefined ? parseFloat(p.letter_spacing)         : 4.0;
+        var corner_radius          = p.corner_radius          !== undefined ? parseFloat(p.corner_radius)          : 3.0;
+        var led_channel_h          = p.led_channel_h          !== undefined ? parseFloat(p.led_channel_h)          : 6.0;
+        var led_channel_w          = p.led_channel_w          !== undefined ? parseFloat(p.led_channel_w)          : 10.0;
+        var cable_hole_d           = p.cable_hole_d           !== undefined ? parseFloat(p.cable_hole_d)           : 6.0;
+        var cover_insert_clearance = p.cover_insert_clearance !== undefined ? parseFloat(p.cover_insert_clearance) : 0.3;
+        var explode_cover          = p.explode_cover          !== undefined ? parseFloat(p.explode_cover)          : 0.0;
+        var explode_stand          = p.explode_stand          !== undefined ? parseFloat(p.explode_stand)          : 0.0;
+        var scale                  = p.scaleFactor || 1;
+
+        // ── Materials ────────────────────────────────────────────────────────
+        var matBase = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(baseColor), roughness: 0.35, metalness: 0.08,
+            clearcoat: 0.5, clearcoatRoughness: 0.2, side: THREE.DoubleSide,
+        });
+
+        var matCover = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(coverColor), roughness: 0.3, metalness: 0.0,
+            transparent: true, opacity: 0.82, clearcoat: 0.5, clearcoatRoughness: 0.1,
+            side: THREE.DoubleSide,
+        });
+
+
+        // ── Text (max 3 letters) ─────────────────────────────────────────────
+        var rawText = (text && text.trim().length > 0) ? text.trim().substring(0, 3).toUpperCase() : 'A';
+        var upm     = font.unitsPerEm || 1000;
+        var sfactor = font_size / upm;
+
+        var letterAdvances = [];
+        for (var i = 0; i < rawText.length; i++) {
+            var g = font.charToGlyph(rawText[i]);
+            letterAdvances.push((g ? (g.advanceWidth || 0) : 0) * sfactor);
+        }
+        var totalWidth = letterAdvances.reduce(function(s, w) { return s + w; }, 0)
+                         + letter_spacing * (rawText.length - 1);
+
+        // ── Derived geometry constants ────────────────────────────────────────
+        var sfDepth = body_depth + cover_thickness + cover_insert_clearance;
+
+        // Main LED channel (runs left→right, X direction)
+        //   cross-section in Y×Z: led_channel_h tall, led_channel_w deep
+        //   positioned at mid-height of stand (Y) and centered in Z
+        var mainChH   = Math.min(led_channel_h, stand_height - stand_wall * 2 - 0.1);
+        var mainChZ   = Math.min(led_channel_w, sfDepth - stand_wall * 2 - 0.1);
+        var mainChCY  = -(stand_height * 0.5);         // Y center of channel (mid-height of stand)
+        var mainChCZ  = sfDepth / 2;                   // Z center (mid-depth of stand)
+
+        // Branch channels (run Y direction, per letter, from main channel to stand top)
+        var branchW  = Math.min(5.0, mainChZ * 0.6);  // X width of branch
+        var branchZs = Math.min(5.0, mainChZ * 0.6);  // Z width of branch
+
+        // Tab/peg (protrudes from stand top into the letter cavity)
+        var tabW     = branchW  + stand_wall * 2;      // tab X width (slightly wider than branch)
+        var tabD     = branchZs + stand_wall * 2;      // tab Z depth
+        var tabH     = Math.min(8.0, stand_height * 0.3);  // how far peg protrudes above stand top
+        var tabTol   = 0.25;                           // tab-to-slot clearance
+
+        // Stand foot bounds
+        var sfLeft   = -totalWidth / 2;
+        var sfRight  =  totalWidth / 2;
+
+        // Dynamic peg placement based on solid footprints at baseline
+        var letterPegs = []; // Array of arrays: letterPegs[li] = [pegX1, pegX2, ...]
+        var letterMaxY = []; // Array of lowest Y coordinates per letter
+        // Cache each letter's shapes + offset result so the housing loop below can
+        // reuse them instead of recomputing font.getPath + clipperUnionAndOffset
+        // (the expensive Clipper union+offset) a second time per letter.
+        var letterCache = []; // letterCache[li] = { shapes, outerShapes, wallShapes } | null
+        var cx0 = sfLeft;
+
+        for (var ii = 0; ii < rawText.length; ii++) {
+            var ch = rawText[ii];
+            var advW = letterAdvances[ii];
+            var path = font.getPath(ch, cx0, 0, font_size);
+            var shapes = this._pathDataToShapes(path.toPathData(3));
+
+            if (!shapes || shapes.length === 0) {
+                letterPegs.push([cx0 + advW / 2]);
+                letterMaxY.push(0);
+                letterCache.push(null);
+                cx0 += advW + letter_spacing;
+                continue;
+            }
+
+            var offR = clipperUnionAndOffset(shapes, 0, wall_thickness, true);
+            var outerShapes = offR.coverShapes;
+            letterCache.push({ shapes: shapes, outerShapes: outerShapes, wallShapes: offR.wallShapes });
+
+            var maxY = -Infinity;
+            for (var i = 0; i < outerShapes.length; i++) {
+                var pts = outerShapes[i].extractPoints();
+                for (var j = 0; j < pts.shape.length; j++) {
+                    if (pts.shape[j].y > maxY) maxY = pts.shape[j].y;
+                }
+            }
+            if (maxY === -Infinity) maxY = 0;
+            letterMaxY.push(maxY);
+
+            var solidIntervals = [];
+            var inSolid = false;
+            var startX = 0;
+            var scanY = maxY - 0.1;
+
+            // Cache each outline's polygon points ONCE — extractPoints() is expensive
+            // and was previously recomputed on every scan step.
+            var outerPolys = [];
+            for (var i = 0; i < outerShapes.length; i++) {
+                outerPolys.push(outerShapes[i].extractPoints());
+            }
+
+            // Scan near the lowest point to find solid footprints. A 2mm step is
+            // plenty for locating peg centers and ~halves the point-in-polygon work.
+            var SCAN_STEP = 2;
+            for (var x = cx0; x <= cx0 + advW; x += SCAN_STEP) {
+                var pt = { x: x, y: scanY };
+                var solid = false;
+                for (var i = 0; i < outerPolys.length; i++) {
+                    var pts = outerPolys[i];
+                    if (isPointInPolygon(pt, pts.shape)) {
+                        var insideHole = false;
+                        for (var j = 0; j < pts.holes.length; j++) {
+                            if (isPointInPolygon(pt, pts.holes[j])) {
+                                insideHole = true;
+                                break;
+                            }
+                        }
+                        if (!insideHole) { solid = true; break; }
+                    }
+                }
+
+                if (solid && !inSolid) {
+                    inSolid = true;
+                    startX = x;
+                } else if (!solid && inSolid) {
+                    inSolid = false;
+                    solidIntervals.push({ start: startX, end: x - SCAN_STEP });
+                }
+            }
+            if (inSolid) {
+                solidIntervals.push({ start: startX, end: cx0 + advW });
+            }
+
+            var pegs = [];
+            for (var k = 0; k < solidIntervals.length; k++) {
+                if (solidIntervals[k].end - solidIntervals[k].start > 2) {
+                    pegs.push((solidIntervals[k].start + solidIntervals[k].end) / 2);
+                }
+            }
+            if (pegs.length === 0) pegs.push(cx0 + advW / 2);
+
+            letterPegs.push(pegs);
+            cx0 += advW + letter_spacing;
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // BUILD: STAND FOOT  (one solid piece)
+        //
+        // Local Y conventions (before scale.y=-1 flip):
+        //   Y = 0             → ground level (stand bottom)
+        //   Y = -stand_height → stand top = letter bottom
+        //   Y < -stand_height → tab peg region (protrudes into letter space)
+        // ════════════════════════════════════════════════════════════════════
+
+        // 1. Solid box (full width, stand height, sfDepth)
+        var standBoxG = new THREE.BoxGeometry(totalWidth, stand_height, sfDepth);
+        standBoxG.translate(0, -stand_height / 2, sfDepth / 2);
+
+        var bStand = new Brush(standBoxG, matBase);
+        bStand.updateMatrixWorld(true);
+        var ev = new Evaluator();
+        var standR = bStand;
+
+        // 2. Subtract main horizontal LED channel (runs from first to last peg)
+        var firstPeg = letterPegs[0][0];
+        var lastLetterPegs = letterPegs[rawText.length - 1];
+        var lastPeg = lastLetterPegs[lastLetterPegs.length - 1];
+
+        var mainChLength = (lastPeg - firstPeg) + branchW;
+        var mainChCX = (firstPeg + lastPeg) / 2;
+        var mainChG = new THREE.BoxGeometry(mainChLength, mainChH, mainChZ);
+        mainChG.translate(mainChCX, mainChCY, mainChCZ);
+        var bMainCh = new Brush(mainChG, matBase);
+        bMainCh.updateMatrixWorld(true);
+        standR = ev.evaluate(standR, bMainCh, SUBTRACTION);
+
+        // 3. Type-C female port – back face (Z=0) at the center of the stand
+        var typeCw = 9.0;
+        var typeCh = 3.2;
+        var typeCd = mainChCZ + 2; // Deep enough to reach the main channel
+        var typeCG = new THREE.BoxGeometry(typeCw, typeCh, typeCd);
+        typeCG.translate(mainChCX, mainChCY, typeCd / 2);
+        var bTypeC = new Brush(typeCG, matBase);
+        bTypeC.updateMatrixWorld(true);
+        standR = ev.evaluate(standR, bTypeC, SUBTRACTION);
+
+        // 4. Per letter: branch channels + hollow peg tabs
+        for (var li = 0; li < rawText.length; li++) {
+            var pegs = letterPegs[li];
+            for (var pi = 0; pi < pegs.length; pi++) {
+                var lcx = pegs[pi];
+
+                // Branch channel: runs Y direction from main channel ceiling to stand top
+                // In local Y: from (mainChCY - mainChH/2) up to -stand_height
+                var branchCeilY  = mainChCY - mainChH / 2;   // top of main channel
+                var branchTopY   = -stand_height;             // stand top
+                var branchHeight = branchCeilY - branchTopY;  // positive value
+
+                if (branchHeight > 0.1) {
+                    var branchMidY = branchTopY + branchHeight / 2;
+                    var branchG = new THREE.BoxGeometry(branchW, branchHeight, branchZs);
+                    branchG.translate(lcx, branchMidY, mainChCZ);
+                    var bBranch = new Brush(branchG, matBase);
+                    bBranch.updateMatrixWorld(true);
+                    standR = ev.evaluate(standR, bBranch, SUBTRACTION);
+                }
+
+                // Tab peg: solid box ABOVE stand top (Y < -stand_height in local space)
+                // Outer: tabW × tabH × tabD  (solid shell)
+                var tabMidY = -stand_height - tabH / 2;
+                var tabOuterG = new THREE.BoxGeometry(tabW, tabH, tabD);
+                tabOuterG.translate(lcx, tabMidY, mainChCZ);
+                var bTabO = new Brush(tabOuterG, matBase);
+                bTabO.updateMatrixWorld(true);
+                standR = ev.evaluate(standR, bTabO, ADDITION);   // union tab onto stand
+
+                // Hollow the peg center (branch channel continues through the tab)
+                var tabChG = new THREE.BoxGeometry(branchW, tabH + 2, branchZs);
+                tabChG.translate(lcx, tabMidY, mainChCZ);
+                var bTabCh = new Brush(tabChG, matBase);
+                bTabCh.updateMatrixWorld(true);
+                standR = ev.evaluate(standR, bTabCh, SUBTRACTION);
+            }
+        }
+
+        var standMesh = new THREE.Mesh(standR.geometry, matBase);
+        standMesh.position.y += explode_stand;
+        standMesh.castShadow    = true;
+        standMesh.receiveShadow = true;
+        this.keychainGroup.add(standMesh);
+        this._wordStandFeet     = [standMesh];
+        this._wordStandHousings = [];
+        this._wordStandCovers   = [];
+
+        // ════════════════════════════════════════════════════════════════════
+        // BUILD: LETTER HOUSINGS  (one per letter)
+        // ════════════════════════════════════════════════════════════════════
+
+        var cursorX2 = sfLeft;
+        for (var li2 = 0; li2 < rawText.length; li2++) {
+            var ch   = rawText[li2];
+            var advW = letterAdvances[li2];
+            var pegs = letterPegs[li2];
+
+            // Reuse the shapes + offset computed in the peg-finding loop above.
+            var cached = letterCache[li2];
+            if (!cached) {
+                cursorX2 += advW + letter_spacing;
+                continue;
+            }
+
+            var shapes      = cached.shapes;
+            var outerShapes = cached.outerShapes;
+            var wallShapes  = cached.wallShapes;
+
+            // Back wall (solid plate)
+            var backGeom = new THREE.ExtrudeGeometry(outerShapes, {
+                depth: back_wall_thickness, bevelEnabled: false, steps: 1,
+            });
+            var backMesh = new THREE.Mesh(backGeom, matBase);
+
+            // Side walls (extruded outline, needs a hole punched at the bottom for wires)
+            var wallGeom = new THREE.ExtrudeGeometry(wallShapes, {
+                depth: body_depth - back_wall_thickness, bevelEnabled: false, steps: 1,
+            });
+            wallGeom.translate(0, 0, back_wall_thickness);
+
+            var bWall = new Brush(wallGeom, matBase);
+            bWall.updateMatrixWorld(true);
+
+            var letterMaxYVal = letterMaxY[li2];
+            var evPunch = new Evaluator();
+            var bWallHollowed = bWall;
+
+            var housingGroup = new THREE.Group();
+
+            for (var pi = 0; pi < pegs.length; pi++) {
+                var lcx2 = pegs[pi];
+
+                // The stand top in local coordinates (before shift) is at -wall_thickness
+                var standTopY = -wall_thickness;
+
+                // Outer shell needs to cover the gap between the stand and the letter's lowest point
+                var slotBottomY = Math.max(standTopY, letterMaxYVal);
+                var slotTopY    = standTopY - (tabH + tabTol); // Highest physical point of the tab
+
+                var slotFrameH = slotBottomY - slotTopY;
+                var slotMidY   = (slotTopY + slotBottomY) / 2;
+
+                var slotOutW   = tabW + tabTol * 2 + wall_thickness * 2;
+                var slotOutD   = tabD + tabTol * 2 + wall_thickness * 2;
+
+                var slotInW    = tabW + tabTol * 2;
+                var slotInD    = tabD + tabTol * 2;
+                var slotInH    = slotFrameH + 2; // Hole ensures clear passage through bottom
+                var slotInMidY = slotTopY + slotInH / 2;
+
+                var slotOutG = new THREE.BoxGeometry(slotOutW, slotFrameH, slotOutD);
+                slotOutG.translate(lcx2, slotMidY, mainChCZ);
+                var slotInG  = new THREE.BoxGeometry(slotInW, slotInH, slotInD);
+                slotInG.translate(lcx2, slotInMidY, mainChCZ);
+
+                var evSlot   = new Evaluator();
+                var bSlotOut = new Brush(slotOutG, matBase);
+                var bSlotIn  = new Brush(slotInG,  matBase);
+                bSlotOut.updateMatrixWorld(true);
+                bSlotIn.updateMatrixWorld(true);
+                var slotFrame = evSlot.evaluate(bSlotOut, bSlotIn, SUBTRACTION);
+                housingGroup.add(new THREE.Mesh(slotFrame.geometry, matBase));
+
+                // Hole puncher to completely cut through the letter's bottom wall
+                var punchH = (letterMaxYVal + 2) - slotTopY;
+                if (punchH < 1) punchH = 1; // Safeguard
+                var punchMidY = slotTopY + punchH / 2;
+                var punchG = new THREE.BoxGeometry(slotInW, punchH, slotInD);
+                punchG.translate(lcx2, punchMidY, mainChCZ);
+
+                var bPunch = new Brush(punchG, matBase);
+                bPunch.updateMatrixWorld(true);
+                bWallHollowed = evPunch.evaluate(bWallHollowed, bPunch, SUBTRACTION);
+            }
+
+            housingGroup.add(backMesh);
+            housingGroup.add(new THREE.Mesh(bWallHollowed.geometry, matBase));
+
+            // Shift housing so typographic baseline is maintained (local Y=0 maps to stand top + wall_thickness)
+            var shiftY = -stand_height + wall_thickness;
+            housingGroup.position.y = shiftY;
+
+            // ── Diffuser cover ──────────────────────────────────────────────
+            var coverGroup = new THREE.Group();
+            var lipOR = clipperUnionAndOffset(shapes, -(wall_thickness + cover_tolerance), 0, false);
+            var lipIR = clipperUnionAndOffset(shapes, -(wall_thickness + cover_tolerance + cover_lip_width), 0, false);
+            var lipSh = subtractShapes(lipOR.coverShapes, lipIR.coverShapes);
+            if (lipSh && lipSh.length > 0) {
+                coverGroup.add(new THREE.Mesh(
+                    new THREE.ExtrudeGeometry(lipSh, { depth: cover_lip_depth, bevelEnabled: false }),
+                    matCover
+                ));
+            }
+            var frontG = new THREE.ExtrudeGeometry(outerShapes, { depth: cover_thickness, bevelEnabled: false });
+            frontG.translate(0, 0, cover_lip_depth);
+            coverGroup.add(new THREE.Mesh(frontG, matCover));
+            coverGroup.position.y = shiftY;
+            coverGroup.position.z  = body_depth - cover_lip_depth + 0.1 + explode_cover;
+
+            this.keychainGroup.add(housingGroup);
+            this.keychainGroup.add(coverGroup);
+            this._wordStandHousings.push(housingGroup);
+            this._wordStandCovers.push(coverGroup);
+
+            cursorX2 += advW + letter_spacing;
+        }
+
+        // ── Finalize: flip Y (opentype → 3D) and center ──────────────────────
+        if (scale !== 1) {
+            this.keychainGroup.scale.set(scale, -scale, scale);
+        } else {
+            this.keychainGroup.scale.y = -1;
+        }
+
+        var box    = new THREE.Box3().setFromObject(this.keychainGroup);
+        var center = box.getCenter(new THREE.Vector3());
+        var size   = box.getSize(new THREE.Vector3());
+        this.keychainGroup.position.sub(center);
+
+        this.keychainGroup.traverse(function(child) {
+            if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+        });
+        this.scene.add(this.keychainGroup);
+
+        // Camera framing
+        var maxDim = Math.max(size.x, size.y, size.z);
+        this.camera.position.set(0, maxDim * 0.4, maxDim * 1.7);
+        this.camera.near = maxDim * 0.01;
+        this.camera.far  = maxDim * 10;
+        this.camera.updateProjectionMatrix();
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+
+        this._lastFontColor    = coverColor;
+        this._lastOutlineColor = baseColor;
+        this._lastParams       = p;
+    }
+
+    // ── Unified LED Word Art ─────────────────────────────────────────────────
+    // One unified hollow tray housing for the whole word; the text doubles as a
+    // friction-fit diffuser cover. Clipper-only (no mesh booleans). (Ported from Achuva.)
+    _buildLedWordArt(text, font, baseColor, coverColor, p) {
+        this._clearKeychain();
+        this.keychainGroup = new THREE.Group();
+
+        var font_size      = p.font_size      !== undefined ? parseFloat(p.font_size)      : 100.0;
+        var letter_spacing = p.letter_spacing !== undefined ? parseFloat(p.letter_spacing) : 4.0;
+        var wall_thickness = p.wall_thickness !== undefined ? parseFloat(p.wall_thickness) : 2.0;
+        var body_depth     = p.body_depth     !== undefined ? parseFloat(p.body_depth)     : 25.0;
+        var back_wall_thickness = p.back_wall_thickness !== undefined ? parseFloat(p.back_wall_thickness) : 2.0;
+        var cover_thickness = p.cover_thickness !== undefined ? parseFloat(p.cover_thickness) : 2.0;
+
+        var cover_tolerance = p.cover_tolerance !== undefined ? parseFloat(p.cover_tolerance) : 0.15;
+        var cover_lip_width = p.cover_lip_width !== undefined ? parseFloat(p.cover_lip_width) : 1.5;
+        var cover_lip_depth = p.cover_lip_depth !== undefined ? parseFloat(p.cover_lip_depth) : 3.0;
+
+        var explode_cover   = p.explode_cover !== undefined ? parseFloat(p.explode_cover) : 0.0;
+        var scale           = p.scaleFactor || 1;
+
+        var matBase = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(baseColor),
+            roughness: 0.35, metalness: 0.08,
+            clearcoat: 0.5, clearcoatRoughness: 0.2, side: THREE.DoubleSide,
+        });
+
+
+        var matCover = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(coverColor),
+            roughness: 0.3, metalness: 0.0,
+            transparent: true, opacity: 0.82, clearcoat: 0.5, clearcoatRoughness: 0.1,
+            side: THREE.DoubleSide,
+        });
+
+
+        var rawText = (text && text.trim().length > 0) ? text.trim() : 'TEXT';
+        var upm     = font.unitsPerEm || 1000;
+        var sfactor = font_size / upm;
+
+        var letterAdvances = [];
+        for (var i = 0; i < rawText.length; i++) {
+            var g = font.charToGlyph(rawText[i]);
+            letterAdvances.push((g ? (g.advanceWidth || 0) : 0) * sfactor);
+        }
+        var totalWidth = letterAdvances.reduce(function(s, w) { return s + w; }, 0)
+                         + letter_spacing * (rawText.length - 1);
+
+        var sfLeft = -totalWidth / 2;
+        var cx0 = sfLeft;
+
+        var allShapes = [];
+        for (var ii = 0; ii < rawText.length; ii++) {
+            var ch = rawText[ii];
+            var advW = letterAdvances[ii];
+            var path = font.getPath(ch, cx0, 0, font_size);
+            var shapes = this._pathDataToShapes(path.toPathData(3));
+            if (shapes && shapes.length > 0) {
+                for (var j = 0; j < shapes.length; j++) {
+                    allShapes.push(shapes[j]);
+                }
+            }
+            cx0 += advW + letter_spacing;
+        }
+
+        if (allShapes.length === 0) return;
+
+        var offR = clipperUnionAndOffset(allShapes, 0, wall_thickness, true);
+        if (!offR) return;
+        var outerShapes = offR.coverShapes;
+        var wallShapes  = offR.wallShapes;
+
+        var backGeom = new THREE.ExtrudeGeometry(outerShapes, {
+            depth: back_wall_thickness, bevelEnabled: false, steps: 1,
+        });
+        var backMesh = new THREE.Mesh(backGeom, matBase);
+
+        var wallGeom = new THREE.ExtrudeGeometry(wallShapes, {
+            depth: body_depth - back_wall_thickness, bevelEnabled: false, steps: 1,
+        });
+        wallGeom.translate(0, 0, back_wall_thickness);
+        var wallMesh = new THREE.Mesh(wallGeom, matBase);
+
+        var housingGroup = new THREE.Group();
+        housingGroup.add(backMesh);
+        housingGroup.add(wallMesh);
+
+        var coverGroup = new THREE.Group();
+
+        var frontG = new THREE.ExtrudeGeometry(outerShapes, {
+            depth: cover_thickness, bevelEnabled: false
+        });
+        frontG.translate(0, 0, cover_lip_depth);
+        coverGroup.add(new THREE.Mesh(frontG, matCover));
+
+        var lipOR = clipperUnionAndOffset(allShapes, -(wall_thickness + cover_tolerance), 0, false);
+        var lipIR = clipperUnionAndOffset(allShapes, -(wall_thickness + cover_tolerance + cover_lip_width), 0, false);
+
+        if (lipOR && lipIR && lipOR.coverShapes.length > 0) {
+            var lipSh = subtractShapes(lipOR.coverShapes, lipIR.coverShapes);
+            if (lipSh && lipSh.length > 0) {
+                var lipG = new THREE.ExtrudeGeometry(lipSh, {
+                    depth: cover_lip_depth, bevelEnabled: false
+                });
+                coverGroup.add(new THREE.Mesh(lipG, matCover));
+            }
+        }
+
+        coverGroup.position.z = body_depth - cover_lip_depth + 0.1 + explode_cover;
+
+        this.keychainGroup.add(housingGroup);
+        this.keychainGroup.add(coverGroup);
+
+        if (scale !== 1) {
+            this.keychainGroup.scale.set(scale, -scale, scale);
+        } else {
+            this.keychainGroup.scale.y = -1;
+        }
+
+        var box    = new THREE.Box3().setFromObject(this.keychainGroup);
+        var center = box.getCenter(new THREE.Vector3());
+        var size   = box.getSize(new THREE.Vector3());
+        this.keychainGroup.position.sub(center);
+
+        this.keychainGroup.traverse(function(child) {
+            if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+        });
+        this.scene.add(this.keychainGroup);
+
+        var maxDim = Math.max(size.x, size.y, size.z);
+        this.camera.position.set(0, maxDim * 0.4, maxDim * 1.7);
+        this.camera.near = maxDim * 0.01;
+        this.camera.far  = maxDim * 10;
+        this.camera.updateProjectionMatrix();
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+
+        this._lastFontColor    = coverColor;
+        this._lastOutlineColor = baseColor;
+        this._lastParams       = p;
     }
 
     calculateMeshVolume(mesh) {

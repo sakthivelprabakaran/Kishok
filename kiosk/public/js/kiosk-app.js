@@ -219,11 +219,34 @@ function init3DViewer() {
     }
 }
 
-async function update3DModel() {
+// Debounced entry point. Rapid calls (typing, slider drags) collapse into a single
+// rebuild ~180ms after the last change. While a build is running, further calls set
+// a "dirty" flag so exactly one more rebuild runs after it finishes — no pile-up.
+var _update3DTimer   = null;
+var _update3DRunning = false;
+var _update3DDirty   = false;
+
+function update3DModel() {
+    if (_update3DRunning) { _update3DDirty = true; return; }
+    clearTimeout(_update3DTimer);
+    _update3DTimer = setTimeout(_runUpdate3D, 180);
+}
+
+// Force an immediate rebuild with no debounce (used on init / product switch).
+function update3DModelNow() {
+    clearTimeout(_update3DTimer);
+    if (_update3DRunning) { _update3DDirty = true; return; }
+    _runUpdate3D();
+}
+
+async function _runUpdate3D() {
     if (!viewer) return;
-    
+    if (_update3DRunning) { _update3DDirty = true; return; }
+    _update3DRunning = true;
+    _update3DDirty = false;
+
     el.viewerLoading.style.display = 'flex';
-    
+
     const isWordart = state.productType === 'wordart';
     const isLoveSeries = state.productType === 'loveseries';
     const isWordartLike = isWordart || isLoveSeries;
@@ -272,6 +295,16 @@ async function update3DModel() {
         ring_height: 4.5,
         showFDMTexture: state.showFDMTexture
     };
+
+    // LED Word Art: overlap adjacent glyphs (like the Wavy Nametag's negative
+    // letter_gap) so the Clipper union fuses them into ONE connected solid for any
+    // font — no cursive requirement. The builder runs at font_size 100; the Nametag
+    // overlaps at ~-11% of size (-2.5 / 22), so -12 ≈ the same proportional overlap.
+    // NOTE: Word STAND is intentionally NOT overlapped — its letters print
+    // separately and clip onto the stand, so they must stay apart.
+    if (state.productType === 'led_word_art') {
+        paramsPayload.letter_spacing = -12;
+    }
     
     try {
         await viewer.update(
@@ -291,6 +324,12 @@ async function update3DModel() {
         console.error('Failed to update 3D model:', err);
     } finally {
         el.viewerLoading.style.display = 'none';
+        _update3DRunning = false;
+        // Coalesced changes arrived mid-build → run exactly one more rebuild.
+        if (_update3DDirty) {
+            _update3DDirty = false;
+            _update3DTimer = setTimeout(_runUpdate3D, 0);
+        }
     }
 }
 
@@ -635,6 +674,9 @@ function applyProductTypeConstraints() {
     const isBordered   = state.productType === 'bordered_keychain';
     const isSupported  = state.productType === 'supported_text';
     const isFlower     = state.productType === 'flower_keychain';
+    const isLedStand   = state.productType === 'led_word_stand';
+    const isLedArt     = state.productType === 'led_word_art';
+    const isLed        = isLedStand || isLedArt;
     const isWordartLike = isWordart || isLoveSeries;
 
     // Toggle Input visibility
@@ -654,6 +696,11 @@ function applyProductTypeConstraints() {
         } else if (isFlower) {
             el.nameInput.maxLength = 1;
             state.name = state.name.substring(0, 1);
+        } else if (isLedStand) {
+            el.nameInput.maxLength = 3;
+            state.name = state.name.substring(0, 3).toUpperCase();
+        } else if (isLedArt) {
+            el.nameInput.maxLength = 15;
         } else {
             el.nameInput.maxLength = 15;
         }
@@ -682,7 +729,7 @@ function applyProductTypeConstraints() {
         el.line2ColorRow.style.display   = 'flex';
         el.baseColorRow.style.display    = 'none';
         el.outlineColorRow.style.display = 'none';
-    } else if (isNametag || isGirly || isBordered || isFlower) {
+    } else if (isNametag || isGirly || isBordered || isFlower || isLed) {
         el.line2ColorRow.style.display   = 'none';
         el.baseColorRow.style.display    = 'flex';
         el.outlineColorRow.style.display = 'none';
@@ -739,6 +786,14 @@ function applyProductTypeConstraints() {
         case 'nameplate':
             titleStr = "Desk Nameplate";
             subStr = "Sturdy display sign board with standee slots";
+            break;
+        case 'led_word_stand':
+            titleStr = "LED Word Stand";
+            subStr = "Modular light-up letters that clip onto a hollow LED-channel stand";
+            break;
+        case 'led_word_art':
+            titleStr = "LED Word Art";
+            subStr = "Unified hollow tray sign; your text doubles as a glowing diffuser cover";
             break;
     }
     el.productTitle.textContent = titleStr;
@@ -1094,7 +1149,7 @@ async function init() {
     renderColorSwatches();
     setupFontStripNav();
     init3DViewer();
-    update3DModel();
+    update3DModelNow();
     renderStepper();
 
     // Re-render the stepper when crossing the desktop/mobile breakpoint so the
