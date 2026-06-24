@@ -3,7 +3,7 @@
    Three.js Integration + Cost Engine + UPI
    ========================================= */
 
-import { KeychainViewer } from './viewer3d.js';
+import { KeychainViewer } from './viewer3d.js?v=led2';
 
 // ===== DATA & CONFIG =====
 
