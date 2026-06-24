@@ -1350,6 +1350,34 @@ function initProductType() {
             dispatch3DDesignUpdated();
         });
     });
+
+    // Honour a ?type= deep link from the homepage product cards.
+    selectProductTypeFromURL();
+}
+
+// Map a ?type= URL value to a toggle data-val and activate that tab on load.
+// Accepts canonical data-vals plus a few homepage aliases.
+function selectProductTypeFromURL() {
+    if (!productTypeToggle) return;
+    var raw;
+    try { raw = new URLSearchParams(window.location.search).get('type'); }
+    catch (e) { raw = null; }
+    if (!raw) return;
+
+    var ALIASES = { tile: 'tilekey', carkeychain: 'keychain', car: 'keychain' };
+    var target = ALIASES[raw] || raw;
+
+    var btn = productTypeToggle.querySelector('.ptype-opt[data-val="' + target + '"]');
+    if (!btn || btn.classList.contains('active')) return;
+
+    productTypeToggle.querySelectorAll('.ptype-opt').forEach(function(b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    state.productType = btn.dataset.val;
+    // applyProductTypeUI() runs later in init() and applies this product's defaults.
 }
 
 function initRingPosition() {
