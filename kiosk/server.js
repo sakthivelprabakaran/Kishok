@@ -7,6 +7,8 @@ const fs = require('fs');
 const ExcelJS = require('exceljs');
 
 const app = express();
+// Vercel terminates TLS and forwards the client IP through one trusted proxy.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 const IS_VERCEL = Boolean(process.env.VERCEL);
 
@@ -59,6 +61,17 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '50kb' })); // prevent oversized payloads
+
+// ===== HEALTH CHECK =====
+// Public, non-sensitive probe used by deployment checks and frontend diagnostics.
+app.get('/api/health', (req, res) => {
+    res.json({
+        ok: true,
+        service: 'kiosk-api',
+        cloudSyncConfigured: Boolean(GOOGLE_SCRIPT_URL),
+        timestamp: new Date().toISOString()
+    });
+});
 
 // ===== ADMIN AUTH =====
 // Shared-secret PIN. Set ADMIN_PIN in the environment for production; the
@@ -564,6 +577,11 @@ app.get('/api/summary/today', requireAdmin, (req, res) => {
 });
 
 // ⚠️ /api/debug-sheets removed — was leaking Google Sheets URL and raw order data publicly.
+
+// Keep API failures machine-readable instead of returning the kiosk HTML.
+app.use('/api', (req, res) => {
+    res.status(404).json({ error: 'API route not found' });
+});
 
 // Serve the index.html fallback for client-side routing
 app.get('*', (req, res) => {
