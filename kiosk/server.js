@@ -47,11 +47,14 @@ app.use(helmet({
 // ===== CORS =====
 // Only allow requests from our own Vercel domain (or localhost in dev).
 // The ALLOWED_ORIGIN env var should be set in Vercel to your production URL.
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:3001';
+const configuredOrigins = [
+    process.env.ALLOWED_ORIGIN,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
+].filter(Boolean);
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow same-origin (no origin header) or the configured domain
-        if (!origin || origin === ALLOWED_ORIGIN || /^http:\/\/localhost/.test(origin)) {
+        // Allow same-origin requests, explicitly configured origins, and local development.
+        if (!origin || configuredOrigins.includes(origin) || /^http:\/\/localhost/.test(origin)) {
             return callback(null, true);
         }
         return callback(new Error('CORS: Origin not allowed'));
@@ -75,13 +78,17 @@ app.get('/api/health', (req, res) => {
 
 // ===== ADMIN AUTH =====
 // Shared-secret PIN. Set ADMIN_PIN in the environment for production; the
-// default is only a dev fallback. The kiosk customer flow stays public —
+// There is deliberately no production fallback. The kiosk customer flow stays public —
 // only admin/operator actions are gated.
-const ADMIN_PIN = String(process.env.ADMIN_PIN || '1234').trim();
+const ADMIN_PIN = String(process.env.ADMIN_PIN || '').trim();
 
 const VALID_PIN_RE = /^\d{4}$/; // PIN must be exactly 4 digits
+const ADMIN_AUTH_CONFIGURED = VALID_PIN_RE.test(ADMIN_PIN) && ADMIN_PIN !== '1234'
 
 function requireAdmin(req, res, next) {
+    if (!ADMIN_AUTH_CONFIGURED) {
+        return res.status(503).json({ error: 'Admin authentication is not configured' });
+    }
     const pin = String(req.headers['x-admin-pin'] || '').trim();
     if (VALID_PIN_RE.test(pin) && pin === ADMIN_PIN) return next();
     return res.status(401).json({ error: 'Unauthorized — admin PIN required' });
@@ -100,6 +107,7 @@ const loginLimiter = rateLimit({
 // Login: validate a PIN, let the client cache it for subsequent x-admin-pin headers.
 app.post('/api/admin/login', loginLimiter, (req, res) => {
     const pin = String((req.body || {}).pin || '').trim();
+    if (!ADMIN_AUTH_CONFIGURED) return res.status(503).json({ success: false, error: 'Admin authentication is not configured' });
     if (!VALID_PIN_RE.test(pin)) return res.status(400).json({ success: false, error: 'PIN must be exactly 4 digits' });
     if (pin === ADMIN_PIN) return res.json({ success: true });
     return res.status(401).json({ success: false, error: 'Invalid PIN' });
@@ -108,7 +116,7 @@ app.post('/api/admin/login', loginLimiter, (req, res) => {
 // Non-secret deployment check (no PIN length exposed).
 app.get('/api/admin/health', requireAdmin, (req, res) => {
     res.json({
-        adminPinConfigured: Boolean(process.env.ADMIN_PIN),
+        adminPinConfigured: ADMIN_AUTH_CONFIGURED,
         status: 'ok',
     });
 });
