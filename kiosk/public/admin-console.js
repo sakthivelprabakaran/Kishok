@@ -3,7 +3,7 @@
    Full-screen STL Generation Console
    ========================================= */
 
-import { KeychainViewer } from './js/viewer3d.js';
+import { KeychainViewer } from './js/viewer3d.js?v=wa1';
 
 // ===== FONT & COLOR DATA (mirrors script.js) =====
 
@@ -170,6 +170,8 @@ const state = {
     lang: 'en',
     layers: '3L',
     productType: 'keychain',
+    // Word-art backing: 'none' (letters only) | 'solid' (plaque) | 'hollow' (standee)
+    wordartBase: 'none',
     selectedFont: null,
     selectedFontIndex: null,
     colors: {
@@ -453,6 +455,38 @@ function initLayerToggle() {
     });
 }
 
+// ===== WORD ART BACKING TOGGLE =====
+
+const WORDART_BASE_HINTS = {
+    none:   'Letters only — the word itself is the whole structure.',
+    solid:  'Filled plaque behind the letters. Uses Base Depth for thickness and Base Bevel Size for how far it extends past the letters.',
+    hollow: 'Walls + a 2mm front cover — stands on its own, no infill. Base Depth = total depth, Bevel Thickness = wall thickness, Bevel Size = padding.',
+};
+
+// Reflect state.wordartBase onto the button row + hint text.
+function syncWordartBaseUI() {
+    const toggle = $('adminWordartBaseToggle');
+    if (toggle) {
+        toggle.querySelectorAll('.wa-base-opt').forEach(o => {
+            o.classList.toggle('active', o.dataset.mode === state.wordartBase);
+        });
+    }
+    const hint = $('adminWordartHint');
+    if (hint) hint.textContent = WORDART_BASE_HINTS[state.wordartBase] || WORDART_BASE_HINTS.none;
+}
+
+function initWordartBaseToggle() {
+    const toggle = $('adminWordartBaseToggle');
+    if (!toggle) return;
+    toggle.addEventListener('click', (e) => {
+        const btn = e.target.closest('.wa-base-opt');
+        if (!btn || !btn.dataset.mode) return;
+        state.wordartBase = btn.dataset.mode;
+        syncWordartBaseUI();
+        updateViewer();
+    });
+}
+
 // ===== LANGUAGE TOGGLE =====
 
 function initLangToggle() {
@@ -543,6 +577,7 @@ function collectParams() {
             bevelThickness: parseFloat(sliders.baseBevelThk.range.value),
             bevelSize:      parseFloat(sliders.baseBevelSize.range.value),
             bevelSegments:  parseInt(sliders.baseBevelSeg.range.value, 10),
+            wordartMode:    state.wordartBase,
         },
         outline: {
             depth:          parseFloat(sliders.outlineDepth.range.value),
@@ -952,6 +987,7 @@ async function updateViewer() {
             lang: state.lang,
             layers: state.layers,
             productType: state.productType,
+            wordartBase: state.wordartBase,
             selectedFontIndex: state.selectedFontIndex,
             colors: state.colors,
         }));
@@ -1091,6 +1127,10 @@ function restoreState() {
             if (saved.productType) {
                 state.productType = saved.productType;
             }
+            if (saved.wordartBase) {
+                state.wordartBase = saved.wordartBase;
+                syncWordartBaseUI();
+            }
             if (saved.colors) {
                 state.colors = saved.colors;
             }
@@ -1227,9 +1267,14 @@ function applyProductTypeUI() {
     const isBordered = state.productType === 'bordered_keychain';
     const isSupported = state.productType === 'supported_text';
     const isFlower = state.productType === 'flower_keychain';
+    // LOVE Series renders through the word-art pipeline, so it gets the same backing options.
+    const isWordartFamily = state.productType === 'wordart' || state.productType === 'loveseries';
 
     // Show/hide sections
     $('adminNametagSection').style.display = isNametag ? 'block' : 'none';
+
+    const wordartSection = $('adminWordartSection');
+    if (wordartSection) wordartSection.style.display = isWordartFamily ? 'block' : 'none';
     
     const borderedSection = $('adminBorderedSection');
     if (borderedSection) borderedSection.style.display = isBordered ? 'block' : 'none';
@@ -1412,6 +1457,8 @@ function init() {
     initTextInput();
     initLangToggle();
     initLayerToggle();
+    initWordartBaseToggle();
+    syncWordartBaseUI();
     initSliders();
     initPresets();
     initExportReset();

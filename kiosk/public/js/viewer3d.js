@@ -462,6 +462,94 @@ export class KeychainViewer {
     //   - That helper assumes one font + one fontSize for all lines.
     //   - Word art needs two different fonts (e.g. cursive top + bold caps bottom) and a
     //     deliberate overlap so the meshes fuse into one printable solid.
+    /* ── Word-art backplate: 'solid' plaque or 'hollow' standee ──
+       Built from the unioned letter silhouette offset outward by `padding`, reusing the
+       same Clipper helper as the LED housings — round joins, so concave letter joins
+       fillet instead of spiking the way a naive per-vertex offset does.
+
+       Everything lands in negative Z (behind z = 0), so the halo and text layers that
+       stack from z = 0 upward are untouched and the letters sit flush on the front face.
+
+         solid  →  one filled plaque spanning [-depth, 0]
+         hollow →  2mm cover spanning [-2, 0] + a wall ring spanning [-depth, -2],
+                   i.e. open at the back with no infill
+    */
+    _buildWordartBackplate(shapes, mode, p, baseMat) {
+        var COVER_THK = 2;                       // front skin thickness in hollow mode (mm)
+        var isHollow  = (mode === 'hollow');
+
+        // Depth has to clear the cover plus at least a 1mm wall run.
+        var depth = Math.max(isHollow ? COVER_THK + 1 : 1, p.base.depth);
+
+        // Padding = how far the plate extends past the letters. Keep it at least as wide as
+        // the word-art halo (whose bevelSize is forced to >= 2.5 in the outline block) so the
+        // plate can never come out narrower than the halo sitting on top of it.
+        var padding = Math.max(0.5, p.base.bevelSize || 3);
+        if (p.layers === '3L') {
+            padding = Math.max(padding, Math.max(p.outline.bevelSize, 2.5) + 0.5);
+        }
+
+        // Walls must stay inside the padding band — otherwise the ring's inner contour grows
+        // inward past the letters and the "hollow" part prints solid.
+        var wallThk = Math.min(Math.max(1.2, p.base.bevelThickness || 2.2), padding * 0.9);
+
+        // Fill the letter counters (the hole in "o", "a") so the plate reads as one solid
+        // backing rather than a stencil.
+        var solidShapes = [];
+        for (var i = 0; i < shapes.length; i++) {
+            var copy = shapes[i].clone();
+            copy.holes = [];
+            solidShapes.push(copy);
+        }
+
+        var off = clipperUnionAndOffset(solidShapes, padding, wallThk, isHollow);
+        if (!off || !off.coverShapes || off.coverShapes.length === 0) {
+            console.warn('Word-art backplate skipped: offset failed (is ClipperLib loaded?).');
+            return;
+        }
+
+        if (!isHollow) {
+            // Clipper already rounded the outline, so only a shallow front-edge bevel.
+            var bevelThk = Math.min(p.base.bevelThickness, depth * 0.3);
+            var plateGeo = new THREE.ExtrudeGeometry(off.coverShapes, {
+                depth:          depth,
+                bevelEnabled:   bevelThk > 0,
+                bevelThickness: bevelThk,
+                bevelSize:      Math.min(0.4, padding * 0.5),
+                bevelOffset:    0,
+                bevelSegments:  p.base.bevelSegments,
+                curveSegments:  8,
+            });
+            // A bevelled extrusion spans [-bevelThk, depth + bevelThk]; drop it so the front
+            // face lands on z = 0 either way.
+            plateGeo.translate(0, 0, -(depth + (bevelThk > 0 ? bevelThk : 0)));
+            this.keychainGroup.add(new THREE.Mesh(plateGeo, baseMat));
+            return;
+        }
+
+        // Hollow — front cover skin the letters sit on.
+        var coverGeo = new THREE.ExtrudeGeometry(off.coverShapes, {
+            depth:         COVER_THK,
+            bevelEnabled:  false,
+            curveSegments: 8,
+        });
+        coverGeo.translate(0, 0, -COVER_THK);
+        this.keychainGroup.add(new THREE.Mesh(coverGeo, baseMat));
+
+        // Hollow — perimeter wall ring behind the cover.
+        if (off.wallShapes && off.wallShapes.length > 0) {
+            var wallGeo = new THREE.ExtrudeGeometry(off.wallShapes, {
+                depth:         depth - COVER_THK,
+                bevelEnabled:  false,
+                curveSegments: 8,
+            });
+            wallGeo.translate(0, 0, -depth);
+            this.keychainGroup.add(new THREE.Mesh(wallGeo, baseMat));
+        } else {
+            console.warn('Word-art hollow backplate: wall ring empty; padding may be too small.');
+        }
+    }
+
     _wordartShapesPerLine(lineConfigs, overlapRatio) {
         const overlap = (overlapRatio == null) ? 0.35 : overlapRatio;
         const out = [];
@@ -557,6 +645,11 @@ export class KeychainViewer {
                 bevelThickness: 0,
                 bevelSize:      3,
                 bevelSegments:  8,
+                // Word-art only — what to build behind the letters:
+                //   'none'   — nothing (default; the letters are the whole structure)
+                //   'solid'  — one padded plaque, fully filled
+                //   'hollow' — perimeter walls + a 2mm front cover (free-standing standee)
+                wordartMode:    'none',
             },
             outline: {
                 depth:          1.5,
@@ -933,6 +1026,16 @@ export class KeychainViewer {
             var baseMesh = new THREE.Mesh(baseGeo, baseMat);
             baseMesh.position.z = 0;
             this.keychainGroup.add(baseMesh);
+        }
+
+        // ── Word-art backplate (optional) ──
+        // Word-art normally has no base at all. These two modes add one *behind* the
+        // letters, so the halo + text stack above is left exactly where it was.
+        if (isWordart) {
+            var wordartMode = p.base.wordartMode || 'none';
+            if (wordartMode === 'solid' || wordartMode === 'hollow') {
+                this._buildWordartBackplate(shapes, wordartMode, p, baseMat);
+            }
         }
 
         // Base front Z = depth + bevelThickness (0 for word-art, since there's no base)

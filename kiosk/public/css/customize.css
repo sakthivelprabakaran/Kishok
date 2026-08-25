@@ -563,6 +563,56 @@ body {
     text-shadow: none;
 }
 
+/* Word Art Backing Toggle (word-art / LOVE Series only) */
+.wa-backing-row {
+    margin-top: 0.85rem;
+}
+
+.wa-backing-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.4rem;
+}
+
+.wa-backing-toggle {
+    display: flex;
+    background: rgba(15, 23, 42, 0.05);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem;
+    border-radius: 12px;
+}
+
+.wa-backing-opt {
+    flex: 1;
+    padding: 0.5rem 0.25rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: var(--transition-smooth);
+}
+
+.wa-backing-opt.active {
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 2px 6px var(--primary-glow);
+}
+
+.wa-backing-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+    line-height: 1.35;
+}
+
 /* Ring Position Toggle */
 .ring-pos-toggle {
     display: flex;

@@ -9,7 +9,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="styles-root.css" rel="stylesheet"/>
-<link href="admin-console.css" rel="stylesheet"/>
+<link href="admin-console.css?v=wa1" rel="stylesheet"/>
 <style>
 /* ── PIN Gate ── */
 #studioLoginGate {
@@ -193,13 +193,23 @@
 <span class="valSuffix">×</span>
 </div>
 </div>
+</div><div class="ctrlSection" id="adminWordartSection" style="display: none;">
+<div class="ctrlSectionTitle">🧱 Word Art Backing</div>
+<div class="wa-base-toggle" id="adminWordartBaseToggle">
+<button class="wa-base-opt active" data-mode="none" title="Letters only — no backing (original look)">None</button>
+<button class="wa-base-opt" data-mode="solid" title="Filled plaque behind the letters">Solid</button>
+<button class="wa-base-opt" data-mode="hollow" title="Walls + 2mm front cover — free-standing standee, no infill">Hollow</button>
+</div>
+<div class="ctrlHint" id="adminWordartHint" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
+Letters only — the word itself is the whole structure.
+</div>
 </div><div class="ctrlSection" id="adminBaseSection">
 <div class="ctrlSectionTitle">🟧 Base Layer</div>
 <div class="sliderRow">
 <span class="sliderLabel">Depth</span>
-<input class="sliderRange" id="adminBaseDepth" max="10" min="1" step="0.5" type="range" value="4"/>
+<input class="sliderRange" id="adminBaseDepth" max="30" min="1" step="0.5" type="range" value="4"/>
 <div class="sliderVal">
-<input class="sliderNum" id="adminBaseDepthNum" max="10" min="1" step="0.5" type="number" value="4"/>
+<input class="sliderNum" id="adminBaseDepthNum" max="30" min="1" step="0.5" type="number" value="4"/>
 <span class="valSuffix">mm</span>
 </div>
 </div>
@@ -808,6 +818,6 @@
   boot();
 })();
 </script>
-<script src="admin-console.js?v=3" type="module"></script>
+<script src="admin-console.js?v=4" type="module"></script>
 </body>
 </html>

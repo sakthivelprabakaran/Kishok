@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="admin-console.css">
+    <link rel="stylesheet" href="styles.css?v=m5">
+    <link rel="stylesheet" href="admin-console.css?v=wa1">
 </head>
 <body>
 
@@ -148,13 +148,26 @@
             </div>
 
             <!-- ───── Base Layer ───── -->
+            <!-- ───── Word Art Backing (word-art / LOVE Series only) ───── -->
+            <div class="ctrl-section" id="adminWordartSection" style="display: none;">
+                <div class="ctrl-section-title">🧱 Word Art Backing</div>
+                <div class="wa-base-toggle" id="adminWordartBaseToggle">
+                    <button class="wa-base-opt active" data-mode="none" title="Letters only — no backing (original look)">None</button>
+                    <button class="wa-base-opt" data-mode="solid" title="Filled plaque behind the letters">Solid</button>
+                    <button class="wa-base-opt" data-mode="hollow" title="Walls + 2mm front cover — free-standing standee, no infill">Hollow</button>
+                </div>
+                <div class="ctrl-hint" id="adminWordartHint" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
+                    Letters only — the word itself is the whole structure.
+                </div>
+            </div>
+
             <div class="ctrl-section" id="adminBaseSection">
                 <div class="ctrl-section-title">🟧 Base Layer</div>
                 <div class="ctrl-slider-row">
                     <span class="ctrl-slider-label">Depth</span>
-                    <input type="range" id="adminBaseDepth" min="1" max="10" step="0.5" value="4">
+                    <input type="range" id="adminBaseDepth" min="1" max="30" step="0.5" value="4">
                     <div class="ctrl-slider-val">
-                        <input type="number" id="adminBaseDepthNum" min="1" max="10" step="0.5" value="4">
+                        <input type="number" id="adminBaseDepthNum" min="1" max="30" step="0.5" value="4">
                         <span class="val-suffix">mm</span>
                     </div>
                 </div>
@@ -804,7 +817,7 @@
 </script>
 
 <!-- Admin Console Logic (ES module) -->
-<script type="module" src="admin-console.js?v=2"></script>
+<script type="module" src="admin-console.js?v=3"></script>
 
 </body>
 </html>

@@ -3,7 +3,7 @@
    Three.js Integration + Cost Engine + UPI
    ========================================= */
 
-import { KeychainViewer } from './viewer3d.js?v=led2';
+import { KeychainViewer } from './viewer3d.js?v=wa1';
 
 // ===== DATA & CONFIG =====
 
@@ -94,6 +94,12 @@ const UPI_VPA = 'sakthivelprabakaran311-1@okaxis';
 
 // ===== STATE =====
 
+const WORDART_BACKING_HINTS = {
+    none:   "Letters only — the word itself is the whole piece.",
+    solid:  "A solid panel behind the letters. Sturdier, and the letters pop against it.",
+    hollow: "Stands up on its own like a desk sign — the biggest option. Hollow inside, so it is lighter than it looks.",
+};
+
 const state = {
     currentStep: 1,
     totalSteps: 4,
@@ -117,6 +123,8 @@ const state = {
     wordartBottomFont: 'CANAVAR',
     wordartBottomFontFile: 'Fonts/CANAVAR.ttf',
     wordartActiveSlot: 'top',
+    // Backing panel behind the letters: 'none' | 'solid' | 'hollow'
+    wordartBase: 'none',
     
     quantity: 1,
     ringPosition: 'left',     // which side the ring attaches (kept 'left')
@@ -159,6 +167,9 @@ function cacheElements() {
     el.charCount1      = document.getElementById('charCount1');
     el.charCount2      = document.getElementById('charCount2');
     el.wordartHint     = document.getElementById('wordartHint');
+    el.wordartBackingRow    = document.getElementById('wordartBackingRow');
+    el.wordartBackingToggle = document.getElementById('wordartBackingToggle');
+    el.wordartBackingHint   = document.getElementById('wordartBackingHint');
     
     el.langToggle      = document.getElementById('langToggleBtn');
     el.fontSlotTabs    = document.getElementById('wordartSlotTabs');
@@ -282,6 +293,11 @@ async function _runUpdate3D() {
     const paramsPayload = {
         ringPosition: state.ringPosition,
         ring: { anchor: state.ringAnchor || 'top' },
+        // Word-art backing. No depth slider on the storefront, so the mode picks one:
+        // solid = 4mm flat plaque, hollow = 20mm standing block.
+        base: (isWordartLike && state.wordartBase !== 'none')
+            ? { wordartMode: state.wordartBase, depth: state.wordartBase === 'hollow' ? 20 : 4 }
+            : undefined,
         wave_mode: "wave",
         wave_amplitude: 5.0,
         wave_cycles: 1.0,
@@ -680,6 +696,8 @@ function applyProductTypeConstraints() {
     const isWordartLike = isWordart || isLoveSeries;
 
     // Toggle Input visibility
+    if (el.wordartBackingRow) el.wordartBackingRow.style.display = isWordartLike ? 'block' : 'none';
+
     if (isWordart) {
         el.singleInputContainer.style.display = 'none';
         el.dualInputsContainer.style.display = 'flex';
@@ -991,6 +1009,27 @@ function setupEvents() {
         });
     }
 
+    // Word Art backing choice (None / Solid / Hollow)
+    if (el.wordartBackingToggle) {
+        el.wordartBackingToggle.querySelectorAll(".wa-backing-opt").forEach(btn => {
+            btn.addEventListener("click", () => {
+                if (btn.classList.contains("active")) return;
+                el.wordartBackingToggle.querySelectorAll(".wa-backing-opt").forEach(b => {
+                    b.classList.remove("active");
+                    b.setAttribute("aria-selected", "false");
+                });
+                btn.classList.add("active");
+                btn.setAttribute("aria-selected", "true");
+                state.wordartBase = btn.dataset.mode;   // none | solid | hollow
+                if (el.wordartBackingHint) {
+                    el.wordartBackingHint.textContent =
+                        WORDART_BACKING_HINTS[state.wordartBase] || WORDART_BACKING_HINTS.none;
+                }
+                update3DModel();   // rebuild -> new volume -> calculatePricing() reprices
+            });
+        });
+    }
+
     // Thickness choices
     if(el.thicknessToggle) {
         el.thicknessToggle.querySelectorAll('.pos-opt').forEach(btn => {
@@ -1090,6 +1129,7 @@ function setupEvents() {
             name: el.custName.value.trim(),
             phone: el.custPhone.value.trim(),
             productType: state.productType,
+            wordartBase: state.wordartBase,
             text: state.productType === 'wordart' ? `${el.wordartLine1.value}/${el.wordartLine2.value}` : state.name,
             font: activeFont,
             baseColor: baseColor,

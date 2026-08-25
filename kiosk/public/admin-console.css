@@ -701,3 +701,38 @@ body:has(.studio) {
   display: none !important;
 }
 
+
+
+/* ── Word Art backing toggle (None / Solid / Hollow) ── */
+
+.wa-base-toggle {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+}
+
+.wa-base-opt {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 100px;
+    border: 1.5px solid var(--glass-border, rgba(255, 255, 255, 0.12));
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted, #9aa0a6);
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.wa-base-opt:hover {
+    color: #fff;
+    border-color: rgba(156, 77, 255, 0.5);
+}
+
+.wa-base-opt.active {
+    background: linear-gradient(135deg, rgba(108, 0, 184, 0.4), rgba(156, 77, 255, 0.3));
+    border-color: rgba(156, 77, 255, 0.6);
+    color: #fff;
+}

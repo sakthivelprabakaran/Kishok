@@ -411,6 +411,29 @@ textarea.custom-input { resize: none; line-height: 1.4; overflow: hidden; }
     font-size: .8rem; color: var(--ink-soft); line-height: 1.45;
 }
 
+/* ========== WORD ART BACKING (Step 2, word-art only) ========== */
+.wa-backing-row { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; }
+.wa-backing-label {
+    font-family: var(--font-body); font-size: .78rem; font-weight: 700;
+    color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em;
+}
+.wa-backing-toggle {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 6px;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--r-md); padding: 5px;
+}
+.wa-backing-opt {
+    padding: 10px 6px; border: none; background: transparent;
+    color: var(--ink-soft);
+    font-family: var(--font-body); font-size: .8rem; font-weight: 700;
+    border-radius: var(--r-sm); cursor: pointer; text-align: center;
+    transition: background var(--t-fast), color var(--t-fast);
+}
+.wa-backing-opt:hover { color: var(--ink); }
+.wa-backing-opt.active { background: var(--vermilion); color: #fff; }
+.wa-backing-hint { font-size: .76rem; color: var(--ink-soft); line-height: 1.45; }
+
 /* ========== RING POSITION (Step 5) ========== */
 .ring-position-toggle {
     display: grid; grid-template-columns: repeat(2,1fr); gap: 6px;

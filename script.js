@@ -123,6 +123,8 @@ var state = {
     lang: 'en',
     layers: '3L',
     productType: 'keychain',
+    // Word-art backing panel: 'none' (letters only) | 'solid' (plaque) | 'hollow' (standee)
+    wordartBase: 'none',
     ringPosition: 'left',     // which side the ring attaches (kept 'left')
     ringAnchor: 'top',        // vertical placement: 'top' corner | 'center'
     fontCategory: 'all',
@@ -244,6 +246,7 @@ function dispatch3DFontSelected() {
             layers:       state.layers,
             productType:  state.productType,
             wordartFonts: buildWordartFontsPayload(),
+            wordartBase:  state.wordartBase,
             ringPosition: state.ringPosition,
             ringAnchor:   state.ringAnchor,
         }
@@ -267,6 +270,7 @@ function dispatch3DDesignUpdated() {
             layers:       state.layers,
             productType:  state.productType,
             wordartFonts: buildWordartFontsPayload(),
+            wordartBase:  state.wordartBase,
             ringPosition: state.ringPosition,
             ringAnchor:   state.ringAnchor,
 
@@ -752,6 +756,9 @@ function buildWhatsAppMessage() {
         }
         if (isWordartLike()) {
             lines.push('✍️ Line 2 Color: ' + state.colors.line2);
+            // Backing drives how much filament the piece needs — keep it on the order.
+            var backingLabel = { none: 'None (letters only)', solid: 'Solid panel', hollow: 'Hollow standee' };
+            lines.push('🧱 Backing: ' + (backingLabel[state.wordartBase] || backingLabel.none));
         }
     }
     
@@ -1034,6 +1041,10 @@ function applyProductTypeUI() {
     if (layerToggle) layerToggle.style.display = (isLinkedInitials || isNametag || isGirly || isBordered || isSupported || isFlower || isLed) ? 'none' : '';
     if (hint)     hint.style.display     = isWordart ? '' : 'none';
     if (slotTabs) slotTabs.style.display = isWordart ? '' : 'none';
+
+    // Backing panel choice applies to both word-art and LOVE Series (same pipeline).
+    var backingRow = $('wordartBackingRow');
+    if (backingRow) backingRow.style.display = isWordartLike ? '' : 'none';
 
     // Descriptions & labels
     if (previewSub) {
@@ -1397,6 +1408,32 @@ function initRingPosition() {
     });
 }
 
+var WORDART_BACKING_HINTS = {
+    none:   'Letters only — the word itself is the whole piece.',
+    solid:  'A solid panel behind the letters. Sturdier, and the letters pop against it.',
+    hollow: 'Stands up on its own like a desk sign — the biggest option. Hollow inside, so it is lighter than it looks.',
+};
+
+function initWordartBacking() {
+    var toggle = $('wordartBackingToggle');
+    if (!toggle) return;
+    toggle.querySelectorAll('.wa-backing-opt').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (btn.classList.contains('active')) return;
+            toggle.querySelectorAll('.wa-backing-opt').forEach(function(b) {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+            state.wordartBase = btn.dataset.mode;   // 'none' | 'solid' | 'hollow'
+            var hintEl = $('wordartBackingHint');
+            if (hintEl) hintEl.textContent = WORDART_BACKING_HINTS[state.wordartBase] || WORDART_BACKING_HINTS.none;
+            dispatch3DDesignUpdated();
+        });
+    });
+}
+
 function initFontCategoryTabs() {
     var tabs = $('fontCategoryTabs');
     if (!tabs) return;
@@ -1483,6 +1520,7 @@ function init() {
     initQuantity();
     initProductType();
     initRingPosition();
+    initWordartBacking();
     initFontCategoryTabs();
     initWordartSlotTabs();
     initNametagSliders();

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/kiosk.css?v=desk3">
-    <link rel="stylesheet" href="css/customize.css?v=desk3">
+    <link rel="stylesheet" href="css/customize.css?v=wa1">
 </head>
 <body>
     <!-- Sticky 3D Canvas Pane (45% viewport height) -->
@@ -94,6 +94,17 @@
             </div>
             
             <p class="wordart-tip" id="wordartHint" style="display: none;">💡 Tip: Bottom line stands more stably in ALL CAPS.</p>
+
+            <!-- Backing choice — word-art / LOVE Series only -->
+            <div class="wa-backing-row" id="wordartBackingRow" style="display: none;">
+                <span class="wa-backing-label">Backing panel</span>
+                <div class="wa-backing-toggle" id="wordartBackingToggle" role="tablist">
+                    <button type="button" class="wa-backing-opt active" data-mode="none" role="tab" aria-selected="true">✨ None</button>
+                    <button type="button" class="wa-backing-opt" data-mode="solid" role="tab" aria-selected="false">🟧 Solid</button>
+                    <button type="button" class="wa-backing-opt" data-mode="hollow" role="tab" aria-selected="false">🧱 Hollow</button>
+                </div>
+                <p class="wa-backing-hint" id="wordartBackingHint">Letters only — the word itself is the whole piece.</p>
+            </div>
         </div>
 
         <!-- STEP 2: Font Selection -->
@@ -341,6 +352,6 @@
     }
     </script>
 
-    <script type="module" src="js/kiosk-app.js?v=fp3"></script>
+    <script type="module" src="js/kiosk-app.js?v=wa1"></script>
 </body>
 </html>
