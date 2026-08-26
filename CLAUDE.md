@@ -2,20 +2,49 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ Which half of this repo is live
+
+**Read [README.md](README.md) before editing anything.** The repo holds two
+near-identical sites and only one is deployed:
+
+- **`kiosk/` is LIVE.** Vercel's Root Directory is `kiosk`, so production serves
+  `kiosk/public/` as `/` and routes `/api/*` to `kiosk/server.js`. Verified: live
+  `/customize.html` is byte-identical to `kiosk/public/customize.html` and loads
+  `kiosk-app.js`; `/studio.html` and `/api/health` are 200.
+- **The repo root is DEAD legacy.** Editing root `index.html`, `customize.html`,
+  `script.js`, `viewer3d.js` or `admin.html` changes nothing in production.
+
+The sections below describe the **root/legacy** architecture. The engine notes
+still apply, because `kiosk/public/js/viewer3d.js` is a mirror of root
+`viewer3d.js` — but the entry points, UI files and event bus differ. The live
+storefront uses `kiosk/public/js/kiosk-app.js`, which owns its own
+`KeychainViewer` directly and does **not** use the custom-event bus described
+under "Two front-ends, one 3D engine".
+
+A migration from Vercel + Google Sheets to Cloudflare Pages + Supabase is in
+progress; see [kiosk/CLOUDFLARE_MIGRATION.md](kiosk/CLOUDFLARE_MIGRATION.md).
+
 ## Project type
 
 Pure static site — vanilla HTML/CSS/JS. No package.json, no bundler, no build step, no tests. Three.js and opentype.js are loaded from CDNs at runtime (Three.js via an importmap at version `0.170.0`, opentype.js via a `<script>` tag).
 
 ## Running locally
 
-ES modules + `fetch()` of local font files require an HTTP server — `file://` will not work. Serve the project root with any static server, e.g.:
+ES modules + `fetch()` of local font files require an HTTP server — `file://` will not work. To work on the **live** app, serve `kiosk/public` (that is what production serves as `/`):
+
+```bash
+cd kiosk/public && python -m http.server 8780
+# http://localhost:8780/index.html
+```
+
+To work on the legacy root site instead, serve the repo root:
 
 ```bash
 python -m http.server 8000
 # then open http://localhost:8000/index.html
 ```
 
-The two entry points are:
+The legacy root entry points are:
 
 - `index.html` — customer-facing keychain designer
 - `admin.html` — full-screen STL generation console
@@ -60,6 +89,10 @@ The legacy in-page admin sidebar on `index.html` (driven by `admin-panel.js`) is
 
 ### Duplicated config
 
+Across the live/legacy split, these files are mirrors — change both:
+`kiosk/public/js/viewer3d.js` / `viewer3d.js`, `kiosk/public/admin-console.js` /
+`admin-console.js`, `kiosk/public/admin-console.css` / `admin-console.css`.
+
 `FONTS` (the catalog of available fonts) and `COLOR_PALETTES` are **duplicated verbatim** in `script.js` and `admin-console.js`. If you add/remove a font or palette color, update **both** files. Font files live in `Fonts/` and are loaded directly by their relative path; the `name` field must match the family used in CSS/SVG previews (so it doubles as the CSS font-family).
 
 ### Presets are also duplicated
@@ -91,4 +124,5 @@ The STL download button on `index.html` is hidden by default and revealed only w
 - Adding a font: drop the file in `Fonts/`, add a row to the `FONTS` array in **both** `script.js` and `admin-console.js`. The `name` must match the `font-family` you want for SVG previews.
 - Adding a swatch color: update `COLOR_PALETTES` in **both** files.
 - Changing 3D parameters: `KeychainViewer.getDefaults()` in `viewer3d.js` is the source of truth; the admin presets override these when the user picks one.
+- Printability: `KeychainViewer.validatePrintability(params, productType)` errors below 0.8mm and warns below 1.2mm, and the STL Studios disable export while errors stand. Note a layer's real thickness is `depth + 2 * bevelThickness`, and `scaleFactor` scales the font size on the main path but scales whole geometry in the eight specialised builders.
 - Don't break the `font-selected` / `design-updated` / `admin-rebuild` event payloads — they are the only contract between `script.js` (classic) and the viewer (module).
