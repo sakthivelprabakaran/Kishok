@@ -944,6 +944,7 @@ function debouncedRebuild() {
     _rebuildTimer = setTimeout(() => {
         if (!viewer) return;
         const params = collectParams();
+        renderPrintCheck(params);
 
         // Save to localStorage
         try { localStorage.setItem('adminConsoleParams', JSON.stringify(params)); } catch(e) {}
@@ -963,6 +964,7 @@ async function updateViewer() {
     showLoading();
     try {
         const params = collectParams();
+        renderPrintCheck(params);
         await viewer.update(
             state.name || 'Sample',
             state.selectedFont.file,
@@ -1061,6 +1063,56 @@ function initViewportActions() {
 
 // ===== PRESETS =====
 
+// ===== PRINTABILITY CHECK =====
+// Surfaces KeychainViewer.validatePrintability() and blocks STL export on hard
+// errors, so a model that physically cannot print never reaches the slicer.
+
+let _printCheckHasErrors = false;
+
+function renderPrintCheck(params) {
+    const panel = $('adminPrintCheck');
+    if (!panel) return;
+
+    let result;
+    try {
+        result = KeychainViewer.validatePrintability(params, state.productType);
+    } catch (err) {
+        console.error('Printability check failed:', err);
+        panel.innerHTML = '';
+        _printCheckHasErrors = false;
+        applyPrintCheckToExport();
+        return;
+    }
+
+    _printCheckHasErrors = result.errors.length > 0;
+
+    const rows = [];
+    if (result.features.length) {
+        rows.push('<div class="pc-features">' +
+            result.features.map(f => '<span class="pc-chip">' + f.label + ' <b>' + f.mm + 'mm</b></span>').join('') +
+            '</div>');
+    }
+    for (const e of result.errors)   rows.push('<div class="pc-item pc-error">&#9940; ' + e + '</div>');
+    for (const w of result.warnings) rows.push('<div class="pc-item pc-warn">&#9888; ' + w + '</div>');
+    if (!result.errors.length && !result.warnings.length) {
+        rows.push('<div class="pc-item pc-ok">&#9989; Printable &mdash; every feature clears the 1.2mm safe minimum.</div>');
+    }
+
+    panel.innerHTML = rows.join('');
+    panel.dataset.state = result.errors.length ? 'error' : (result.warnings.length ? 'warn' : 'ok');
+    applyPrintCheckToExport();
+}
+
+function applyPrintCheckToExport() {
+    const btns = [$('adminExportSTL'), $('vpDownloadSTL')].filter(Boolean);
+    for (const b of btns) {
+        b.disabled = _printCheckHasErrors;
+        b.title = _printCheckHasErrors
+            ? 'Fix the printability errors before exporting'
+            : 'Export STL for 3D printing';
+    }
+}
+
 function initPresets() {
     document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1082,6 +1134,10 @@ function initExportReset() {
     // Export STL
     exportBtn.addEventListener('click', () => {
         if (!viewer) return;
+        if (_printCheckHasErrors) {
+            alert('This model has printability errors and would fail on the printer. Fix them before exporting.');
+            return;
+        }
         const filename = (filenameInput.value.trim() || 'keychain_3d_print') + '.stl';
         viewer.exportSTL(filename);
     });

@@ -1236,3 +1236,66 @@ textarea.ctrl-text-input {
     border-color: rgba(156, 77, 255, 0.6);
     color: #fff;
 }
+
+
+/* Printability check panel (STL Studio) */
+.print-check {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.print-check:empty { display: none; }
+
+.print-check .pc-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+
+.print-check .pc-chip {
+    padding: 3px 7px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.12));
+    color: var(--text-muted, #9aa0a6);
+    font-size: 0.66rem;
+    white-space: nowrap;
+}
+
+.print-check .pc-chip b { color: #fff; font-weight: 700; }
+
+.print-check .pc-item {
+    padding: 7px 9px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+}
+
+.print-check .pc-error {
+    background: rgba(255, 60, 60, 0.14);
+    border: 1px solid rgba(255, 60, 60, 0.5);
+    color: #ffb3b3;
+}
+
+.print-check .pc-warn {
+    background: rgba(255, 176, 32, 0.13);
+    border: 1px solid rgba(255, 176, 32, 0.45);
+    color: #ffd894;
+}
+
+.print-check .pc-ok {
+    background: rgba(60, 200, 120, 0.12);
+    border: 1px solid rgba(60, 200, 120, 0.4);
+    color: #a9e8c4;
+}
+
+/* Export stays clickable-looking only when the model can actually print. */
+#adminExportSTL:disabled,
+#vpDownloadSTL:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.6);
+}

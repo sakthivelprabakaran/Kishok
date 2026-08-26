@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cancellation & Refunds — YoursGifts</title>
+    <meta name="description" content="Cancellation &amp; Refund Policy for YoursGifts custom 3D-printed gifts.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://kiosk-nine-tau.vercel.app/refund.html">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#FF4D2E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css?v=desk3">
+    <link rel="stylesheet" href="css/legal.css?v=wa1">
+</head>
+<body>
+  <main class="legal-page">
+    <div class="legal-topbar">
+      <img src="LOGO WITH SLOGAN.png" alt="YoursGifts">
+      <a class="legal-back" href="index.html">&larr; Back to shop</a>
+    </div>
+
+    <div id="legalDraftBanner" hidden></div>
+
+    <h1>Cancellation &amp; Refund Policy</h1>
+    <p class="legal-updated">Last updated: <span data-biz="lastUpdated"></span></p>
+
+      <p>Everything we sell is personalised and made to order, which affects when it can be
+      cancelled. This policy explains exactly when you can cancel and when we refund.</p>
+
+      <h2>Cancelling before we start printing</h2>
+      <p><strong>Free cancellation, full refund.</strong> If you tell us before the printer
+      starts your item, we cancel it and refund you in full. Since we usually begin within
+      minutes of confirmed payment, tell us immediately — at the counter, or by phone.</p>
+
+      <h2>Once printing has started</h2>
+      <p>A personalised item cannot be resold, so once printing has begun we cannot cancel or
+      accept a return simply because you changed your mind or mis-typed the text. This is
+      permitted for goods made to a consumer's specification.</p>
+
+      <h2>When we DO refund or reprint</h2>
+      <p>We will reprint at no charge, or refund you in full, if:</p>
+      <ul>
+        <li>the item does not match the design you approved (wrong text, wrong colour, wrong style);</li>
+        <li>it arrives broken, warped, badly under-extruded or otherwise defective;</li>
+        <li>we cannot fulfil your order at all — for example a printer failure or a filament colour we have run out of;</li>
+        <li>we decline your order under our <a href="terms.html">Terms of Service</a>.</li>
+      </ul>
+      <p>Please raise it with us <strong>within 48 hours of collection</strong>, with the item
+      and your order number, so we can see the problem. Visible layer lines, minor colour
+      variation between filament batches, and slight surface texture are characteristics of
+      3D printing rather than defects.</p>
+
+      <h2>Payments we cannot match</h2>
+      <p>If you paid but we cannot find the payment against the reference you entered, we
+      will hold the order and contact you. If a payment reaches us for an order we never
+      made, we refund it in full.</p>
+
+      <h2>How refunds are made</h2>
+      <p>Refunds go back to the same UPI ID that paid us. We initiate them within
+      <strong>2 working days</strong> of agreeing the refund; how quickly it appears then
+      depends on your bank, typically 3–7 working days. We do not charge a cancellation fee.</p>
+
+      <h2>Uncollected orders</h2>
+      <p>We will hold a finished order for <strong>7 days</strong> and remind you. After
+      that, because the item is personalised and cannot be resold, we may dispose of it and
+      cannot refund it.</p>
+
+      <h2>How to request a cancellation or refund</h2>
+      <p>Contact us as soon as possible:</p>
+      <div class="legal-card">
+        <dl>
+          <dt>Grievance Officer</dt><dd data-biz="grievanceOfficer.name"></dd>
+          <dt>Email</dt><dd><a data-biz-mailto="grievanceOfficer.email" href="#"></a></dd>
+          <dt>Phone</dt><dd><a data-biz-tel="grievanceOfficer.phone" href="#"></a></dd>
+        </dl>
+      </div>
+      <p>Full contact details are on our <a href="contact.html">Contact page</a>.</p>
+  </main>
+
+  <footer class="legal-footer">
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="refund.html">Cancellation &amp; Refunds</a>
+      <a href="contact.html">Contact &amp; Grievances</a>
+    </nav>
+    <div>&copy; 2026 <span data-biz="brandName"></span>. Small Gifts, Big Meanings.</div>
+  </footer>
+
+  <script type="module">
+    import { renderLegalPage } from './js/legal-details.js?v=wa1';
+    renderLegalPage();
+  </script>
+</body>
+</html>

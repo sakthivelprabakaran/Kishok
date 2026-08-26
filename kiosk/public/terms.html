@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service — YoursGifts</title>
+    <meta name="description" content="Terms of Service for YoursGifts custom 3D-printed gifts.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://kiosk-nine-tau.vercel.app/terms.html">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#FF4D2E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css?v=desk3">
+    <link rel="stylesheet" href="css/legal.css?v=wa1">
+</head>
+<body>
+  <main class="legal-page">
+    <div class="legal-topbar">
+      <img src="LOGO WITH SLOGAN.png" alt="YoursGifts">
+      <a class="legal-back" href="index.html">&larr; Back to shop</a>
+    </div>
+
+    <div id="legalDraftBanner" hidden></div>
+
+    <h1>Terms of Service</h1>
+    <p class="legal-updated">Last updated: <span data-biz="lastUpdated"></span></p>
+
+      <p>These terms apply when you order a custom 3D-printed item from
+      <span data-biz="brandName"></span>. Placing an order means you accept them.</p>
+
+      <h2>Who you are contracting with</h2>
+      <div class="legal-card">
+        <dl>
+          <dt>Seller</dt><dd data-biz="legalName"></dd>
+          <dt>Trading as</dt><dd data-biz="brandName"></dd>
+          <dt>Address</dt><dd data-biz="addressLines"></dd>
+          <dt>Phone</dt><dd><a data-biz-tel="phone" href="#"></a></dd>
+          <dt>Email</dt><dd><a data-biz-mailto="email" href="#"></a></dd>
+          <dt>GSTIN</dt><dd data-biz="gstin"></dd>
+        </dl>
+      </div>
+
+      <h2>What we make</h2>
+      <p>Every item is <strong>made to order from the text and options you choose</strong> —
+      keychains, nameplates, letter tiles, word art and similar 3D-printed gifts. Because
+      each piece is personalised, please check your spelling, font and colours on the 3D
+      preview before you pay.</p>
+
+      <h2>The 3D preview</h2>
+      <p>The on-screen preview is an accurate representation of the shape we will print, but
+      it is a screen rendering. Real filament colour, surface finish and layer texture will
+      differ slightly from the preview, and printed plastic shows visible layer lines. This
+      is normal for 3D printing and is not a defect.</p>
+
+      <h2>Prices and payment</h2>
+      <ul>
+        <li>Prices are shown in Indian Rupees and are calculated from the size, weight and
+        print time of the design you build, so changing your design changes the price.</li>
+        <li>Payment is by UPI, made directly to us from your own UPI app.</li>
+        <li>After paying you enter your 12-digit UPI reference number. <strong>We begin
+        printing only after we have confirmed the payment has actually reached us.</strong>
+        Entering a reference number that does not correspond to a real payment is not an order.</li>
+      </ul>
+
+      <h2>Collection</h2>
+      <p>Orders are made and handed over in person at our kiosk, usually within
+      <span data-biz="fulfilmentWindow"></span> of confirmed payment. We do not ship. Busy
+      periods, large designs or printer maintenance can make this longer, and we will tell
+      you if so. Please collect on the same day unless we agree otherwise.</p>
+
+      <h2>Acceptable content</h2>
+      <p>We will decline, and refund, any order whose text is unlawful, abusive, hateful,
+      obscene, or infringes someone else's trade mark or copyright. You confirm you have the
+      right to use the text and names you submit. We are not responsible for spelling as
+      submitted by you.</p>
+
+      <h2>Product care and safety</h2>
+      <p>Items are printed in PLA-type plastic. They are decorative and everyday-use items,
+      not toys for children under three, and are not suitable for sustained heat (do not
+      leave in a closed car or in direct sun), dishwashers, or contact with food. Small parts
+      may present a choking hazard for young children. Fine details can snap under force.</p>
+
+      <h2>Our liability</h2>
+      <p>If we get your order wrong we will reprint or refund it, as set out in our
+      <a href="refund.html">Cancellation &amp; Refunds policy</a>. Beyond that, and except
+      where the law does not allow it to be limited, our liability for any order is limited
+      to the amount you paid for it. Nothing in these terms limits your rights under the
+      Consumer Protection Act, 2019.</p>
+
+      <h2>Intellectual property</h2>
+      <p>The site, its 3D designs and the product templates remain ours. You keep the rights
+      in the text you supply, and you grant us permission to use it for the purpose of
+      producing your order.</p>
+
+      <h2>Governing law</h2>
+      <p>These terms are governed by the laws of India, and the courts at
+      <span data-biz="jurisdictionCity"></span> have jurisdiction over any dispute.</p>
+
+      <h2>Questions</h2>
+      <p>See <a href="contact.html">Contact &amp; Grievances</a>.</p>
+  </main>
+
+  <footer class="legal-footer">
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="refund.html">Cancellation &amp; Refunds</a>
+      <a href="contact.html">Contact &amp; Grievances</a>
+    </nav>
+    <div>&copy; 2026 <span data-biz="brandName"></span>. Small Gifts, Big Meanings.</div>
+  </footer>
+
+  <script type="module">
+    import { renderLegalPage } from './js/legal-details.js?v=wa1';
+    renderLegalPage();
+  </script>
+</body>
+</html>

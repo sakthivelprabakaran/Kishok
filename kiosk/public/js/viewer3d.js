@@ -630,6 +630,187 @@ export class KeychainViewer {
 
     /* ── Default 3D Parameters ── */
 
+    /* ── Printability validation ──
+       FDM reality check for a 0.4mm nozzle at 0.2mm layers. Catches geometry that
+       either cannot print or will snap in a pocket next to a bunch of keys.
+
+       Two things make this less obvious than "is the slider small":
+
+       1. scaleFactor means different things per product. The MAIN path
+          (keychain / nameplate / wordart / loveseries / linked_initials) uses it to
+          scale the FONT SIZE only, so the depth sliders are already true mm. The
+          specialised builders (tile keys, nametag, girly, bordered, supported,
+          flower, LED) call keychainGroup.scale.setScalar(scaleFactor), so THEIR
+          depths are baked-in constants multiplied by scaleFactor.
+       2. An extruded layer's real thickness is depth + 2 * bevelThickness, because
+          THREE.ExtrudeGeometry adds the bevel on both faces.
+
+       Returns { errors, warnings, features } — errors mean do not print.
+    */
+
+    static get PRINT_LIMITS() {
+        return {
+            MIN_FEATURE:      0.8,   // 2 perimeters at 0.4mm — below this it is not a wall
+            SAFE_FEATURE:     1.2,   // 3 perimeters — below this it is fragile
+            MIN_RING_WALL:    1.2,   // ring cross-section; thinner snaps off a keyring
+            SAFE_RING_WALL:   2.0,
+            MIN_RING_HOLE_D:  2.0,   // a split ring physically will not pass
+            SAFE_RING_HOLE_D: 3.0,
+            SAFE_KEYCHAIN_BODY: 2.0, // total body worth carrying on keys
+        };
+    }
+
+    // Products whose builders scale the whole assembly, so their depths are
+    // constant * scaleFactor rather than the depth sliders.
+    static get SCALED_PRODUCTS() {
+        return ['tilekey', 'nametag', 'girly_keychain', 'bordered_keychain',
+                'supported_text', 'flower_keychain', 'led_word_stand', 'led_word_art'];
+    }
+
+    static validatePrintability(params, productType) {
+        var L = KeychainViewer.PRINT_LIMITS;
+        var defaults = KeychainViewer.getDefaults();
+        var p = Object.assign({}, defaults, params || {});
+        p.base    = Object.assign({}, defaults.base,    (params && params.base)    || {});
+        p.outline = Object.assign({}, defaults.outline, (params && params.outline) || {});
+        p.font    = Object.assign({}, defaults.font,    (params && params.font)    || {});
+        p.ring    = Object.assign({}, defaults.ring,    (params && params.ring)    || {});
+
+        var type = productType || p.productType || 'keychain';
+        var errors = [];
+        var warnings = [];
+        var features = [];
+
+        // NB: `Number(x) || 1` would turn a deliberate 0 into 1 and silently pass —
+        // the same trap that made batches.js unable to delete a combo.
+        var rawScale = Number(p.scaleFactor);
+        var scale = Number.isFinite(rawScale) ? rawScale : 1;
+        if (!(scale > 0)) {
+            errors.push('Scale factor must be greater than 0.');
+            return { errors: errors, warnings: warnings, features: features };
+        }
+
+        // A printed layer is depth + bevel on both faces.
+        function total(layer) {
+            return (Number(layer.depth) || 0) + 2 * (Number(layer.bevelThickness) || 0);
+        }
+
+        function checkFeature(label, mm, opts) {
+            var o = opts || {};
+            var min = o.min || L.MIN_FEATURE;
+            var safe = o.safe || L.SAFE_FEATURE;
+            features.push({ label: label, mm: Math.round(mm * 100) / 100 });
+            if (mm <= 0) {
+                errors.push(label + ' is ' + mm.toFixed(2) + 'mm — nothing would be printed.');
+            } else if (mm < min) {
+                errors.push(label + ' is ' + mm.toFixed(2) + 'mm. A 0.4mm nozzle needs at least '
+                    + min + 'mm (2 perimeters) or the wall cannot be printed.');
+            } else if (mm < safe) {
+                warnings.push(label + ' is ' + mm.toFixed(2) + 'mm — printable but fragile. '
+                    + safe + 'mm+ is safer.');
+            }
+        }
+
+        var isWordartLike   = (type === 'wordart' || type === 'loveseries');
+        var isLinkedInitial = (type === 'linked_initials');
+        var isNameplate     = (type === 'nameplate');
+        var isScaled        = KeychainViewer.SCALED_PRODUCTS.indexOf(type) !== -1;
+
+        if (isScaled) {
+            // These builders multiply their own constants by scaleFactor.
+            if (type === 'tilekey') {
+                // Constants from _buildTileKeychain.
+                checkFeature('Letter relief (' + scale + '× scale)', 1.2 * scale);
+                checkFeature('Tile thickness (' + scale + '× scale)', 1.8 * scale);
+                checkFeature('Strip thickness (' + scale + '× scale)', 3 * scale);
+            } else {
+                // Every scaled builder's thinnest constant sits around 1.2mm, so
+                // anything much under 0.7x starts crossing the 0.8mm floor.
+                var thinnest = 1.2 * scale;
+                checkFeature('Thinnest feature (≈' + scale + '× scale)', thinnest);
+            }
+            if (scale < 0.7) {
+                warnings.push('Scale ' + scale + '× shrinks every feature of this product, '
+                    + 'including ones with no slider. Check the model before printing.');
+            }
+            return { errors: errors, warnings: warnings, features: features };
+        }
+
+        // ── Main path: depth sliders are true millimetres ──
+
+        // Base plate. Word art and linked initials have no base unless the word-art
+        // backing is switched on.
+        var wordartMode = (p.base.wordartMode || 'none');
+        if (isWordartLike && wordartMode !== 'none') {
+            var backDepth = Math.max(wordartMode === 'hollow' ? 3 : 1, Number(p.base.depth) || 0);
+            if (wordartMode === 'hollow') {
+                checkFeature('Standee shell wall', Math.max(1.2, Number(p.base.bevelThickness) || 2.2),
+                    { min: L.MIN_FEATURE, safe: L.SAFE_FEATURE });
+                checkFeature('Standee front cover', 2);
+                if (backDepth < 10) {
+                    warnings.push('Backing depth is ' + backDepth.toFixed(1) + 'mm. Hollow only reads as a '
+                        + 'standing piece from about 10mm; below that use Solid instead.');
+                }
+            } else {
+                checkFeature('Backing plate', backDepth);
+            }
+        } else if (!isWordartLike && !isLinkedInitial) {
+            var baseTotal = total(p.base);
+            checkFeature('Base plate', baseTotal);
+            if (!isNameplate && baseTotal < L.SAFE_KEYCHAIN_BODY) {
+                warnings.push('Base plate is ' + baseTotal.toFixed(2) + 'mm. Under '
+                    + L.SAFE_KEYCHAIN_BODY + 'mm a keychain body flexes and cracks in a pocket.');
+            }
+        }
+
+        // Outline (middle) layer — 3L only, and word art forces a thicker halo.
+        if (p.layers === '3L' && !isLinkedInitial) {
+            var outlineTotal = total(p.outline);
+            if (isWordartLike) {
+                outlineTotal = Math.max(outlineTotal, 4);   // builder forces depth >= 4
+            }
+            checkFeature('Outline layer', outlineTotal);
+        }
+
+        // Text layer — word art and linked initials force >= 6mm.
+        var fontTotal = total(p.font);
+        if (isWordartLike || isLinkedInitial) {
+            fontTotal = Math.max(fontTotal, 6);
+        }
+        checkFeature('Text relief', fontTotal);
+
+        // Keyring — skipped for nameplate/word art, and when explicitly off.
+        var hasRing = !isNameplate && !isWordartLike && p.ringPosition !== 'none';
+        if (hasRing) {
+            var outerR = Number(p.ring.outerRadius) || 0;
+            var innerR = Number(p.ring.innerRadius) || 0;
+            if (innerR >= outerR) {
+                errors.push('Ring inner radius (' + innerR + 'mm) must be smaller than the outer radius ('
+                    + outerR + 'mm) — as set, there is no ring left to print.');
+            } else {
+                var wall = outerR - innerR;
+                features.push({ label: 'Ring wall', mm: Math.round(wall * 100) / 100 });
+                if (wall < L.MIN_RING_WALL) {
+                    errors.push('Ring wall is ' + wall.toFixed(2) + 'mm. Under ' + L.MIN_RING_WALL
+                        + 'mm it will not print as a loop.');
+                } else if (wall < L.SAFE_RING_WALL) {
+                    warnings.push('Ring wall is ' + wall.toFixed(2) + 'mm — it will snap off a keyring. '
+                        + L.SAFE_RING_WALL + 'mm+ recommended.');
+                }
+                var holeD = innerR * 2;
+                features.push({ label: 'Ring hole ø', mm: Math.round(holeD * 100) / 100 });
+                if (holeD < L.MIN_RING_HOLE_D) {
+                    errors.push('Ring hole is ø' + holeD.toFixed(1) + 'mm — a split ring cannot pass through.');
+                } else if (holeD < L.SAFE_RING_HOLE_D) {
+                    warnings.push('Ring hole is ø' + holeD.toFixed(1) + 'mm — tight for a standard split ring ('
+                        + L.SAFE_RING_HOLE_D + 'mm+ is comfortable).');
+                }
+            }
+        }
+
+        return { errors: errors, warnings: warnings, features: features };
+    }
+
     static getDefaults() {
         return {
             fontSize:          36,

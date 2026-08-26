@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact & Grievances — YoursGifts</title>
+    <meta name="description" content="Contact &amp; Grievance Redressal for YoursGifts custom 3D-printed gifts.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://kiosk-nine-tau.vercel.app/contact.html">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="theme-color" content="#FF4D2E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css?v=desk3">
+    <link rel="stylesheet" href="css/legal.css?v=wa1">
+</head>
+<body>
+  <main class="legal-page">
+    <div class="legal-topbar">
+      <img src="LOGO WITH SLOGAN.png" alt="YoursGifts">
+      <a class="legal-back" href="index.html">&larr; Back to shop</a>
+    </div>
+
+    <div id="legalDraftBanner" hidden></div>
+
+    <h1>Contact &amp; Grievance Redressal</h1>
+    <p class="legal-updated">Last updated: <span data-biz="lastUpdated"></span></p>
+
+      <p>We would rather hear from you than have you stuck. Reach us any of these ways.</p>
+
+      <h2>Seller details</h2>
+      <div class="legal-card">
+        <dl>
+          <dt>Seller</dt><dd data-biz="legalName"></dd>
+          <dt>Trading as</dt><dd data-biz="brandName"></dd>
+          <dt>Address</dt><dd data-biz="addressLines"></dd>
+          <dt>Phone</dt><dd><a data-biz-tel="phone" href="#"></a></dd>
+          <dt>Email</dt><dd><a data-biz-mailto="email" href="#"></a></dd>
+          <dt>GSTIN</dt><dd data-biz="gstin"></dd>
+        </dl>
+      </div>
+
+      <h2>Grievance Officer</h2>
+      <p>As required by the Consumer Protection (e-Commerce) Rules, 2020, complaints go to a
+      named officer, who will acknowledge your complaint within 48 hours and resolve it
+      within one month:</p>
+      <div class="legal-card">
+        <dl>
+          <dt>Grievance Officer</dt><dd data-biz="grievanceOfficer.name"></dd>
+          <dt>Email</dt><dd><a data-biz-mailto="grievanceOfficer.email" href="#"></a></dd>
+          <dt>Phone</dt><dd><a data-biz-tel="grievanceOfficer.phone" href="#"></a></dd>
+        </dl>
+      </div>
+
+      <h2>What to include</h2>
+      <ul>
+        <li>Your order number, if you have one.</li>
+        <li>The phone number you gave when ordering.</li>
+        <li>A photo, if the item is damaged or wrong.</li>
+      </ul>
+
+      <h2>Data protection requests</h2>
+      <p>To see, correct or delete the personal data we hold about you, write to the
+      Grievance Officer above. See our <a href="privacy.html">Privacy Policy</a> for what we hold.</p>
+
+      <h2>Related policies</h2>
+      <ul>
+        <li><a href="terms.html">Terms of Service</a></li>
+        <li><a href="refund.html">Cancellation &amp; Refunds</a></li>
+        <li><a href="privacy.html">Privacy Policy</a></li>
+      </ul>
+  </main>
+
+  <footer class="legal-footer">
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="refund.html">Cancellation &amp; Refunds</a>
+      <a href="contact.html">Contact &amp; Grievances</a>
+    </nav>
+    <div>&copy; 2026 <span data-biz="brandName"></span>. Small Gifts, Big Meanings.</div>
+  </footer>
+
+  <script type="module">
+    import { renderLegalPage } from './js/legal-details.js?v=wa1';
+    renderLegalPage();
+  </script>
+</body>
+</html>

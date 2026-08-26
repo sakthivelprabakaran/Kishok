@@ -5,6 +5,12 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>STL Studio — YoursGifts Admin</title>
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#FF4D2E">
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
@@ -745,6 +751,8 @@ Letters only — the word itself is the whole structure.
 <input class="filenameInput" id="adminFilename" placeholder="filename" type="text" value="keychain_3d_print"/>
 <span class="filenameExt">.stl</span>
 </div>
+<!-- Printability check: populated by renderPrintCheck() in admin-console.js -->
+<div class="print-check" id="adminPrintCheck" data-state="ok" aria-live="polite"></div>
 <div class="exportBtns">
 <button class="exportBtn" id="adminExportSTL">🖨️ Download STL</button>
 </div>
