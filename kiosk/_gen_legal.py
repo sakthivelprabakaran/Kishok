@@ -292,6 +292,8 @@ CONTACT = f"""      <p>We would rather hear from you than have you stuck. Reach 
       named officer, who will acknowledge your complaint within 48 hours and resolve it
       within one month:</p>
 {GRIEVANCE_CARD}
+      <p>You can also reach the Grievance Officer on our business phone,
+      <a data-biz-tel="phone" href="#"></a>.</p>
 
       <h2>What to include</h2>
       <ul>

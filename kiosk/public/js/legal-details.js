@@ -14,33 +14,34 @@ export const BUSINESS = {
     // Trading name shown to customers.
     brandName: 'YoursGifts',
 
-    // Legal/registered name. If you trade as a sole proprietor, use your own
-    // name, e.g. "Sakthivel Prabakaran (sole proprietor), trading as YoursGifts".
-    legalName: 'TODO: registered or proprietor name',
+    // Legal/registered name.
+    legalName: 'YoursGifts',
 
-    // Full address customers and couriers can reach. Required by the e-commerce rules.
+    // Full address customers can reach.
     addressLines: [
-        'TODO: street / kiosk location',
-        'TODO: city, state',
-        'TODO: PIN code',
+        'Madippakkam',
+        'Chennai, Tamil Nadu',
+        '600091',
     ],
 
     // Contact channels. Both must actually be monitored.
-    phone: 'TODO: +91 XXXXX XXXXX',
-    email: 'TODO: hello@yourdomain.in',
+    phone: '+91 87600 05259',
+    email: 'yoursgiftsorders@gmail.com',
 
     // GST registration number, or the string 'Not GST registered'.
-    gstin: 'TODO: GSTIN or "Not GST registered"',
+    gstin: 'Not GST registered',
 
     // Named grievance officer (may be the same person as the proprietor).
+    // Any field left as an empty string is hidden from the page rather than
+    // rendered blank — the officer is reachable on the business phone above.
     grievanceOfficer: {
-        name:  'TODO: officer name',
-        email: 'TODO: grievance@yourdomain.in',
-        phone: 'TODO: +91 XXXXX XXXXX',
+        name:  'Sakthivel Prabakaran',
+        email: 'yoursgiftsorders@gmail.com',
+        phone: '',
     },
 
     // City whose courts govern disputes.
-    jurisdictionCity: 'TODO: city',
+    jurisdictionCity: 'Chennai',
 
     // Bump when you materially change any policy.
     lastUpdated: '26 August 2026',
@@ -82,9 +83,21 @@ export function missingFields(b = BUSINESS) {
 export function renderLegalPage() {
     const get = (path) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), BUSINESS);
 
+    /* A field set to '' is intentionally omitted — drop its whole definition-list
+       row (the <dd> and the <dt> labelling it) rather than showing an empty value. */
+    const dropRow = (el) => {
+        const dd = el.closest('dd') || el;
+        const dt = dd.previousElementSibling;
+        if (dt && dt.tagName === 'DT') dt.hidden = true;
+        dd.hidden = true;
+    };
+
+    const isBlank = (v) => typeof v === 'string' && v.trim() === '';
+
     document.querySelectorAll('[data-biz]').forEach((el) => {
         const value = get(el.dataset.biz);
         if (value == null) return;
+        if (isBlank(value)) { dropRow(el); return; }
         if (Array.isArray(value)) {
             el.innerHTML = value.map((line) => `<span class="biz-line">${line}</span>`).join('');
         } else {
@@ -95,6 +108,7 @@ export function renderLegalPage() {
 
     document.querySelectorAll('[data-biz-mailto]').forEach((el) => {
         const value = get(el.dataset.bizMailto);
+        if (isBlank(value)) { dropRow(el); return; }
         el.textContent = value;
         if (!isPlaceholder(value)) el.href = 'mailto:' + value;
         else el.classList.add('biz-todo');
@@ -102,6 +116,7 @@ export function renderLegalPage() {
 
     document.querySelectorAll('[data-biz-tel]').forEach((el) => {
         const value = get(el.dataset.bizTel);
+        if (isBlank(value)) { dropRow(el); return; }
         el.textContent = value;
         if (!isPlaceholder(value)) el.href = 'tel:' + String(value).replace(/[^\d+]/g, '');
         else el.classList.add('biz-todo');
