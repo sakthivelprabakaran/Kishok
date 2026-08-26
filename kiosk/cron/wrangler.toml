@@ -1,0 +1,20 @@
+# Standalone keep-alive Worker (separate from the Pages project).
+#
+# Dashboard route (no install needed): Workers & Pages -> Create -> Worker,
+# paste keepalive-worker.js, then Settings -> Variables -> add KIOSK_BASE_URL,
+# and Settings -> Triggers -> Cron Triggers -> add "0 6 * * *".
+#
+# Or, if you ever install wrangler:  wrangler deploy  (from this directory)
+
+name = "yoursgifts-keepalive"
+main = "keepalive-worker.js"
+compatibility_date = "2026-08-26"
+
+# 06:00 UTC daily = 11:30 IST. Well inside Supabase's 7-day idle window.
+[triggers]
+crons = ["0 6 * * *"]
+
+# Set for real in the dashboard, or with:
+#   wrangler secret put KIOSK_BASE_URL   (plain var is fine, it is not a secret)
+[vars]
+KIOSK_BASE_URL = "https://REPLACE-ME.pages.dev"

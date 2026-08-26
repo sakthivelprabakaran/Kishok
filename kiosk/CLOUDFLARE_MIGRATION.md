@@ -26,6 +26,7 @@ kiosk/
 │   ├── _middleware.js           ← CORS + security headers (replaces helmet)
 │   ├── api/_middleware.js       ← unknown /api/* → JSON 404, never HTML
 │   ├── api/health.js            ← GET  /api/health          (public)
+│   ├── api/keepalive.js         ← GET  /api/keepalive       (public, real SELECT)
 │   ├── api/batches.js           ← GET  /api/batches         (public)
 │   │                              POST /api/batches         (admin)
 │   ├── api/order/index.js       ← POST /api/order           (public)
@@ -34,6 +35,7 @@ kiosk/
 │   ├── api/summary/today.js     ← GET  /api/summary/today   (admin)
 │   └── api/admin/{login,health}.js
 ├── public/_routes.json          ← only /api/* invokes a Function; static stays free
+├── cron/                        ← standalone keep-alive Worker (Pages cannot do cron)
 └── server.js                    ← UNTOUCHED, so Vercel keeps working until you cut over
 ```
 
@@ -115,14 +117,29 @@ same repo. Nothing breaks while you test.
 Once you are happy, delete the Vercel project and (optionally) `server.js`,
 `package.json`, and `vercel.json` from `kiosk/`.
 
+## Step 5 — Keep-alive Worker (stops the Supabase free-tier pause)
+
+Cron Triggers exist on **Workers**, not Pages Functions, so this is a second, tiny
+deployment. It has no database credentials — it just calls `/api/keepalive`, which
+runs a real `SELECT`.
+
+1. Workers & Pages → Create → **Worker**. Name it `yoursgifts-keepalive`.
+2. Edit code → paste all of `kiosk/cron/keepalive-worker.js` → Deploy.
+3. Settings → Variables → add `KIOSK_BASE_URL` = your Pages URL, no trailing slash
+   (e.g. `https://yoursgifts.pages.dev`).
+4. Settings → Triggers → Cron Triggers → Add → `0 6 * * *` (06:00 UTC = 11:30 IST).
+5. Confirm it works by visiting the Worker's own URL — the `fetch` handler runs the
+   same ping on demand and returns `{"ok":true,...}`.
+
+`kiosk/cron/wrangler.toml` is there if you ever install wrangler and prefer
+`wrangler deploy`. Nothing needs installing for the dashboard route.
+
 ## Free-tier limits worth knowing
 
 **Supabase free**
-- **Projects pause after 7 days of no activity.** For a roadside kiosk with quiet
-  weeks this is the real risk: a paused database means `/api/batches` and order
-  submission fail until someone unpauses it in the dashboard. Mitigation: a
-  Cloudflare **Cron Trigger** hitting `/api/health` (or any cheap query) daily.
-  Ask and I will add the cron worker.
+- **Projects pause after 7 days of no activity.** Handled — see Step 5. Note that a
+  keep-alive must run a *real query*; pinging `/api/health` would report "ok" while
+  the project quietly idled into a pause, because health only reads env vars.
 - 500 MB database, 5 GB egress/month. An order row is well under 1 KB, so 500 MB is
   roughly half a million orders — not a constraint.
 - Two active projects per free org.
@@ -153,13 +170,15 @@ Once you are happy, delete the Vercel project and (optionally) `server.js`,
 
 ## Existing order history
 
-The current data lives in the Google Sheet behind `GOOGLE_SCRIPT_URL`. It is **not**
-migrated automatically. Options:
+**Decision: start fresh.** Supabase begins empty and order numbers start at `0001`.
+The Google Sheet behind `GOOGLE_SCRIPT_URL` stays untouched as a read-only archive —
+do not delete it, and keep the env var set on Vercel so the old stack remains a
+working rollback target.
 
-- **Start fresh** — simplest; keep the sheet as an archive.
-- **Import** — export the sheet to CSV, then Supabase → Table editor → `orders` →
-  Import CSV. Column names must be mapped to snake_case (`customer_name`, `text_value`,
-  `weight_g`, …). Set the sequence past the highest imported number afterwards:
+If you later change your mind, export the sheet to CSV and use Supabase → Table
+editor → `orders` → Import CSV, mapping the headers to snake_case
+(`customer_name`, `text_value`, `weight_g`, …). Then move the sequence past the
+highest imported number:
   ```sql
   select setval('public.order_num_seq', (select max(order_num::bigint) from public.orders));
   ```
