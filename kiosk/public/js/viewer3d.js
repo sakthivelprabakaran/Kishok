@@ -469,38 +469,25 @@ export class KeychainViewer {
     //   - Word art needs two different fonts (e.g. cursive top + bold caps bottom) and a
     //     deliberate overlap so the meshes fuse into one printable solid.
     /* ── Word-art backplate: 'solid' plaque or 'hollow' standee ──
-       Built from the unioned letter silhouette offset outward by `padding`, reusing the
-       same Clipper helper as the LED housings — round joins, so concave letter joins
-       fillet instead of spiking the way a naive per-vertex offset does.
+       Built from the unioned letter silhouette offset outward by `padding`.
+       In hollow mode, the outer perimeter is offset inward by `wallThk` to create
+       a single, continuous open cavity on the backside with clean uniform perimeter walls.
 
-       Everything lands in negative Z (behind z = 0), so the halo and text layers that
-       stack from z = 0 upward are untouched and the letters sit flush on the front face.
-
-         solid  →  one filled plaque spanning [-depth, 0]
-         hollow →  2mm cover spanning [-2, 0] + a wall ring spanning [-depth, -2],
-                   i.e. open at the back with no infill
+       Everything lands in negative Z (behind z = 0), so the front deck sits at [-COVER_THK, 0]
+       and text letters sit flush at z = 0.
     */
     _buildWordartBackplate(shapes, mode, p, baseMat) {
-        var COVER_THK = 2;                       // front skin thickness in hollow mode (mm)
+        var COVER_THK = 1.8;                      // front skin thickness in hollow mode (mm)
         var isHollow  = (mode === 'hollow');
 
-        // Depth has to clear the cover plus at least a 1mm wall run.
-        var depth = Math.max(isHollow ? COVER_THK + 1 : 1, p.base.depth);
+        // Depth has to clear the cover plus at least a 2mm wall run.
+        var depth = Math.max(isHollow ? COVER_THK + 2 : 2, p.base.depth || 14);
 
-        // Padding = how far the plate extends past the letters. Keep it at least as wide as
-        // the word-art halo (whose bevelSize is forced to >= 2.5 in the outline block) so the
-        // plate can never come out narrower than the halo sitting on top of it.
-        var padding = Math.max(0.5, p.base.bevelSize || 3);
-        if (p.layers === '3L') {
-            padding = Math.max(padding, Math.max(p.outline.bevelSize, 2.5) + 0.5);
-        }
+        // Padding = how far the plate extends past the letters.
+        var padding = Math.max(1.5, p.base.bevelSize || 3.0);
+        var wallThk = Math.max(1.8, Math.min(2.4, p.base.bevelThickness || 2.2));
 
-        // Walls must stay inside the padding band — otherwise the ring's inner contour grows
-        // inward past the letters and the "hollow" part prints solid.
-        var wallThk = Math.min(Math.max(1.2, p.base.bevelThickness || 2.2), padding * 0.9);
-
-        // Fill the letter counters (the hole in "o", "a") so the plate reads as one solid
-        // backing rather than a stencil.
+        // Fill letter counters (holes inside 'O', 'A', etc.) so backplate is a continuous solid backing footprint
         var solidShapes = [];
         for (var i = 0; i < shapes.length; i++) {
             var copy = shapes[i].clone();
@@ -508,51 +495,64 @@ export class KeychainViewer {
             solidShapes.push(copy);
         }
 
-        var off = clipperUnionAndOffset(solidShapes, padding, wallThk, isHollow);
-        if (!off || !off.coverShapes || off.coverShapes.length === 0) {
+        // 1. Union and expand by padding to get the smooth outer envelope
+        var outerShapes = offsetShapes(solidShapes, padding);
+        if (!outerShapes || outerShapes.length === 0) {
+            outerShapes = unionShapes(solidShapes, []);
+        }
+        // Ensure outer boundary has no internal pinholes / crevices
+        for (var os = 0; os < outerShapes.length; os++) {
+            outerShapes[os].holes = [];
+        }
+
+        if (!outerShapes || outerShapes.length === 0) {
             console.warn('Word-art backplate skipped: offset failed (is ClipperLib loaded?).');
             return;
         }
 
         if (!isHollow) {
-            // Clipper already rounded the outline, so only a shallow front-edge bevel.
-            var bevelThk = Math.min(p.base.bevelThickness, depth * 0.3);
-            var plateGeo = new THREE.ExtrudeGeometry(off.coverShapes, {
+            // Solid backplate: single solid plaque
+            var bevelThk = Math.min(0.6, depth * 0.2);
+            var plateGeo = new THREE.ExtrudeGeometry(outerShapes, {
                 depth:          depth,
                 bevelEnabled:   bevelThk > 0,
                 bevelThickness: bevelThk,
-                bevelSize:      Math.min(0.4, padding * 0.5),
+                bevelSize:      Math.min(0.4, padding * 0.4),
                 bevelOffset:    0,
-                bevelSegments:  p.base.bevelSegments,
-                curveSegments:  8,
+                bevelSegments:  p.base.bevelSegments || 3,
+                curveSegments:  12,
             });
-            // A bevelled extrusion spans [-bevelThk, depth + bevelThk]; drop it so the front
-            // face lands on z = 0 either way.
             plateGeo.translate(0, 0, -(depth + (bevelThk > 0 ? bevelThk : 0)));
             this.keychainGroup.add(new THREE.Mesh(plateGeo, baseMat));
             return;
         }
 
-        // Hollow — front cover skin the letters sit on.
-        var coverGeo = new THREE.ExtrudeGeometry(off.coverShapes, {
+        // Hollow backplate:
+        // 1. Front solid skin (deck) on which texts sit flush at z = 0
+        var coverGeo = new THREE.ExtrudeGeometry(outerShapes, {
             depth:         COVER_THK,
             bevelEnabled:  false,
-            curveSegments: 8,
+            curveSegments: 12,
         });
         coverGeo.translate(0, 0, -COVER_THK);
         this.keychainGroup.add(new THREE.Mesh(coverGeo, baseMat));
 
-        // Hollow — perimeter wall ring behind the cover.
-        if (off.wallShapes && off.wallShapes.length > 0) {
-            var wallGeo = new THREE.ExtrudeGeometry(off.wallShapes, {
+        // 2. Continuous outer perimeter wall with clean hollow interior (no letter dividers or internal ribs)
+        var innerCavity = offsetShapes(outerShapes, -wallThk);
+        var wallShapes = (innerCavity && innerCavity.length > 0)
+            ? subtractShapes(outerShapes, innerCavity)
+            : outerShapes;
+
+        if (wallShapes && wallShapes.length > 0) {
+            var wallGeo = new THREE.ExtrudeGeometry(wallShapes, {
                 depth:         depth - COVER_THK,
                 bevelEnabled:  false,
-                curveSegments: 8,
+                curveSegments: 12,
             });
             wallGeo.translate(0, 0, -depth);
             this.keychainGroup.add(new THREE.Mesh(wallGeo, baseMat));
         } else {
-            console.warn('Word-art hollow backplate: wall ring empty; padding may be too small.');
+            console.warn('Word-art hollow backplate: wall ring empty.');
         }
     }
 
@@ -632,6 +632,177 @@ export class KeychainViewer {
         h.bezierCurveTo(cx - 11 * s,   cy + 7 * s,    cx - 11 * s,  cy + 0 * s,   cx - 5 * s,   cy + 0 * s);
         h.bezierCurveTo(cx - 2 * s,    cy + 0 * s,    cx + 0 * s,   cy + 2.5 * s, cx + 0 * s,   cy + 2.5 * s);
         return h;
+    }
+
+    // Builds 2D vector shapes for popular 3D personalization icons
+    static makeSymbolShape(symbolName, cx, cy, size) {
+        var s = size / 20;
+        var name = (symbolName || 'Heart').toLowerCase();
+        
+        if (name === 'heart') {
+            return [KeychainViewer.makeHeartShape(cx, cy - size * 0.45, size * 0.9)];
+        }
+        
+        if (name === 'star') {
+            var star = new THREE.Shape();
+            var points = 5;
+            var outerR = size * 0.5;
+            var innerR = size * 0.22;
+            for (var i = 0; i < points * 2; i++) {
+                var angle = (i * Math.PI) / points - Math.PI / 2;
+                var r = (i % 2 === 0) ? outerR : innerR;
+                var x = cx + Math.cos(angle) * r;
+                var y = cy + Math.sin(angle) * r;
+                if (i === 0) star.moveTo(x, y);
+                else star.lineTo(x, y);
+            }
+            star.closePath();
+            return [star];
+        }
+
+        if (name === 'flower') {
+            var shapes = [];
+            var centerR = size * 0.18;
+            var center = new THREE.Shape();
+            center.absarc(cx, cy, centerR, 0, Math.PI * 2, false);
+            shapes.push(center);
+            var petals = 8;
+            var petalDist = size * 0.32;
+            var petalR = size * 0.15;
+            for (var p = 0; p < petals; p++) {
+                var pAngle = (p * Math.PI * 2) / petals;
+                var px = cx + Math.cos(pAngle) * petalDist;
+                var py = cy + Math.sin(pAngle) * petalDist;
+                var petal = new THREE.Shape();
+                petal.absarc(px, py, petalR, 0, Math.PI * 2, false);
+                shapes.push(petal);
+            }
+            return shapes;
+        }
+
+        if (name === 'crown') {
+            var crown = new THREE.Shape();
+            crown.moveTo(cx - 8 * s, cy - 6 * s);
+            crown.lineTo(cx + 8 * s, cy - 6 * s);
+            crown.lineTo(cx + 9 * s, cy + 6 * s);
+            crown.lineTo(cx + 4.5 * s, cy + 1 * s);
+            crown.lineTo(cx + 0 * s, cy + 8 * s);
+            crown.lineTo(cx - 4.5 * s, cy + 1 * s);
+            crown.lineTo(cx - 9 * s, cy + 6 * s);
+            crown.closePath();
+            return [crown];
+        }
+
+        if (name === 'paw') {
+            var shapes = [];
+            // Main pad
+            var mainPad = new THREE.Shape();
+            mainPad.absellipse(cx, cy - 2 * s, 6 * s, 4.5 * s, 0, Math.PI * 2, false);
+            shapes.push(mainPad);
+            // 4 Toes
+            var toeOffsets = [
+                { x: -5.5 * s, y: 4.5 * s, r: 2.0 * s },
+                { x: -2.0 * s, y: 6.8 * s, r: 2.2 * s },
+                { x: 2.0 * s,  y: 6.8 * s, r: 2.2 * s },
+                { x: 5.5 * s,  y: 4.5 * s, r: 2.0 * s }
+            ];
+            toeOffsets.forEach(function(t) {
+                var toe = new THREE.Shape();
+                toe.absarc(cx + t.x, cy + t.y, t.r, 0, Math.PI * 2, false);
+                shapes.push(toe);
+            });
+            return shapes;
+        }
+
+        if (name === 'gamepad') {
+            var pad = new THREE.Shape();
+            var w = 16 * s, h = 10 * s, cr = 4 * s;
+            pad.moveTo(cx - w/2 + cr, cy - h/2);
+            pad.lineTo(cx + w/2 - cr, cy - h/2);
+            pad.quadraticCurveTo(cx + w/2, cy - h/2, cx + w/2, cy - h/2 + cr);
+            pad.lineTo(cx + w/2, cy + h/2 - cr);
+            pad.quadraticCurveTo(cx + w/2, cy + h/2, cx + w/2 - cr, cy + h/2);
+            pad.lineTo(cx - w/2 + cr, cy + h/2);
+            pad.quadraticCurveTo(cx - w/2, cy + h/2, cx - w/2, cy + h/2 - cr);
+            pad.lineTo(cx - w/2, cy - h/2 + cr);
+            pad.quadraticCurveTo(cx - w/2, cy - h/2, cx - w/2 + cr, cy - h/2);
+            return [pad];
+        }
+
+        if (name === 'sparkle') {
+            var sp = new THREE.Shape();
+            var rMax = size * 0.5;
+            sp.moveTo(cx, cy + rMax);
+            sp.quadraticCurveTo(cx + rMax * 0.15, cy + rMax * 0.15, cx + rMax, cy);
+            sp.quadraticCurveTo(cx + rMax * 0.15, cy - rMax * 0.15, cx, cy - rMax);
+            sp.quadraticCurveTo(cx - rMax * 0.15, cy - rMax * 0.15, cx - rMax, cy);
+            sp.quadraticCurveTo(cx - rMax * 0.15, cy + rMax * 0.15, cx, cy + rMax);
+            return [sp];
+        }
+
+        if (name === 'cat') {
+            var cat = new THREE.Shape();
+            var cr = size * 0.38;
+            cat.absarc(cx, cy - cr * 0.2, cr, 0, Math.PI * 2, false);
+            // Ears
+            var earL = new THREE.Shape();
+            earL.moveTo(cx - cr * 0.8, cy + cr * 0.4);
+            earL.lineTo(cx - cr * 0.9, cy + cr * 1.1);
+            earL.lineTo(cx - cr * 0.2, cy + cr * 0.8);
+            earL.closePath();
+            var earR = new THREE.Shape();
+            earR.moveTo(cx + cr * 0.8, cy + cr * 0.4);
+            earR.lineTo(cx + cr * 0.9, cy + cr * 1.1);
+            earR.lineTo(cx + cr * 0.2, cy + cr * 0.8);
+            earR.closePath();
+            return [cat, earL, earR];
+        }
+
+        if (name === 'music') {
+            var shapes = [];
+            var n1 = new THREE.Shape();
+            n1.absellipse(cx - 4 * s, cy - 4 * s, 3 * s, 2.2 * s, -Math.PI / 6, 0, Math.PI * 2, false);
+            var n2 = new THREE.Shape();
+            n2.absellipse(cx + 4 * s, cy - 2 * s, 3 * s, 2.2 * s, -Math.PI / 6, 0, Math.PI * 2, false);
+            var stem = new THREE.Shape();
+            stem.moveTo(cx - 2 * s, cy - 4 * s);
+            stem.lineTo(cx - 2 * s, cy + 6 * s);
+            stem.lineTo(cx + 6 * s, cy + 8 * s);
+            stem.lineTo(cx + 6 * s, cy - 2 * s);
+            stem.lineTo(cx + 4.5 * s, cy - 2 * s);
+            stem.lineTo(cx + 4.5 * s, cy + 6.2 * s);
+            stem.lineTo(cx - 0.5 * s, cy + 4.5 * s);
+            stem.lineTo(cx - 0.5 * s, cy - 4 * s);
+            stem.closePath();
+            return [n1, n2, stem];
+        }
+
+        if (name === 'diamond') {
+            var gem = new THREE.Shape();
+            gem.moveTo(cx, cy - 8 * s);
+            gem.lineTo(cx + 7 * s, cy + 1 * s);
+            gem.lineTo(cx + 5 * s, cy + 7 * s);
+            gem.lineTo(cx - 5 * s, cy + 7 * s);
+            gem.lineTo(cx - 7 * s, cy + 1 * s);
+            gem.closePath();
+            return [gem];
+        }
+
+        if (name === 'rocket') {
+            var rk = new THREE.Shape();
+            rk.moveTo(cx, cy + 9 * s);
+            rk.quadraticCurveTo(cx + 5 * s, cy + 3 * s, cx + 4 * s, cy - 5 * s);
+            rk.lineTo(cx + 7 * s, cy - 8 * s);
+            rk.lineTo(cx + 2 * s, cy - 6 * s);
+            rk.lineTo(cx - 2 * s, cy - 6 * s);
+            rk.lineTo(cx - 7 * s, cy - 8 * s);
+            rk.lineTo(cx - 4 * s, cy - 5 * s);
+            rk.quadraticCurveTo(cx - 5 * s, cy + 3 * s, cx, cy + 9 * s);
+            return [rk];
+        }
+
+        // Fallback heart
+        return [KeychainViewer.makeHeartShape(cx, cy - size * 0.45, size * 0.9)];
     }
 
     /* ── Default 3D Parameters ── */
@@ -960,6 +1131,12 @@ export class KeychainViewer {
             return;
         }
 
+        var isBubbleKeychain = p.productType === 'bubble_keychain';
+        if (isBubbleKeychain) {
+            this._buildBubbleKeychain(text, font, baseColor, fontColor, outlineColor, p);
+            return;
+        }
+
         var isBordered = p.productType === 'bordered_keychain';
         if (isBordered) {
             this._buildBorderedKeychain(text, font, baseColor, fontColor, outlineColor, p);
@@ -999,6 +1176,12 @@ export class KeychainViewer {
         var isLedWordArt = p.productType === 'led_word_art';
         if (isLedWordArt) {
             this._buildLedWordArt(text, font, baseColor, fontColor, p);
+            return;
+        }
+
+        var isDeskOrganizer = p.productType === 'desk_organizer';
+        if (isDeskOrganizer) {
+            this._buildDeskOrganizer(text, font, baseColor, fontColor, outlineColor, p);
             return;
         }
 
@@ -2317,6 +2500,216 @@ export class KeychainViewer {
         this._lastParams = p;
     }
 
+    /* ── Bubble Badge Keychain (Puffy 3D Sticker style) ──
+       Layer 1: Base Backplate + Keyring Loop with Hole (baseMat)
+       Layer 2: Recessed Inset Panel with wide contrast gap (baseMat)
+       Layer 3: Raised Outer Perimeter Rim traveling around entire boundary & Keyring Loop (fontMat)
+       Layer 4: Raised 3D Bubble Text (fontMat)
+    */
+    _buildBubbleKeychain(text, font, baseColor, fontColor, outlineColor, p) {
+        this._clearKeychain();
+        this.keychainGroup = new THREE.Group();
+
+        var displayText = (text || 'Sample').replace(/^\u00B0/, '').replace(/\r/g, '');
+        if (!displayText.trim()) displayText = 'Sample';
+
+        var textSize = 28;
+        // Text path
+        var rawPath = font.getPath(displayText, 0, 0, textSize);
+        var bbox = rawPath.getBoundingBox();
+        var textW = (bbox.x2 - bbox.x1) || 1;
+        var textH = (bbox.y2 - bbox.y1) || 1;
+        var textCenterX = bbox.x1 + textW / 2;
+        var textCenterY = bbox.y1 + textH / 2;
+
+        // Centered text path
+        var centeredPath = font.getPath(displayText, -textCenterX, -textCenterY, textSize);
+        var textShapes = this._pathDataToShapes(centeredPath.toPathData(3));
+        if (!textShapes || textShapes.length === 0) return;
+
+        // Inset halo (Layer 2) = text contour expanded with generous margin (~4.0mm gap)
+        var insetPadding = 4.0;
+        var rawInsetShapes = offsetShapes(textShapes, insetPadding);
+        if (!rawInsetShapes || rawInsetShapes.length === 0) {
+            rawInsetShapes = textShapes;
+        }
+        // Ensure continuous solid backing for inset (remove internal counter voids)
+        for (var i = 0; i < rawInsetShapes.length; i++) {
+            rawInsetShapes[i].holes = [];
+        }
+
+        // Bounding box of inset shapes to place keyring loop tab
+        var insetBBox = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+        for (var isIdx = 0; isIdx < rawInsetShapes.length; isIdx++) {
+            var pts = rawInsetShapes[isIdx].extractPoints(8).shape;
+            for (var ptIdx = 0; ptIdx < pts.length; ptIdx++) {
+                if (pts[ptIdx].x < insetBBox.minX) insetBBox.minX = pts[ptIdx].x;
+                if (pts[ptIdx].x > insetBBox.maxX) insetBBox.maxX = pts[ptIdx].x;
+                if (pts[ptIdx].y < insetBBox.minY) insetBBox.minY = pts[ptIdx].y;
+                if (pts[ptIdx].y > insetBBox.maxY) insetBBox.maxY = pts[ptIdx].y;
+            }
+        }
+
+        var showRing = p.ringPosition !== 'none';
+        var ringOuterR = 5.2;
+        var ringHoleR = 2.7;
+        // Position the tab at bottom-left ear of the silhouette as in the reference image
+        var tabX = insetBBox.minX - 1.2;
+        var tabY = insetBBox.minY + (insetBBox.maxY - insetBBox.minY) * 0.28;
+
+        var insetShapesWithTab = rawInsetShapes;
+        var holeShapes = [];
+
+        if (showRing) {
+            var tabCircle = new THREE.Shape();
+            tabCircle.absarc(tabX, tabY, ringOuterR, 0, Math.PI * 2, false);
+            insetShapesWithTab = unionShapes(rawInsetShapes, [tabCircle]);
+
+            var holeShape = new THREE.Shape();
+            holeShape.absarc(tabX, tabY, ringHoleR, 0, Math.PI * 2, false);
+            holeShapes = [holeShape];
+        }
+
+        // Outer base & rim contour = Inset expanded by rim thickness (2.0mm)
+        var rimWidth = 2.0;
+        var outerEnvelope = offsetShapes(insetShapesWithTab, rimWidth);
+        if (!outerEnvelope || outerEnvelope.length === 0) {
+            outerEnvelope = insetShapesWithTab;
+        }
+        for (var oeIdx = 0; oeIdx < outerEnvelope.length; oeIdx++) {
+            outerEnvelope[oeIdx].holes = [];
+        }
+
+        // 1. Base Plate Shape with keyring hole
+        var finalBaseShapes = (showRing && holeShapes.length > 0)
+            ? subtractShapes(outerEnvelope, holeShapes)
+            : outerEnvelope;
+
+        // 2. Inset Floor Shape with keyring hole
+        var finalInsetShapes = (showRing && holeShapes.length > 0)
+            ? subtractShapes(insetShapesWithTab, holeShapes)
+            : insetShapesWithTab;
+
+        // 3. Raised Outer Perimeter Rim (subtract inset footprint from outer envelope)
+        // This ensures the rim seamlessly surrounds the entire outer border, including the keyring tab
+        var rimShapes = subtractShapes(outerEnvelope, insetShapesWithTab);
+
+        // Materials
+        var baseMat = new THREE.MeshPhysicalMaterial({
+            color:              new THREE.Color(baseColor),
+            roughness:          0.32,
+            metalness:          0.0,
+            clearcoat:          0.85,
+            clearcoatRoughness: 0.12,
+            side:               THREE.DoubleSide,
+        });
+        this._applyFDMTexture(baseMat, p);
+
+        var fontMat = new THREE.MeshPhysicalMaterial({
+            color:              new THREE.Color(fontColor),
+            roughness:          0.28,
+            metalness:          0.0,
+            clearcoat:          0.95,
+            clearcoatRoughness: 0.08,
+            side:               THREE.DoubleSide,
+        });
+        this._applyFDMTexture(fontMat, p);
+
+        // ── 1. Main Base Floor Plaque (Z: 0 to 2.4mm) ──
+        var baseThickness = 2.4;
+        var baseGeo = new THREE.ExtrudeGeometry(finalBaseShapes, {
+            depth:          baseThickness,
+            bevelEnabled:   true,
+            bevelThickness: 0.3,
+            bevelSize:      0.3,
+            bevelOffset:    0,
+            bevelSegments:  3,
+            curveSegments:  12,
+        });
+        var baseMesh = new THREE.Mesh(baseGeo, baseMat);
+        this.keychainGroup.add(baseMesh);
+
+        // ── 2. Recessed Inset Floor Panel (Z: 2.4mm to 3.2mm, +0.8mm above base) ──
+        var insetHeight = 0.8;
+        var insetGeo = new THREE.ExtrudeGeometry(finalInsetShapes, {
+            depth:          insetHeight,
+            bevelEnabled:   false,
+            curveSegments:  12,
+        });
+        insetGeo.translate(0, 0, baseThickness);
+        var insetMesh = new THREE.Mesh(insetGeo, baseMat);
+        this.keychainGroup.add(insetMesh);
+
+        // ── 3. Raised Outer Perimeter Rim (Z: 2.4mm to 4.0mm, +1.6mm above base, +0.8mm above inset floor) ──
+        // Travels around the full perimeter including the keyring ear
+        if (rimShapes && rimShapes.length > 0) {
+            var rimHeight = 1.6;
+            var rimGeo = new THREE.ExtrudeGeometry(rimShapes, {
+                depth:          rimHeight,
+                bevelEnabled:   true,
+                bevelThickness: 0.25,
+                bevelSize:      0.2,
+                bevelOffset:    0,
+                bevelSegments:  3,
+                curveSegments:  12,
+            });
+            rimGeo.translate(0, 0, baseThickness);
+            var rimMesh = new THREE.Mesh(rimGeo, fontMat);
+            this.keychainGroup.add(rimMesh);
+        }
+
+        // ── 4. Raised Bubble 3D Text (Z: 3.2mm to 5.8mm, +2.6mm above inset with puffy rounded bevel) ──
+        var textDepth = 2.2;
+        var fontGeo = new THREE.ExtrudeGeometry(textShapes, {
+            depth:          textDepth,
+            bevelEnabled:   true,
+            bevelThickness: 0.5,
+            bevelSize:      0.45,
+            bevelOffset:    0,
+            bevelSegments:  4,
+            curveSegments:  12,
+        });
+        fontGeo.translate(0, 0, baseThickness + insetHeight);
+        var fontMesh = new THREE.Mesh(fontGeo, fontMat);
+        this.keychainGroup.add(fontMesh);
+
+        // ── 5. Transform, Scale & Center ──
+        if (p.scaleFactor && p.scaleFactor !== 1) {
+            this.keychainGroup.scale.setScalar(p.scaleFactor);
+        }
+        this.keychainGroup.scale.y = -1;
+
+        var box = new THREE.Box3().setFromObject(this.keychainGroup);
+        var center = box.getCenter(new THREE.Vector3());
+        var size = box.getSize(new THREE.Vector3());
+        this.keychainGroup.position.sub(center);
+
+        this.keychainGroup.traverse(function(child) {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+
+        if (this.shadowPlane) {
+            this.shadowPlane.position.y = -size.y / 2 - 0.15;
+        }
+
+        this.scene.add(this.keychainGroup);
+
+        var maxDim = Math.max(size.x, size.y, size.z);
+        this.camera.position.set(0, maxDim * 0.55, maxDim * 1.85);
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+
+        this._lastText = text;
+        this._lastFont = font;
+        this._lastBaseColor = baseColor;
+        this._lastFontColor = fontColor;
+        this._lastOutlineColor = outlineColor;
+        this._lastParams = p;
+    }
+
     _buildBorderedKeychain(text, font, baseColor, fontColor, outlineColor, p) {
         this._clearKeychain();
         this.keychainGroup = new THREE.Group();
@@ -3337,6 +3730,310 @@ export class KeychainViewer {
         this._lastFontColor    = coverColor;
         this._lastOutlineColor = baseColor;
         this._lastParams       = p;
+    }
+
+    /* ── DUO3DPRINT Ultimate Personalized Desk Organizer ── */
+    _buildDeskOrganizer(text, font, baseColor, fontColor, outlineColor, p) {
+        this._clearKeychain();
+        this.keychainGroup = new THREE.Group();
+
+        var boxW = 115.0; // Width X
+        var boxD = 70.0;  // Depth Y
+        var boxH = 46.0;  // Height Z
+        var wallThk = 3.2; // Perimeter wall thickness
+        var botThk  = 3.0; // Bottom base plate thickness
+        var cornerR = 8.0; // Outer corner radius
+        var divThk  = 2.2; // Internal divider thickness
+        var divH    = 36.0;// Internal divider height
+
+        var layout  = p.organizerLayout || '2x3';
+        var symbol  = p.organizerSymbol || 'Heart';
+        var texture = p.organizerTexture || 'Honeycomb';
+
+        // Materials
+        var matBody = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(baseColor),
+            roughness: 0.35, metalness: 0.05,
+            clearcoat: 0.4, clearcoatRoughness: 0.2,
+            side: THREE.DoubleSide
+        });
+
+        var matAccent = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(outlineColor || baseColor),
+            roughness: 0.35, metalness: 0.05,
+            clearcoat: 0.4, clearcoatRoughness: 0.2,
+            side: THREE.DoubleSide
+        });
+
+        var matPersonalize = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(fontColor),
+            roughness: 0.3, metalness: 0.08,
+            clearcoat: 0.5, clearcoatRoughness: 0.15,
+            side: THREE.DoubleSide
+        });
+
+        // 1. Outer Box Base (Bottom Plate)
+        var outerShape = new THREE.Shape();
+        var hw = boxW / 2, hd = boxD / 2, cr = cornerR;
+        outerShape.moveTo(-hw + cr, -hd);
+        outerShape.lineTo(hw - cr, -hd);
+        outerShape.quadraticCurveTo(hw, -hd, hw, -hd + cr);
+        outerShape.lineTo(hw, hd - cr);
+        outerShape.quadraticCurveTo(hw, hd, hw - cr, hd);
+        outerShape.lineTo(-hw + cr, hd);
+        outerShape.quadraticCurveTo(-hw, hd, -hw, hd - cr);
+        outerShape.lineTo(-hw, -hd + cr);
+        outerShape.quadraticCurveTo(-hw, -hd, -hw + cr, -hd);
+
+        var baseGeom = new THREE.ExtrudeGeometry(outerShape, {
+            depth: botThk,
+            bevelEnabled: true,
+            bevelThickness: 0.6,
+            bevelSize: 0.6,
+            bevelSegments: 3
+        });
+        var baseMesh = new THREE.Mesh(baseGeom, matBody);
+        this.keychainGroup.add(baseMesh);
+
+        // 2. Outer Wall Tube (Perimeter walls)
+        var innerHw = hw - wallThk;
+        var innerHd = hd - wallThk;
+        var innerCr = Math.max(2.0, cr - wallThk);
+
+        var innerHole = new THREE.Path();
+        innerHole.moveTo(-innerHw + innerCr, -innerHd);
+        innerHole.lineTo(innerHw - innerCr, -innerHd);
+        innerHole.quadraticCurveTo(innerHw, -innerHd, innerHw, -innerHd + innerCr);
+        innerHole.lineTo(innerHw, innerHd - innerCr);
+        innerHole.quadraticCurveTo(innerHw, innerHd, innerHw - innerCr, innerHd);
+        innerHole.lineTo(-innerHw + innerCr, innerHd);
+        innerHole.quadraticCurveTo(-innerHw, innerHd, -innerHw, innerHd - innerCr);
+        innerHole.lineTo(-innerHw, -innerHd + innerCr);
+        innerHole.quadraticCurveTo(-innerHw, -innerHd, -innerHw + innerCr, -innerHd);
+
+        var wallShape = new THREE.Shape(outerShape.getPoints());
+        wallShape.holes.push(innerHole);
+
+        var wallGeom = new THREE.ExtrudeGeometry(wallShape, {
+            depth: boxH - botThk,
+            bevelEnabled: false
+        });
+        wallGeom.translate(0, 0, botThk);
+        var wallMesh = new THREE.Mesh(wallGeom, matBody);
+        this.keychainGroup.add(wallMesh);
+
+        // 3. Internal Dividers / Compartments
+        var dividerGroup = new THREE.Group();
+        var inW = innerHw * 2;
+        var inD = innerHd * 2;
+
+        function addDivider(x, y, w, d) {
+            var divBox = new THREE.BoxGeometry(w, d, divH);
+            var mesh = new THREE.Mesh(divBox, matAccent);
+            mesh.position.set(x, y, botThk + divH / 2);
+            dividerGroup.add(mesh);
+        }
+
+        if (layout === '2x3') {
+            // 2 vertical slats, 1 horizontal slat
+            var colW = inW / 3;
+            addDivider(-colW / 2, 0, divThk, inD);
+            addDivider(colW / 2, 0, divThk, inD);
+            addDivider(0, 0, inW, divThk);
+        } else if (layout === '2x2') {
+            // 1 vertical, 1 horizontal
+            addDivider(0, 0, divThk, inD);
+            addDivider(0, 0, inW, divThk);
+        } else if (layout === '3x1') {
+            // 3 wide vertical columns
+            var colW = inW / 3;
+            addDivider(-colW / 2, 0, divThk, inD);
+            addDivider(colW / 2, 0, divThk, inD);
+        } else if (layout === '1x3') {
+            // 3 horizontal tiers
+            var rowD = inD / 3;
+            addDivider(0, -rowD / 2, inW, divThk);
+            addDivider(0, rowD / 2, inW, divThk);
+        } else if (layout === 'large_left_2') {
+            // Wide left section (for phone/pad) + 2 right slots
+            var splitX = innerHw * 0.15;
+            addDivider(splitX, 0, divThk, inD);
+            var rightW = innerHw - splitX;
+            addDivider(splitX + rightW / 2, 0, rightW, divThk);
+        } else if (layout === 'front_large_2') {
+            // Front wide catch-all tray + 2 back pen cups
+            var splitY = -innerHd * 0.15;
+            addDivider(0, splitY, inW, divThk);
+            var backD = innerHd - splitY;
+            addDivider(0, splitY + backD / 2, divThk, backD);
+        }
+        // If layout === 'open', no dividers are added.
+
+        this.keychainGroup.add(dividerGroup);
+
+        // 4. Personalized Front Plate (Name + Symbol)
+        var hasSymbol = symbol && symbol !== 'None';
+        var displayText = (text && text.trim().length > 0) ? text.trim() : 'ALEX';
+        var frontZ = botThk + (boxH - botThk) * 0.48; // Middle of front wall
+        var frontY = -hd - 0.2; // Just proud of front surface
+
+        var nameGroup = new THREE.Group();
+        var targetFontSize = hasSymbol ? 14 : 16;
+        var pPath = font.getPath(displayText, 0, 0, targetFontSize);
+        var pData = pPath.toPathData(3);
+        var textShapes = this._pathDataToShapes(pData);
+
+        if (textShapes && textShapes.length > 0) {
+            var textGeom = new THREE.ExtrudeGeometry(textShapes, {
+                depth: 1.8,
+                bevelEnabled: true,
+                bevelThickness: 0.3,
+                bevelSize: 0.2,
+                bevelSegments: 2
+            });
+            var tMesh = new THREE.Mesh(textGeom, matPersonalize);
+            
+            // Measure text width
+            var bb = pPath.getBoundingBox();
+            
+            // opentype shape is upside-down in 3D Y, so flip Y, rotate to sit on front wall
+            tMesh.scale.set(1, -1, 1);
+            tMesh.position.set(- (bb.x1 + bb.x2) / 2, (bb.y1 + bb.y2) / 2, 0);
+
+            var singleTextGroup = new THREE.Group();
+            singleTextGroup.add(tMesh);
+            // Orient onto front wall (X along box width, Y along box height, Z facing front -Y)
+            singleTextGroup.rotation.x = Math.PI / 2;
+            
+            if (hasSymbol) {
+                singleTextGroup.position.set(-14, frontY, frontZ);
+            } else {
+                singleTextGroup.position.set(0, frontY, frontZ);
+            }
+            nameGroup.add(singleTextGroup);
+        }
+
+        // Add 3D Symbol on front wall
+        if (hasSymbol) {
+            var symSize = 16.0;
+            var symShapes = KeychainViewer.makeSymbolShape(symbol, 0, 0, symSize);
+            if (symShapes && symShapes.length > 0) {
+                var symGeom = new THREE.ExtrudeGeometry(symShapes, {
+                    depth: 1.8,
+                    bevelEnabled: true,
+                    bevelThickness: 0.3,
+                    bevelSize: 0.2,
+                    bevelSegments: 2
+                });
+                var symMesh = new THREE.Mesh(symGeom, matPersonalize);
+                symMesh.scale.set(1, -1, 1);
+                
+                var singleSymGroup = new THREE.Group();
+                singleSymGroup.add(symMesh);
+                singleSymGroup.rotation.x = Math.PI / 2;
+                singleSymGroup.position.set(hw - 20, frontY, frontZ);
+                nameGroup.add(singleSymGroup);
+            }
+        }
+        this.keychainGroup.add(nameGroup);
+
+        // 5. Wall Textures (Honeycomb, Dots, Grid, Brick)
+        if (texture && texture !== 'None') {
+            var textureGroup = new THREE.Group();
+            var texThk = 0.8;
+            var texZ = botThk + (boxH - botThk) / 2;
+
+            if (texture === 'Honeycomb') {
+                var hexR = 3.2;
+                var hexGeom = new THREE.CylinderGeometry(hexR, hexR, texThk, 6);
+                hexGeom.rotateX(Math.PI / 2);
+                var hexMesh = new THREE.InstancedMesh(hexGeom, matAccent, 40);
+                var dummy = new THREE.Object3D();
+                var idx = 0;
+                // Back wall honeycomb pattern
+                for (var r = -2; r <= 2; r++) {
+                    for (var c = -3; c <= 3; c++) {
+                        if (idx >= 40) break;
+                        var hx = c * (hexR * 1.75) + (r % 2 !== 0 ? hexR * 0.875 : 0);
+                        var hz = texZ + r * (hexR * 1.5);
+                        dummy.position.set(hx, hd + texThk / 2, hz);
+                        dummy.updateMatrix();
+                        hexMesh.setMatrixAt(idx++, dummy.matrix);
+                    }
+                }
+                hexMesh.instanceMatrix.needsUpdate = true;
+                textureGroup.add(hexMesh);
+            } else if (texture === 'Dots') {
+                var dotGeom = new THREE.SphereGeometry(1.6, 12, 12);
+                dotGeom.scale(1, 0.4, 1);
+                var dotMesh = new THREE.InstancedMesh(dotGeom, matAccent, 35);
+                var dummy = new THREE.Object3D();
+                var idx = 0;
+                for (var r = -2; r <= 2; r++) {
+                    for (var c = -3; c <= 3; c++) {
+                        if (idx >= 35) break;
+                        var dx = c * 10;
+                        var dz = texZ + r * 6.5;
+                        dummy.position.set(dx, hd + 0.6, dz);
+                        dummy.updateMatrix();
+                        dotMesh.setMatrixAt(idx++, dummy.matrix);
+                    }
+                }
+                dotMesh.instanceMatrix.needsUpdate = true;
+                textureGroup.add(dotMesh);
+            } else if (texture === 'Grid') {
+                var gridLines = new THREE.Group();
+                for (var i = -4; i <= 4; i++) {
+                    var vBar = new THREE.Mesh(new THREE.BoxGeometry(1.0, texThk, boxH - botThk - 6), matAccent);
+                    vBar.position.set(i * 8, hd + texThk / 2, texZ);
+                    gridLines.add(vBar);
+                }
+                for (var j = -2; j <= 2; j++) {
+                    var hBar = new THREE.Mesh(new THREE.BoxGeometry(boxW - 20, texThk, 1.0), matAccent);
+                    hBar.position.set(0, hd + texThk / 2, texZ + j * 7);
+                    gridLines.add(hBar);
+                }
+                textureGroup.add(gridLines);
+            } else if (texture === 'Brick') {
+                var brickGroup = new THREE.Group();
+                for (var bRow = -2; bRow <= 2; bRow++) {
+                    var bOff = (bRow % 2 !== 0) ? 6 : 0;
+                    for (var bCol = -3; bCol <= 3; bCol++) {
+                        var bMesh = new THREE.Mesh(new THREE.BoxGeometry(10.0, texThk, 4.5), matAccent);
+                        bMesh.position.set(bCol * 12 + bOff, hd + texThk / 2, texZ + bRow * 6);
+                        brickGroup.add(bMesh);
+                    }
+                }
+                textureGroup.add(brickGroup);
+            }
+            this.keychainGroup.add(textureGroup);
+        }
+
+        // Center model and orient nicely
+        var box = new THREE.Box3().setFromObject(this.keychainGroup);
+        var center = box.getCenter(new THREE.Vector3());
+        var size = box.getSize(new THREE.Vector3());
+        this.keychainGroup.position.sub(center);
+
+        this.keychainGroup.traverse(function(child) {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        this.scene.add(this.keychainGroup);
+
+        // Optimal camera framing looking down into the desk organizer compartments
+        this.camera.position.set(0, -110, 100);
+        this.camera.near = 1;
+        this.camera.far = 1000;
+        this.camera.updateProjectionMatrix();
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+
+        this._lastFontColor = fontColor;
+        this._lastOutlineColor = outlineColor;
+        this._lastParams = p;
     }
 
     calculateMeshVolume(mesh) {

@@ -57,6 +57,7 @@
 
     // shape: 'letters' (glyph body + optional ring/stand) | 'tiles' | 'plaque' | 'lines' (2-line)
     var CONFIG = {
+        bubble_keychain:   { lines: ['Rodic'],        fonts: [FONT.bagel],    shape: 'letters', ring: true, combos: [{ base: C.white, font: C.blue }, { base: C.white, font: C.pink }, { base: C.white, font: C.purple }, { base: C.white, font: C.green }], halo: 10 },
         keychain:          { lines: ['PRIYA'],        fonts: [FONT.anton],    shape: 'letters', ring: true, combos: COMBOS_VIVID },
         bordered_keychain: { lines: ['Priya'],        fonts: [FONT.bagel],    shape: 'letters', ring: true, combos: COMBOS_VIVID, halo: 9 },
         flower_keychain:   { lines: ['S'],            fonts: [FONT.pacifico], shape: 'letters', ring: true, combos: COMBOS_VIVID, halo: 11 },
@@ -68,6 +69,7 @@
         wordart:           { lines: ['Vivi', 'SAKTHI'], fonts: [FONT.pacifico, FONT.rockboys], shape: 'lines', ring: false, combos: COMBOS_WORDART },
         loveseries:        { lines: ['Anjali', 'LOVE'], fonts: [FONT.pacifico, FONT.bagel],    shape: 'lines', ring: false, combos: COMBOS_LOVE, heart: true },
         nameplate:         { lines: ['PRIYA'],        fonts: [FONT.anton],    shape: 'plaque',  ring: false, combos: COMBOS_VIVID },
+        desk_organizer:    { lines: ['ALEX'],         fonts: [FONT.bagel],    shape: 'organizer', ring: false, combos: [{ base: C.white, font: C.pink }, { base: C.white, font: C.blue }, { base: C.white, font: C.purple }, { base: C.purple, font: C.yellow }] },
         led_word_stand:    { lines: ['SAM'],          fonts: [FONT.anton],    shape: 'letters', ring: false, combos: COMBOS_LED, stand: true, halo: 9 },
         led_word_art:      { lines: ['Love'],         fonts: [FONT.lobster],  shape: 'letters', ring: false, combos: COMBOS_LED, halo: 9 },
     };
@@ -146,6 +148,40 @@
             var tx2 = px + (pw2 - t2.w) / 2 - t2.x1, ty2 = py + (ph2 - t2.h) / 2 - t2.y1;
             out.push('<path d="' + t2.d + '" transform="translate(' + tx2.toFixed(2) + ',' + ty2.toFixed(2) +
                      ')" fill="' + combo.font + '"/>');
+            out.push('</svg>'); return out.join('');
+        }
+
+        if (cfg.shape === 'organizer') {
+            var ox = boxX, oy = boxY + 2, ow = boxW, oh = boxH - 4, orr = 10;
+            // Back/Top perspective view of desk organizer box
+            out.push('<g filter="url(#' + uidSh + ')">');
+            // Outer Box Shell
+            out.push('<rect x="' + ox + '" y="' + oy + '" width="' + ow + '" height="' + oh +
+                     '" rx="' + orr + '" fill="' + combo.base + '" stroke="#1A1714" stroke-width="2.5"/>');
+            // Inner Compartments Tray (Top/Interior)
+            var trayX = ox + 6, trayY = oy + 6, trayW = ow - 12, trayH = (oh * 0.46);
+            out.push('<rect x="' + trayX + '" y="' + trayY + '" width="' + trayW + '" height="' + trayH +
+                     '" rx="6" fill="rgba(0,0,0,0.18)" stroke="#1A1714" stroke-width="1.5"/>');
+            // 2x3 Divider Grid Lines
+            var colW = trayW / 3;
+            var rowH = trayH / 2;
+            out.push('<line x1="' + (trayX + colW) + '" y1="' + trayY + '" x2="' + (trayX + colW) + '" y2="' + (trayY + trayH) + '" stroke="#1A1714" stroke-width="1.8"/>');
+            out.push('<line x1="' + (trayX + colW * 2) + '" y1="' + trayY + '" x2="' + (trayX + colW * 2) + '" y2="' + (trayY + trayH) + '" stroke="#1A1714" stroke-width="1.8"/>');
+            out.push('<line x1="' + trayX + '" y1="' + (trayY + rowH) + '" x2="' + (trayX + trayW) + '" y2="' + (trayY + rowH) + '" stroke="#1A1714" stroke-width="1.8"/>');
+            // Front Face Name + Heart Icon
+            var frontY = trayY + trayH + 4;
+            var frontH = (oy + oh) - frontY - 6;
+            var fTextW = ow - 36;
+            var probe2 = pathFor(perLineFont[0], cfg.lines[0], 100);
+            var sf = Math.min(fTextW / probe2.w, frontH / probe2.h) * 0.75;
+            var tf = pathFor(perLineFont[0], cfg.lines[0], 100 * sf);
+            var ftx = ox + 14 - tf.x1;
+            var fty = frontY + (frontH - tf.h) / 2 - tf.y1;
+            out.push('<path d="' + tf.d + '" transform="translate(' + ftx.toFixed(2) + ',' + fty.toFixed(2) + ')" fill="' + combo.font + '"/>');
+            // Heart icon at the right
+            var hx = ox + ow - 20, hy = frontY + frontH / 2;
+            out.push('<path d="' + heartPath(hx, hy, 14) + '" fill="' + combo.font + '" stroke="#1A1714" stroke-width="1"/>');
+            out.push('</g>');
             out.push('</svg>'); return out.join('');
         }
 

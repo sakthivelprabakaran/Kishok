@@ -139,6 +139,11 @@ const state = {
     // Backing panel behind the letters: 'none' | 'solid' | 'hollow'
     wordartBase: 'none',
     
+    // Desk Organizer specific
+    organizerLayout: '2x3',
+    organizerSymbol: 'Heart',
+    organizerTexture: 'Honeycomb',
+    
     quantity: 1,
     ringPosition: 'left',     // which side the ring attaches (kept 'left')
     ringAnchor: 'top',        // vertical placement: 'top' corner | 'center'
@@ -181,6 +186,13 @@ function cacheElements() {
     el.wordartBackingRow    = document.getElementById('wordartBackingRow');
     el.wordartBackingToggle = document.getElementById('wordartBackingToggle');
     el.wordartBackingHint   = document.getElementById('wordartBackingHint');
+
+    el.organizerSymbolRow    = document.getElementById('organizerSymbolRow');
+    el.organizerSymbolStrip  = document.getElementById('organizerSymbolStrip');
+    el.organizerLayoutRow    = document.getElementById('organizerLayoutRow');
+    el.organizerLayoutToggle = document.getElementById('organizerLayoutToggle');
+    el.organizerTextureRow   = document.getElementById('organizerTextureRow');
+    el.organizerTextureToggle= document.getElementById('organizerTextureToggle');
     
     el.langToggle      = document.getElementById('langToggleBtn');
     el.fontSlotTabs    = document.getElementById('wordartSlotTabs');
@@ -332,7 +344,10 @@ async function _runUpdate3D() {
         ring_outer_d: 10,
         ring_inner_d: 5,
         ring_height: 4.5,
-        showFDMTexture: state.showFDMTexture
+        showFDMTexture: state.showFDMTexture,
+        organizerLayout: state.organizerLayout,
+        organizerSymbol: state.organizerSymbol,
+        organizerTexture: state.organizerTexture
     };
 
     // LED Word Art: overlap adjacent glyphs (like the Wavy Nametag's negative
@@ -749,11 +764,16 @@ function applyProductTypeConstraints() {
     const isLedStand   = state.productType === 'led_word_stand';
     const isLedArt     = state.productType === 'led_word_art';
     const isBordered   = state.productType === 'bordered_keychain';
+    const isBubble     = state.productType === 'bubble_keychain';
     const isNameplate  = state.productType === 'nameplate';
+    const isDeskOrganizer = state.productType === 'desk_organizer';
     const isWordartLike = isWordart || isLoveSeries;
 
     // Toggle Input visibility
     if (el.wordartBackingRow) el.wordartBackingRow.style.display = isWordartLike ? 'block' : 'none';
+    if (el.organizerSymbolRow) el.organizerSymbolRow.style.display = isDeskOrganizer ? 'block' : 'none';
+    if (el.organizerLayoutRow) el.organizerLayoutRow.style.display = isDeskOrganizer ? 'block' : 'none';
+    if (el.organizerTextureRow) el.organizerTextureRow.style.display = isDeskOrganizer ? 'block' : 'none';
 
     if (isWordart) {
         el.singleInputContainer.style.display = 'none';
@@ -778,6 +798,21 @@ function applyProductTypeConstraints() {
             state.name = state.name.substring(0, 3).toUpperCase();
         } else if (isLedArt) {
             el.nameInput.maxLength = 15;
+        } else if (isBubble) {
+            el.nameInput.maxLength = 12;
+            state.name = state.name || 'Rodic';
+            state.selectedFont = 'Super Bubble';
+            state.selectedFontFile = 'Fonts/Super Bubble.ttf';
+            state.colors.base = '#FFFFFF';    // White base plate & inset floor
+            state.colors.font = '#3A88FE';    // Light blue rim & bubble text
+            state.colors.outline = '#FFFFFF';
+        } else if (isDeskOrganizer) {
+            el.nameInput.maxLength = 12;
+            state.name = state.name || 'ALEX';
+            state.selectedFont = state.selectedFont || 'BagelFatOne';
+            state.colors.base = state.colors.base || '#FFFFFF';     // Main box body
+            state.colors.font = state.colors.font || '#FF1F4B';     // Name & icon
+            state.colors.outline = state.colors.outline || '#7b2fff'; // Dividers & textures
         } else {
             el.nameInput.maxLength = 15;
         }
@@ -895,6 +930,14 @@ function applyProductTypeConstraints() {
         if (el.fontColorLabel) el.fontColorLabel.textContent = 'Font Color';
         if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
         if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isBubble) {
+        // Bubble Badge Keychain: Base Plate = Base Color, Rim & Bubble Text = Font Color
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Base Plate Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Rim & Text Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
     } else if (isNameplate) {
         // Desk nameplate: Plaque = Base, Outline = Outline, Text = Font
         if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
@@ -903,6 +946,15 @@ function applyProductTypeConstraints() {
         if (el.outlineColorLabel) el.outlineColorLabel.textContent = 'Outline Color';
         if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
         if (el.fontColorLabel) el.fontColorLabel.textContent = 'Font Color';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isDeskOrganizer) {
+        // Desk Organizer: Body = Base, Name & Icon = Font, Dividers & Texture = Outline
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Organizer Body Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Name & Symbol Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'flex';
+        if (el.outlineColorLabel) el.outlineColorLabel.textContent = 'Dividers & Texture Accent';
         if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
     } else {
         // Classic keychain (2L vs 3L)
@@ -967,6 +1019,14 @@ function applyProductTypeConstraints() {
         case 'led_word_art':
             titleStr = "LED Word Art";
             subStr = "Unified hollow tray sign; your text doubles as a glowing diffuser cover";
+            break;
+        case 'bubble_keychain':
+            titleStr = "Bubble Badge Keychain";
+            subStr = "Puffy 3D bubble lettering with recessed contrast inset and raised protective rim";
+            break;
+        case 'desk_organizer':
+            titleStr = "Desk Organizer";
+            subStr = "Multi-compartment desk caddy with 3D personalized name & icon";
             break;
     }
     el.productTitle.textContent = titleStr;
@@ -1228,6 +1288,42 @@ function setupEvents() {
                 }
                 applyProductTypeConstraints();
                 update3DModel();   // rebuild -> new volume -> calculatePricing() reprices
+            });
+        });
+    }
+
+    // Desk Organizer Symbol Picker
+    if (el.organizerSymbolStrip) {
+        el.organizerSymbolStrip.querySelectorAll('.symbol-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                el.organizerSymbolStrip.querySelectorAll('.symbol-chip').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.organizerSymbol = btn.dataset.symbol;
+                update3DModel();
+            });
+        });
+    }
+
+    // Desk Organizer Compartment Layout Toggle
+    if (el.organizerLayoutToggle) {
+        el.organizerLayoutToggle.querySelectorAll('.wa-backing-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                el.organizerLayoutToggle.querySelectorAll('.wa-backing-opt').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.organizerLayout = btn.dataset.layout;
+                update3DModel();
+            });
+        });
+    }
+
+    // Desk Organizer Wall Texture Toggle
+    if (el.organizerTextureToggle) {
+        el.organizerTextureToggle.querySelectorAll('.wa-backing-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                el.organizerTextureToggle.querySelectorAll('.wa-backing-opt').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.organizerTexture = btn.dataset.texture;
+                update3DModel();
             });
         });
     }

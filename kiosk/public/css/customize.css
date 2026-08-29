@@ -683,6 +683,39 @@ body {
     line-height: 1.35;
 }
 
+/* Desk Organizer Chip Strips */
+.organizer-chip-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.15rem 0;
+}
+
+.symbol-chip {
+    padding: 0.4rem 0.65rem;
+    background: var(--paper-2);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: inherit;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    user-select: none;
+}
+
+.symbol-chip:hover {
+    border-color: var(--text-main);
+}
+
+.symbol-chip.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 2px 6px var(--primary-glow);
+}
+
 /* Ring Position Toggle */
 .ring-pos-toggle {
     display: flex;
