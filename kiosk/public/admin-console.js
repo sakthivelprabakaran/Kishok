@@ -286,6 +286,13 @@ const SLIDER_MAP = {
     flower_ring_offset:           { range: 'adminFlowerRingOffset',           num: 'adminFlowerRingOffsetNum' },
     flower_base_radius:           { range: 'adminFlowerBaseRadius',           num: 'adminFlowerBaseRadiusNum' },
     flower_petal_amplitude:       { range: 'adminFlowerPetalAmplitude',       num: 'adminFlowerPetalAmplitudeNum' },
+
+    // Desk Organizer Sliders
+    organizer_width:        { range: 'adminOrganizerWidth',       num: 'adminOrganizerWidthNum' },
+    organizer_depth:        { range: 'adminOrganizerDepth',       num: 'adminOrganizerDepthNum' },
+    organizer_height:       { range: 'adminOrganizerHeight',      num: 'adminOrganizerHeightNum' },
+    organizer_wall_thk:     { range: 'adminOrganizerWallThk',     num: 'adminOrganizerWallThkNum' },
+    organizer_letter_depth: { range: 'adminOrganizerLetterDepth', num: 'adminOrganizerLetterDepthNum' },
 };
 
 // Resolve DOM references
@@ -669,6 +676,17 @@ function collectParams() {
         p.flower_base_radius = parseFloat(sliders.flower_base_radius.range.value);
         p.flower_petal_amplitude = parseFloat(sliders.flower_petal_amplitude.range.value);
     }
+
+    // Desk Organizer
+    if (sliders.organizer_width) {
+        const layoutEl = $('adminOrganizerLayout');
+        if (layoutEl) p.organizerLayout = layoutEl.value;
+        p.organizer_width = parseFloat(sliders.organizer_width.range.value);
+        p.organizer_depth = parseFloat(sliders.organizer_depth.range.value);
+        p.organizer_height = parseFloat(sliders.organizer_height.range.value);
+        p.organizer_wall_thk = parseFloat(sliders.organizer_wall_thk.range.value);
+        p.organizer_letter_depth = parseFloat(sliders.organizer_letter_depth.range.value);
+    }
     return p;
 }
 
@@ -932,6 +950,32 @@ function setSliders(p) {
     if (p.flower_petal_amplitude !== undefined) {
         sliders.flower_petal_amplitude.range.value = p.flower_petal_amplitude;
         sliders.flower_petal_amplitude.num.value   = p.flower_petal_amplitude;
+    }
+
+    // Desk Organizer
+    if (p.organizerLayout !== undefined) {
+        const layoutEl = $('adminOrganizerLayout');
+        if (layoutEl) layoutEl.value = p.organizerLayout;
+    }
+    if (p.organizer_width !== undefined) {
+        sliders.organizer_width.range.value = p.organizer_width;
+        sliders.organizer_width.num.value   = p.organizer_width;
+    }
+    if (p.organizer_depth !== undefined) {
+        sliders.organizer_depth.range.value = p.organizer_depth;
+        sliders.organizer_depth.num.value   = p.organizer_depth;
+    }
+    if (p.organizer_height !== undefined) {
+        sliders.organizer_height.range.value = p.organizer_height;
+        sliders.organizer_height.num.value   = p.organizer_height;
+    }
+    if (p.organizer_wall_thk !== undefined) {
+        sliders.organizer_wall_thk.range.value = p.organizer_wall_thk;
+        sliders.organizer_wall_thk.num.value   = p.organizer_wall_thk;
+    }
+    if (p.organizer_letter_depth !== undefined) {
+        sliders.organizer_letter_depth.range.value = p.organizer_letter_depth;
+        sliders.organizer_letter_depth.num.value   = p.organizer_letter_depth;
     }
 }
 
@@ -1300,6 +1344,22 @@ function ensureDefaultsForProductType() {
                 state._flowerColorsApplied = true;
                 buildSwatches();
             }
+        } else if (state.productType === 'desk_organizer') {
+            if (!state._organizerColorsApplied) {
+                state.colors.base = '#2c3e50';
+                state.colors.font = '#FFFFFF';
+                state.colors.outline = '#2c3e50';
+                state._organizerColorsApplied = true;
+                buildSwatches();
+            }
+        } else if (state.productType === 'name_beads') {
+            if (!state._beadsColorsApplied) {
+                state.colors.base = '#00C8FF';
+                state.colors.font = '#FFFFFF';
+                state.colors.outline = '#00C8FF';
+                state._beadsColorsApplied = true;
+                buildSwatches();
+            }
         } else {
             selectedAllowed = state.selectedFont && !NAMETAG_FONT_ALLOWLIST.includes(state.selectedFont.name);
             if (!selectedAllowed) {
@@ -1323,6 +1383,8 @@ function applyProductTypeUI() {
     const isBordered = state.productType === 'bordered_keychain';
     const isSupported = state.productType === 'supported_text';
     const isFlower = state.productType === 'flower_keychain';
+    const isDeskOrganizer = state.productType === 'desk_organizer';
+    const isBeads = state.productType === 'name_beads';
     // LOVE Series renders through the word-art pipeline, so it gets the same backing options.
     const isWordartFamily = state.productType === 'wordart' || state.productType === 'loveseries';
 
@@ -1341,6 +1403,9 @@ function applyProductTypeUI() {
     const flowerSection = $('adminFlowerSection');
     if (flowerSection) flowerSection.style.display = isFlower ? 'block' : 'none';
 
+    const organizerSection = $('adminDeskOrganizerSection');
+    if (organizerSection) organizerSection.style.display = isDeskOrganizer ? 'block' : 'none';
+
     const standardSections = [
         $('adminBaseSection'),
         $('adminOutlineSection'),
@@ -1350,7 +1415,7 @@ function applyProductTypeUI() {
     ];
     standardSections.forEach(sec => {
         if (sec) {
-            const hideStandard = isNametag || isBordered || isSupported || isFlower;
+            const hideStandard = isNametag || isBordered || isSupported || isFlower || isDeskOrganizer || isBeads;
             sec.style.display = hideStandard ? 'none' : 'block';
         }
     });
@@ -1359,12 +1424,12 @@ function applyProductTypeUI() {
     const outlineSwatchGroup = $('adminOutlineSwatchGroup');
     const layerToggleWrap = $('adminLayerToggleWrap');
 
-    const hideOutlineAndLayers = isNametag || isBordered || isSupported || isFlower;
+    const hideOutlineAndLayers = isNametag || isBordered || isSupported || isFlower || isBeads;
 
     if (fontSwatchGroup) fontSwatchGroup.style.display = isNametag ? 'none' : '';
     const isWordartLike = state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey' || state.productType === 'linked_initials';
-    if (outlineSwatchGroup) outlineSwatchGroup.style.display = (hideOutlineAndLayers || (state.layers !== '3L' && !isWordartLike)) ? 'none' : '';
-    if (layerToggleWrap) layerToggleWrap.style.display = hideOutlineAndLayers ? 'none' : '';
+    if (outlineSwatchGroup) outlineSwatchGroup.style.display = (hideOutlineAndLayers || (state.layers !== '3L' && !isWordartLike && !isDeskOrganizer)) ? 'none' : '';
+    if (layerToggleWrap) layerToggleWrap.style.display = (hideOutlineAndLayers || isDeskOrganizer || isBeads) ? 'none' : '';
 
     if (isNametag) {
         nameInput.placeholder = 'e.g. Priya (Max 15 chars)';
@@ -1383,6 +1448,20 @@ function applyProductTypeUI() {
     } else if (isSupported) {
         nameInput.placeholder = 'e.g. SAKTHI (Max 15 chars)';
         nameInput.maxLength = 15;
+        if (nameInput.value.includes('\n')) {
+            nameInput.value = nameInput.value.replace(/\n/g, '');
+            state.name = nameInput.value;
+        }
+    } else if (isDeskOrganizer) {
+        nameInput.placeholder = 'e.g. ALEX (Max 12 chars)';
+        nameInput.maxLength = 12;
+        if (nameInput.value.includes('\n')) {
+            nameInput.value = nameInput.value.replace(/\n/g, '');
+            state.name = nameInput.value;
+        }
+    } else if (isBeads) {
+        nameInput.placeholder = 'e.g. EMMA (Max 10 chars)';
+        nameInput.maxLength = 10;
         if (nameInput.value.includes('\n')) {
             nameInput.value = nameInput.value.replace(/\n/g, '');
             state.name = nameInput.value;

@@ -106,25 +106,31 @@
             
             <p class="wordart-tip" id="wordartHint" style="display: none;">💡 Tip: Bottom line stands more stably in ALL CAPS.</p>
 
-            <!-- Desk Organizer Compartments, Symbol & Texture Controls -->
-            <div class="wa-backing-row" id="organizerSymbolRow" style="display: none;">
-                <span class="wa-backing-label">Front Decorative Icon</span>
-                <div class="organizer-chip-strip" id="organizerSymbolStrip" role="tablist">
-                    <button type="button" class="symbol-chip active" data-symbol="Heart">❤️ Heart</button>
-                    <button type="button" class="symbol-chip" data-symbol="Star">⭐ Star</button>
-                    <button type="button" class="symbol-chip" data-symbol="Flower">🌸 Flower</button>
-                    <button type="button" class="symbol-chip" data-symbol="Crown">👑 Crown</button>
-                    <button type="button" class="symbol-chip" data-symbol="Paw">🐾 Paw</button>
-                    <button type="button" class="symbol-chip" data-symbol="Gamepad">🎮 Gamepad</button>
-                    <button type="button" class="symbol-chip" data-symbol="Sparkle">✨ Sparkle</button>
-                    <button type="button" class="symbol-chip" data-symbol="Cat">🐱 Cat</button>
-                    <button type="button" class="symbol-chip" data-symbol="Music">🎵 Music</button>
-                    <button type="button" class="symbol-chip" data-symbol="Diamond">💎 Gem</button>
-                    <button type="button" class="symbol-chip" data-symbol="Rocket">🚀 Rocket</button>
-                    <button type="button" class="symbol-chip" data-symbol="None">🚫 None</button>
+            <!-- Name Beads Controls -->
+            <div class="wa-backing-row" id="beadShapeRow" style="display: none;">
+                <span class="wa-backing-label">Bead Shape</span>
+                <div class="wa-backing-toggle" id="beadShapeToggle" role="tablist">
+                    <button type="button" class="wa-backing-opt active" data-shape="square">
+                        <span class="wa-opt-title">Square Cube</span>
+                    </button>
+                    <button type="button" class="wa-backing-opt" data-shape="circle">
+                        <span class="wa-opt-title">Round Coin</span>
+                    </button>
+                    <button type="button" class="wa-backing-opt" data-shape="letter">
+                        <span class="wa-opt-title">Letter Contour</span>
+                    </button>
                 </div>
             </div>
 
+            <div class="wa-backing-row" id="beadDirectionRow" style="display: none;">
+                <span class="wa-backing-label">Threading Orientation</span>
+                <div class="wa-backing-toggle" id="beadDirectionToggle" role="tablist">
+                    <button type="button" class="wa-backing-opt active" data-direction="horizontal">Horizontal (Bracelet)</button>
+                    <button type="button" class="wa-backing-opt" data-direction="vertical">Vertical (Lanyard)</button>
+                </div>
+            </div>
+
+            <!-- Desk Organizer Compartment Layout Controls -->
             <div class="wa-backing-row" id="organizerLayoutRow" style="display: none;">
                 <span class="wa-backing-label">Compartment Layout</span>
                 <div class="wa-backing-toggle" id="organizerLayoutToggle" role="tablist">
@@ -134,17 +140,6 @@
                     <button type="button" class="wa-backing-opt" data-layout="large_left_2">📱 Left + 2</button>
                     <button type="button" class="wa-backing-opt" data-layout="front_large_2">📥 Front + 2</button>
                     <button type="button" class="wa-backing-opt" data-layout="open">🔲 Open Bin</button>
-                </div>
-            </div>
-
-            <div class="wa-backing-row" id="organizerTextureRow" style="display: none;">
-                <span class="wa-backing-label">Wall Pattern Texture</span>
-                <div class="wa-backing-toggle" id="organizerTextureToggle" role="tablist">
-                    <button type="button" class="wa-backing-opt active" data-texture="Honeycomb">⬡ Honeycomb</button>
-                    <button type="button" class="wa-backing-opt" data-texture="Dots">⚬ Dots</button>
-                    <button type="button" class="wa-backing-opt" data-texture="Grid">⊞ Grid</button>
-                    <button type="button" class="wa-backing-opt" data-texture="Brick">🧱 Brick</button>
-                    <button type="button" class="wa-backing-opt" data-texture="None">⎯ Smooth</button>
                 </div>
             </div>
 

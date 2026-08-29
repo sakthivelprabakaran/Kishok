@@ -115,6 +115,8 @@
 <option value="bordered_keychain">🔲 Bordered Keychain</option>
 <option value="supported_text">🧱 Supported Nameplate</option>
 <option value="flower_keychain">🌸 Flower Initial</option>
+<option value="desk_organizer">🗄️ Desk Organizer</option>
+<option value="name_beads">📿 Custom Name Beads</option>
 </select>
 <div class="presetGroup" id="adminPresetsSection">
 <button class="preset-btn active" data-preset="standard">Standard</button>
@@ -740,6 +742,61 @@ Letters only — the word itself is the whole structure.
 <input class="sliderRange" id="adminFlowerPetalAmplitude" max="15.0" min="2.0" step="0.5" type="range" value="6.0"/>
 <div class="sliderVal">
 <input class="sliderNum" id="adminFlowerPetalAmplitudeNum" max="15.0" min="2.0" step="0.5" type="number" value="6.0"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+</div>
+<div class="ctrlSection" id="adminDeskOrganizerSection" style="display: none;">
+<div class="ctrlSectionTitle">🗄️ Desk Organizer Controls</div>
+<div class="sliderRow">
+<span class="sliderLabel">Compartment Layout</span>
+<select class="ctrl-select-input" id="adminOrganizerLayout" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+<option value="2x3" selected="">2×3 (6 Compartments)</option>
+<option value="2x2">2×2 (4 Compartments)</option>
+<option value="3x1">3 Vertical Columns</option>
+<option value="1x3">3 Horizontal Tiers</option>
+<option value="large_left_2">Left Tablet/Phone + 2 Right</option>
+<option value="front_large_2">Front Catch-All + 2 Back</option>
+<option value="open">Open Bin (No Dividers)</option>
+</select>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Organizer Width (X)</span>
+<input class="sliderRange" id="adminOrganizerWidth" max="200" min="60" step="1" type="range" value="115"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminOrganizerWidthNum" max="200" min="60" step="1" type="number" value="115"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Organizer Depth (Y)</span>
+<input class="sliderRange" id="adminOrganizerDepth" max="150" min="40" step="1" type="range" value="70"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminOrganizerDepthNum" max="150" min="40" step="1" type="number" value="70"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Organizer Height (Z)</span>
+<input class="sliderRange" id="adminOrganizerHeight" max="100" min="25" step="1" type="range" value="46"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminOrganizerHeightNum" max="100" min="25" step="1" type="number" value="46"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Wall Thickness</span>
+<input class="sliderRange" id="adminOrganizerWallThk" max="8.0" min="1.6" step="0.2" type="range" value="3.2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminOrganizerWallThkNum" max="8.0" min="1.6" step="0.2" type="number" value="3.2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Letter Depth / Press-fit</span>
+<input class="sliderRange" id="adminOrganizerLetterDepth" max="5.0" min="0.8" step="0.1" type="range" value="1.8"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminOrganizerLetterDepthNum" max="5.0" min="0.8" step="0.1" type="number" value="1.8"/>
 <span class="valSuffix">mm</span>
 </div>
 </div>

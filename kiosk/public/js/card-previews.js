@@ -70,6 +70,7 @@
         loveseries:        { lines: ['Anjali', 'LOVE'], fonts: [FONT.pacifico, FONT.bagel],    shape: 'lines', ring: false, combos: COMBOS_LOVE, heart: true },
         nameplate:         { lines: ['PRIYA'],        fonts: [FONT.anton],    shape: 'plaque',  ring: false, combos: COMBOS_VIVID },
         desk_organizer:    { lines: ['ALEX'],         fonts: [FONT.bagel],    shape: 'organizer', ring: false, combos: [{ base: C.white, font: C.pink }, { base: C.white, font: C.blue }, { base: C.white, font: C.purple }, { base: C.purple, font: C.yellow }] },
+        name_beads:        { lines: ['EMMA'],         fonts: [FONT.bagel],    shape: 'tiles',     ring: false, combos: [{ base: C.blue, font: C.white }, { base: C.pink, font: C.white }, { base: C.purple, font: C.yellow }, { base: C.green, font: C.white }] },
         led_word_stand:    { lines: ['SAM'],          fonts: [FONT.anton],    shape: 'letters', ring: false, combos: COMBOS_LED, stand: true, halo: 9 },
         led_word_art:      { lines: ['Love'],         fonts: [FONT.lobster],  shape: 'letters', ring: false, combos: COMBOS_LED, halo: 9 },
     };

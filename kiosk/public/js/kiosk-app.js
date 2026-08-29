@@ -141,8 +141,14 @@ const state = {
     
     // Desk Organizer specific
     organizerLayout: '2x3',
-    organizerSymbol: 'Heart',
-    organizerTexture: 'Honeycomb',
+
+    // Name Beads specific
+    beadShape: 'square',         // 'square' (0) | 'circle' (1) | 'letter' (2)
+    beadDirection: 'horizontal', // 'horizontal' (0) | 'vertical' (1)
+    beadSize: 12,
+    holeDiameter: 4,
+    beadSpacing: 2,
+    beadLetterHeight: 1.2,
     
     quantity: 1,
     ringPosition: 'left',     // which side the ring attaches (kept 'left')
@@ -187,12 +193,13 @@ function cacheElements() {
     el.wordartBackingToggle = document.getElementById('wordartBackingToggle');
     el.wordartBackingHint   = document.getElementById('wordartBackingHint');
 
-    el.organizerSymbolRow    = document.getElementById('organizerSymbolRow');
-    el.organizerSymbolStrip  = document.getElementById('organizerSymbolStrip');
     el.organizerLayoutRow    = document.getElementById('organizerLayoutRow');
     el.organizerLayoutToggle = document.getElementById('organizerLayoutToggle');
-    el.organizerTextureRow   = document.getElementById('organizerTextureRow');
-    el.organizerTextureToggle= document.getElementById('organizerTextureToggle');
+
+    el.beadShapeRow         = document.getElementById('beadShapeRow');
+    el.beadShapeToggle      = document.getElementById('beadShapeToggle');
+    el.beadDirectionRow     = document.getElementById('beadDirectionRow');
+    el.beadDirectionToggle  = document.getElementById('beadDirectionToggle');
     
     el.langToggle      = document.getElementById('langToggleBtn');
     el.fontSlotTabs    = document.getElementById('wordartSlotTabs');
@@ -346,8 +353,14 @@ async function _runUpdate3D() {
         ring_height: 4.5,
         showFDMTexture: state.showFDMTexture,
         organizerLayout: state.organizerLayout,
-        organizerSymbol: state.organizerSymbol,
-        organizerTexture: state.organizerTexture
+        bead_shape: state.beadShape === 'circle' ? 1 : (state.beadShape === 'letter' ? 2 : 0),
+        beadShape: state.beadShape,
+        layout_direction: state.beadDirection === 'vertical' ? 1 : 0,
+        beadDirection: state.beadDirection,
+        bead_size: state.beadSize,
+        hole_diameter: state.holeDiameter,
+        spacing: state.beadSpacing,
+        letter_height: state.beadLetterHeight
     };
 
     // LED Word Art: overlap adjacent glyphs (like the Wavy Nametag's negative
@@ -767,13 +780,14 @@ function applyProductTypeConstraints() {
     const isBubble     = state.productType === 'bubble_keychain';
     const isNameplate  = state.productType === 'nameplate';
     const isDeskOrganizer = state.productType === 'desk_organizer';
+    const isBeads      = state.productType === 'name_beads';
     const isWordartLike = isWordart || isLoveSeries;
 
     // Toggle Input visibility
     if (el.wordartBackingRow) el.wordartBackingRow.style.display = isWordartLike ? 'block' : 'none';
-    if (el.organizerSymbolRow) el.organizerSymbolRow.style.display = isDeskOrganizer ? 'block' : 'none';
     if (el.organizerLayoutRow) el.organizerLayoutRow.style.display = isDeskOrganizer ? 'block' : 'none';
-    if (el.organizerTextureRow) el.organizerTextureRow.style.display = isDeskOrganizer ? 'block' : 'none';
+    if (el.beadShapeRow) el.beadShapeRow.style.display = isBeads ? 'block' : 'none';
+    if (el.beadDirectionRow) el.beadDirectionRow.style.display = isBeads ? 'block' : 'none';
 
     if (isWordart) {
         el.singleInputContainer.style.display = 'none';
@@ -811,8 +825,15 @@ function applyProductTypeConstraints() {
             state.name = state.name || 'ALEX';
             state.selectedFont = state.selectedFont || 'BagelFatOne';
             state.colors.base = state.colors.base || '#FFFFFF';     // Main box body
-            state.colors.font = state.colors.font || '#FF1F4B';     // Name & icon
-            state.colors.outline = state.colors.outline || '#7b2fff'; // Dividers & textures
+            state.colors.font = state.colors.font || '#FF1F4B';     // Name text color
+            state.colors.outline = state.colors.outline || '#FFFFFF';
+        } else if (isBeads) {
+            el.nameInput.maxLength = 10;
+            state.name = state.name || 'EMMA';
+            state.selectedFont = state.selectedFont || 'Lilita One';
+            state.colors.base = state.colors.base || '#00C8FF';     // Bead Body color
+            state.colors.font = state.colors.font || '#FFFFFF';     // Embossed letter color
+            state.colors.outline = state.colors.outline || '#00C8FF';
         } else {
             el.nameInput.maxLength = 15;
         }
@@ -948,13 +969,21 @@ function applyProductTypeConstraints() {
         if (el.fontColorLabel) el.fontColorLabel.textContent = 'Font Color';
         if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
     } else if (isDeskOrganizer) {
-        // Desk Organizer: Body = Base, Name & Icon = Font, Dividers & Texture = Outline
+        // Desk Organizer: Body = Base, Compartment Dividers = Outline, Name = Font
         if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
         if (el.baseColorLabel) el.baseColorLabel.textContent = 'Organizer Body Color';
-        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
-        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Name & Symbol Color';
         if (el.outlineColorRow) el.outlineColorRow.style.display = 'flex';
-        if (el.outlineColorLabel) el.outlineColorLabel.textContent = 'Dividers & Texture Accent';
+        if (el.outlineColorLabel) el.outlineColorLabel.textContent = 'Compartment Dividers Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Name Text Color';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isBeads) {
+        // Name Beads: Body = Base, Letters = Font
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Bead Body Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Letter Text Color';
         if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
     } else {
         // Classic keychain (2L vs 3L)
@@ -1026,7 +1055,11 @@ function applyProductTypeConstraints() {
             break;
         case 'desk_organizer':
             titleStr = "Desk Organizer";
-            subStr = "Multi-compartment desk caddy with 3D personalized name & icon";
+            subStr = "Multi-compartment desk caddy with 3D personalized name";
+            break;
+        case 'name_beads':
+            titleStr = "Custom Name Beads";
+            subStr = "Personalized alphabet beads with center cord hole for bracelets & lanyards";
             break;
     }
     el.productTitle.textContent = titleStr;
@@ -1292,18 +1325,6 @@ function setupEvents() {
         });
     }
 
-    // Desk Organizer Symbol Picker
-    if (el.organizerSymbolStrip) {
-        el.organizerSymbolStrip.querySelectorAll('.symbol-chip').forEach(btn => {
-            btn.addEventListener('click', () => {
-                el.organizerSymbolStrip.querySelectorAll('.symbol-chip').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                state.organizerSymbol = btn.dataset.symbol;
-                update3DModel();
-            });
-        });
-    }
-
     // Desk Organizer Compartment Layout Toggle
     if (el.organizerLayoutToggle) {
         el.organizerLayoutToggle.querySelectorAll('.wa-backing-opt').forEach(btn => {
@@ -1316,13 +1337,25 @@ function setupEvents() {
         });
     }
 
-    // Desk Organizer Wall Texture Toggle
-    if (el.organizerTextureToggle) {
-        el.organizerTextureToggle.querySelectorAll('.wa-backing-opt').forEach(btn => {
+    // Name Beads Shape Toggle
+    if (el.beadShapeToggle) {
+        el.beadShapeToggle.querySelectorAll('.wa-backing-opt').forEach(btn => {
             btn.addEventListener('click', () => {
-                el.organizerTextureToggle.querySelectorAll('.wa-backing-opt').forEach(b => b.classList.remove('active'));
+                el.beadShapeToggle.querySelectorAll('.wa-backing-opt').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                state.organizerTexture = btn.dataset.texture;
+                state.beadShape = btn.dataset.shape;
+                update3DModel();
+            });
+        });
+    }
+
+    // Name Beads Direction Toggle
+    if (el.beadDirectionToggle) {
+        el.beadDirectionToggle.querySelectorAll('.wa-backing-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                el.beadDirectionToggle.querySelectorAll('.wa-backing-opt').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.beadDirection = btn.dataset.direction;
                 update3DModel();
             });
         });

@@ -1185,6 +1185,12 @@ export class KeychainViewer {
             return;
         }
 
+        var isNameBeads = p.productType === 'name_beads';
+        if (isNameBeads) {
+            this._buildNameBeads(text, font, baseColor, fontColor, outlineColor, p);
+            return;
+        }
+
         // Word-art uses a tight line height so descenders of line 1 touch caps of line 2,
         // making the bottom line act as a structural foot for the top line.
         var lineHeightRatio = p.lineHeightRatio;
@@ -3737,20 +3743,19 @@ export class KeychainViewer {
         this._clearKeychain();
         this.keychainGroup = new THREE.Group();
 
-        var boxW = 115.0; // Width X
-        var boxD = 70.0;  // Depth Y
-        var boxH = 46.0;  // Height Z
-        var wallThk = 3.2; // Perimeter wall thickness
+        var boxW = p.organizer_width || 115.0; // Width X
+        var boxD = p.organizer_depth || 70.0;  // Depth Y
+        var boxH = p.organizer_height || 46.0;  // Height Z
+        var wallThk = p.organizer_wall_thk || 3.2; // Perimeter wall thickness
         var botThk  = 3.0; // Bottom base plate thickness
         var cornerR = 8.0; // Outer corner radius
         var divThk  = 2.2; // Internal divider thickness
-        var divH    = 36.0;// Internal divider height
+        var divH    = Math.max(15.0, boxH - 10.0); // Internal divider height
+        var textDepth = p.organizer_letter_depth || 1.8; // Letter extrusion / pocket fit
 
         var layout  = p.organizerLayout || '2x3';
-        var symbol  = p.organizerSymbol || 'Heart';
-        var texture = p.organizerTexture || 'Honeycomb';
 
-        // Materials
+        // Materials: Body in baseColor, Compartment Dividers in outlineColor, Name Text in fontColor
         var matBody = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(baseColor),
             roughness: 0.35, metalness: 0.05,
@@ -3758,7 +3763,7 @@ export class KeychainViewer {
             side: THREE.DoubleSide
         });
 
-        var matAccent = new THREE.MeshPhysicalMaterial({
+        var matDividers = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(outlineColor || baseColor),
             roughness: 0.35, metalness: 0.05,
             clearcoat: 0.4, clearcoatRoughness: 0.2,
@@ -3829,19 +3834,19 @@ export class KeychainViewer {
 
         function addDivider(x, y, w, d) {
             var divBox = new THREE.BoxGeometry(w, d, divH);
-            var mesh = new THREE.Mesh(divBox, matAccent);
+            var mesh = new THREE.Mesh(divBox, matDividers);
             mesh.position.set(x, y, botThk + divH / 2);
             dividerGroup.add(mesh);
         }
 
         if (layout === '2x3') {
-            // 2 vertical slats, 1 horizontal slat
+            // 2 vertical slats, 1 horizontal slat (6 compartments)
             var colW = inW / 3;
             addDivider(-colW / 2, 0, divThk, inD);
             addDivider(colW / 2, 0, divThk, inD);
             addDivider(0, 0, inW, divThk);
         } else if (layout === '2x2') {
-            // 1 vertical, 1 horizontal
+            // 1 vertical, 1 horizontal (4 compartments)
             addDivider(0, 0, divThk, inD);
             addDivider(0, 0, inW, divThk);
         } else if (layout === '3x1') {
@@ -3871,32 +3876,31 @@ export class KeychainViewer {
 
         this.keychainGroup.add(dividerGroup);
 
-        // 4. Personalized Front Plate (Name + Symbol)
-        var hasSymbol = symbol && symbol !== 'None';
+        // 4. Personalized Front Name (Centered, Bold, High-contrast)
         var displayText = (text && text.trim().length > 0) ? text.trim() : 'ALEX';
-        var frontZ = botThk + (boxH - botThk) * 0.48; // Middle of front wall
-        var frontY = -hd - 0.2; // Just proud of front surface
+        var frontZ = botThk + (boxH - botThk) * 0.48; // Center of front wall height
+        var frontY = -hd - 0.2; // Front exterior wall
 
         var nameGroup = new THREE.Group();
-        var targetFontSize = hasSymbol ? 14 : 16;
+        var targetFontSize = 17;
         var pPath = font.getPath(displayText, 0, 0, targetFontSize);
         var pData = pPath.toPathData(3);
         var textShapes = this._pathDataToShapes(pData);
 
         if (textShapes && textShapes.length > 0) {
             var textGeom = new THREE.ExtrudeGeometry(textShapes, {
-                depth: 1.8,
+                depth: textDepth,
                 bevelEnabled: true,
-                bevelThickness: 0.3,
-                bevelSize: 0.2,
+                bevelThickness: 0.35,
+                bevelSize: 0.25,
                 bevelSegments: 2
             });
             var tMesh = new THREE.Mesh(textGeom, matPersonalize);
             
-            // Measure text width
+            // Measure text bounding box
             var bb = pPath.getBoundingBox();
             
-            // opentype shape is upside-down in 3D Y, so flip Y, rotate to sit on front wall
+            // Flip Y for opentype coordinate system and center horizontally
             tMesh.scale.set(1, -1, 1);
             tMesh.position.set(- (bb.x1 + bb.x2) / 2, (bb.y1 + bb.y2) / 2, 0);
 
@@ -3904,115 +3908,14 @@ export class KeychainViewer {
             singleTextGroup.add(tMesh);
             // Orient onto front wall (X along box width, Y along box height, Z facing front -Y)
             singleTextGroup.rotation.x = Math.PI / 2;
-            
-            if (hasSymbol) {
-                singleTextGroup.position.set(-14, frontY, frontZ);
-            } else {
-                singleTextGroup.position.set(0, frontY, frontZ);
-            }
+            singleTextGroup.position.set(0, frontY, frontZ);
             nameGroup.add(singleTextGroup);
         }
-
-        // Add 3D Symbol on front wall
-        if (hasSymbol) {
-            var symSize = 16.0;
-            var symShapes = KeychainViewer.makeSymbolShape(symbol, 0, 0, symSize);
-            if (symShapes && symShapes.length > 0) {
-                var symGeom = new THREE.ExtrudeGeometry(symShapes, {
-                    depth: 1.8,
-                    bevelEnabled: true,
-                    bevelThickness: 0.3,
-                    bevelSize: 0.2,
-                    bevelSegments: 2
-                });
-                var symMesh = new THREE.Mesh(symGeom, matPersonalize);
-                symMesh.scale.set(1, -1, 1);
-                
-                var singleSymGroup = new THREE.Group();
-                singleSymGroup.add(symMesh);
-                singleSymGroup.rotation.x = Math.PI / 2;
-                singleSymGroup.position.set(hw - 20, frontY, frontZ);
-                nameGroup.add(singleSymGroup);
-            }
-        }
         this.keychainGroup.add(nameGroup);
-
-        // 5. Wall Textures (Honeycomb, Dots, Grid, Brick)
-        if (texture && texture !== 'None') {
-            var textureGroup = new THREE.Group();
-            var texThk = 0.8;
-            var texZ = botThk + (boxH - botThk) / 2;
-
-            if (texture === 'Honeycomb') {
-                var hexR = 3.2;
-                var hexGeom = new THREE.CylinderGeometry(hexR, hexR, texThk, 6);
-                hexGeom.rotateX(Math.PI / 2);
-                var hexMesh = new THREE.InstancedMesh(hexGeom, matAccent, 40);
-                var dummy = new THREE.Object3D();
-                var idx = 0;
-                // Back wall honeycomb pattern
-                for (var r = -2; r <= 2; r++) {
-                    for (var c = -3; c <= 3; c++) {
-                        if (idx >= 40) break;
-                        var hx = c * (hexR * 1.75) + (r % 2 !== 0 ? hexR * 0.875 : 0);
-                        var hz = texZ + r * (hexR * 1.5);
-                        dummy.position.set(hx, hd + texThk / 2, hz);
-                        dummy.updateMatrix();
-                        hexMesh.setMatrixAt(idx++, dummy.matrix);
-                    }
-                }
-                hexMesh.instanceMatrix.needsUpdate = true;
-                textureGroup.add(hexMesh);
-            } else if (texture === 'Dots') {
-                var dotGeom = new THREE.SphereGeometry(1.6, 12, 12);
-                dotGeom.scale(1, 0.4, 1);
-                var dotMesh = new THREE.InstancedMesh(dotGeom, matAccent, 35);
-                var dummy = new THREE.Object3D();
-                var idx = 0;
-                for (var r = -2; r <= 2; r++) {
-                    for (var c = -3; c <= 3; c++) {
-                        if (idx >= 35) break;
-                        var dx = c * 10;
-                        var dz = texZ + r * 6.5;
-                        dummy.position.set(dx, hd + 0.6, dz);
-                        dummy.updateMatrix();
-                        dotMesh.setMatrixAt(idx++, dummy.matrix);
-                    }
-                }
-                dotMesh.instanceMatrix.needsUpdate = true;
-                textureGroup.add(dotMesh);
-            } else if (texture === 'Grid') {
-                var gridLines = new THREE.Group();
-                for (var i = -4; i <= 4; i++) {
-                    var vBar = new THREE.Mesh(new THREE.BoxGeometry(1.0, texThk, boxH - botThk - 6), matAccent);
-                    vBar.position.set(i * 8, hd + texThk / 2, texZ);
-                    gridLines.add(vBar);
-                }
-                for (var j = -2; j <= 2; j++) {
-                    var hBar = new THREE.Mesh(new THREE.BoxGeometry(boxW - 20, texThk, 1.0), matAccent);
-                    hBar.position.set(0, hd + texThk / 2, texZ + j * 7);
-                    gridLines.add(hBar);
-                }
-                textureGroup.add(gridLines);
-            } else if (texture === 'Brick') {
-                var brickGroup = new THREE.Group();
-                for (var bRow = -2; bRow <= 2; bRow++) {
-                    var bOff = (bRow % 2 !== 0) ? 6 : 0;
-                    for (var bCol = -3; bCol <= 3; bCol++) {
-                        var bMesh = new THREE.Mesh(new THREE.BoxGeometry(10.0, texThk, 4.5), matAccent);
-                        bMesh.position.set(bCol * 12 + bOff, hd + texThk / 2, texZ + bRow * 6);
-                        brickGroup.add(bMesh);
-                    }
-                }
-                textureGroup.add(brickGroup);
-            }
-            this.keychainGroup.add(textureGroup);
-        }
 
         // Center model and orient nicely
         var box = new THREE.Box3().setFromObject(this.keychainGroup);
         var center = box.getCenter(new THREE.Vector3());
-        var size = box.getSize(new THREE.Vector3());
         this.keychainGroup.position.sub(center);
 
         this.keychainGroup.traverse(function(child) {
@@ -4025,6 +3928,301 @@ export class KeychainViewer {
 
         // Optimal camera framing looking down into the desk organizer compartments
         this.camera.position.set(0, -110, 100);
+        this.camera.near = 1;
+        this.camera.far = 1000;
+        this.camera.updateProjectionMatrix();
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+
+        this._lastFontColor = fontColor;
+        this._lastOutlineColor = outlineColor;
+        this._lastParams = p;
+    }
+
+    /* ── CUSTOM NAME BEADS (Modular Alphabet Beads with Center Cord Hole) ── */
+    _buildNameBeads(text, font, baseColor, fontColor, outlineColor, p) {
+        this._clearKeychain();
+        this.keychainGroup = new THREE.Group();
+
+        var rawText = (text || '').replace(/[\r\n]/g, '');
+        var chars = rawText.toUpperCase().split('').slice(0, 12);
+        if (chars.length === 0) {
+            chars = ['E', 'M', 'M', 'A'];
+        }
+
+        // OpenSCAD Parameters
+        var beadSize = p.bead_size || 12.0;
+        var holeDiameter = p.hole_diameter || 4.0;
+        var spacing = (p.spacing !== undefined) ? p.spacing : 2.0;
+        var letterHeight = p.letter_height || 1.2;
+
+        // Shape: 0 = Square, 1 = Circle, 2 = Letter Shape
+        var beadShape = 0;
+        if (p.bead_shape === 1 || p.beadShape === 'circle' || p.bead_shape === '1') beadShape = 1;
+        else if (p.bead_shape === 2 || p.beadShape === 'letter' || p.bead_shape === '2') beadShape = 2;
+
+        // Direction: 0 = Horizontal (Left to Right), 1 = Vertical (Up and Down)
+        var isHorizontal = (p.layout_direction === 0 || p.beadDirection === 'horizontal' || p.layout_direction === '0' || p.layout_direction === undefined);
+        if (p.layout_direction === 1 || p.beadDirection === 'vertical' || p.layout_direction === '1') {
+            isHorizontal = false;
+        }
+
+        var fontSize = (beadShape === 2) ? beadSize * 0.8 : beadSize * 0.65;
+        var standardBeadHeight = (beadShape === 1) ? beadSize * 0.5 : beadSize;
+        var standardTopZ = standardBeadHeight / 2;
+
+        // Materials: Base Color for Beads, Font Color for Letters
+        var matBead = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(baseColor),
+            roughness: 0.35,
+            metalness: 0.05,
+            clearcoat: 0.45,
+            clearcoatRoughness: 0.15,
+            side: THREE.DoubleSide
+        });
+        this._applyFDMTexture(matBead, p);
+
+        var matLetter = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(fontColor),
+            roughness: 0.28,
+            metalness: 0.02,
+            clearcoat: 0.85,
+            clearcoatRoughness: 0.1,
+            side: THREE.DoubleSide
+        });
+        this._applyFDMTexture(matLetter, p);
+
+        var matCord = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(outlineColor || '#F0F0F5'),
+            roughness: 0.8,
+            metalness: 0.05
+        });
+
+        var matStopper = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#D4AF37'), // Brushed gold / brass bead stopper
+            roughness: 0.3,
+            metalness: 0.8
+        });
+
+        // Center calculation
+        var totalCount = chars.length;
+        var pitch = beadSize + spacing;
+        var totalSpan = (totalCount - 1) * pitch;
+        var startOffset = -totalSpan / 2;
+
+        for (var i = 0; i < totalCount; i++) {
+            var char = chars[i];
+            var beadGroup = new THREE.Group();
+
+            var posX = isHorizontal ? (startOffset + i * pitch) : 0;
+            var posY = isHorizontal ? 0 : (-startOffset - i * pitch);
+            beadGroup.position.set(posX, posY, 0);
+
+            if (beadShape === 0) {
+                // ── SQUARE BEAD (Rounded Cube 12x12x12 with center hole) ──
+                var r = 1.2; // rounded corner radius
+                var hs = beadSize / 2;
+                var sqShape = new THREE.Shape();
+                sqShape.moveTo(-hs + r, -hs);
+                sqShape.lineTo(hs - r, -hs);
+                sqShape.quadraticCurveTo(hs, -hs, hs, -hs + r);
+                sqShape.lineTo(hs, hs - r);
+                sqShape.quadraticCurveTo(hs, hs, hs - r, hs);
+                sqShape.lineTo(-hs + r, hs);
+                sqShape.quadraticCurveTo(-hs, hs, -hs, hs - r);
+                sqShape.lineTo(-hs, -hs + r);
+                sqShape.quadraticCurveTo(-hs, -hs, -hs + r, -hs);
+
+                // Add center hole through the bead in 2D if viewing perpendicular, or through extrusion
+                var sqGeo = new THREE.ExtrudeGeometry(sqShape, {
+                    depth: beadSize,
+                    bevelEnabled: true,
+                    bevelThickness: 0.8,
+                    bevelSize: 0.8,
+                    bevelSegments: 4,
+                    curveSegments: 16
+                });
+                sqGeo.translate(0, 0, -beadSize / 2);
+                var beadMesh = new THREE.Mesh(sqGeo, matBead);
+                beadGroup.add(beadMesh);
+
+                // Hole Cylinder Visualizer inside bead
+                var holeRadius = holeDiameter / 2;
+                var holeGeom = new THREE.CylinderGeometry(holeRadius, holeRadius, beadSize + 1.8, 24, 1, true);
+                if (isHorizontal) {
+                    holeGeom.rotateZ(Math.PI / 2);
+                }
+                var holeMat = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(baseColor).multiplyScalar(0.5),
+                    roughness: 0.9,
+                    side: THREE.BackSide
+                });
+                var holeMesh = new THREE.Mesh(holeGeom, holeMat);
+                beadGroup.add(holeMesh);
+
+                // Embossed Letter on top
+                var pGlyph = font.getPath(char, 0, 0, fontSize);
+                var dGlyph = pGlyph.toPathData(3);
+                var charShapes = this._pathDataToShapes(dGlyph);
+                var bb = pGlyph.getBoundingBox();
+                var cx = (bb.x1 + bb.x2) / 2;
+                var cy = (bb.y1 + bb.y2) / 2;
+
+                if (charShapes && charShapes.length) {
+                    var letterGeo = new THREE.ExtrudeGeometry(charShapes, {
+                        depth: letterHeight,
+                        bevelEnabled: false,
+                        curveSegments: 12
+                    });
+                    letterGeo.translate(-cx, -cy, standardTopZ);
+                    var letterMesh = new THREE.Mesh(letterGeo, matLetter);
+                    beadGroup.add(letterMesh);
+                }
+
+            } else if (beadShape === 1) {
+                // ── CIRCLE BEAD (Coin / Disc cylinder) ──
+                var discH = beadSize * 0.5;
+                var discR = beadSize / 2;
+                var discShape = new THREE.Shape();
+                discShape.absarc(0, 0, discR, 0, Math.PI * 2, false);
+
+                var discGeo = new THREE.ExtrudeGeometry(discShape, {
+                    depth: discH,
+                    bevelEnabled: true,
+                    bevelThickness: 0.6,
+                    bevelSize: 0.6,
+                    bevelSegments: 4,
+                    curveSegments: 32
+                });
+                discGeo.translate(0, 0, -discH / 2);
+                var discMesh = new THREE.Mesh(discGeo, matBead);
+                beadGroup.add(discMesh);
+
+                // Hole Cylinder Visualizer
+                var holeRadius = holeDiameter / 2;
+                var holeGeom = new THREE.CylinderGeometry(holeRadius, holeRadius, beadSize + 1.8, 24, 1, true);
+                if (isHorizontal) {
+                    holeGeom.rotateZ(Math.PI / 2);
+                }
+                var holeMat = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(baseColor).multiplyScalar(0.5),
+                    roughness: 0.9,
+                    side: THREE.BackSide
+                });
+                var holeMesh = new THREE.Mesh(holeGeom, holeMat);
+                beadGroup.add(holeMesh);
+
+                // Embossed Letter on top
+                var pGlyph = font.getPath(char, 0, 0, fontSize);
+                var dGlyph = pGlyph.toPathData(3);
+                var charShapes = this._pathDataToShapes(dGlyph);
+                var bb = pGlyph.getBoundingBox();
+                var cx = (bb.x1 + bb.x2) / 2;
+                var cy = (bb.y1 + bb.y2) / 2;
+
+                if (charShapes && charShapes.length) {
+                    var letterGeo = new THREE.ExtrudeGeometry(charShapes, {
+                        depth: letterHeight,
+                        bevelEnabled: false,
+                        curveSegments: 12
+                    });
+                    letterGeo.translate(-cx, -cy, discH / 2);
+                    var letterMesh = new THREE.Mesh(letterGeo, matLetter);
+                    beadGroup.add(letterMesh);
+                }
+
+            } else if (beadShape === 2) {
+                // ── LETTER-SHAPED BEAD (Base follows letter contour + raised letter) ──
+                var outlineThickness = beadSize * 0.18;
+                var letterBaseHeight = beadSize * 0.45;
+                var letterTopZ = letterBaseHeight / 2;
+
+                var pGlyph = font.getPath(char, 0, 0, fontSize);
+                var dGlyph = pGlyph.toPathData(3);
+                var rawCharShapes = this._pathDataToShapes(dGlyph);
+                var bb = pGlyph.getBoundingBox();
+                var cx = (bb.x1 + bb.x2) / 2;
+                var cy = (bb.y1 + bb.y2) / 2;
+
+                // Create outer expanded base shape using offsetShapes
+                var baseShapes = offsetShapes(rawCharShapes, outlineThickness);
+
+                if (baseShapes && baseShapes.length) {
+                    var baseGeo = new THREE.ExtrudeGeometry(baseShapes, {
+                        depth: letterBaseHeight,
+                        bevelEnabled: true,
+                        bevelThickness: 0.5,
+                        bevelSize: 0.5,
+                        bevelSegments: 3,
+                        curveSegments: 16
+                    });
+                    baseGeo.translate(-cx, -cy, -letterBaseHeight / 2);
+                    var baseMesh = new THREE.Mesh(baseGeo, matBead);
+                    beadGroup.add(baseMesh);
+                }
+
+                // Hole Cylinder Visualizer
+                var holeRadius = holeDiameter / 2;
+                var holeGeom = new THREE.CylinderGeometry(holeRadius, holeRadius, beadSize + 2, 24, 1, true);
+                if (isHorizontal) {
+                    holeGeom.rotateZ(Math.PI / 2);
+                }
+                var holeMat = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(baseColor).multiplyScalar(0.5),
+                    roughness: 0.9,
+                    side: THREE.BackSide
+                });
+                var holeMesh = new THREE.Mesh(holeGeom, holeMat);
+                beadGroup.add(holeMesh);
+
+                // Embossed letter on top
+                if (rawCharShapes && rawCharShapes.length) {
+                    var letterGeo = new THREE.ExtrudeGeometry(rawCharShapes, {
+                        depth: letterHeight,
+                        bevelEnabled: false,
+                        curveSegments: 12
+                    });
+                    letterGeo.translate(-cx, -cy, letterBaseHeight / 2);
+                    var letterMesh = new THREE.Mesh(letterGeo, matLetter);
+                    beadGroup.add(letterMesh);
+                }
+            }
+
+            this.keychainGroup.add(beadGroup);
+        }
+
+        // ── Threaded Elastic Cord & Stopper Beads ──
+        var cordExtra = 24.0; // Extension on left/right or top/bottom
+        var cordLength = totalSpan + beadSize + cordExtra * 2;
+        var cordRadius = (holeDiameter * 0.45) / 2; // fits nicely inside 4mm hole
+        var cordGeo = new THREE.CylinderGeometry(cordRadius, cordRadius, cordLength, 20);
+        if (isHorizontal) {
+            cordGeo.rotateZ(Math.PI / 2);
+        }
+        var cordMesh = new THREE.Mesh(cordGeo, matCord);
+        this.keychainGroup.add(cordMesh);
+
+        // Metallic Stopper Beads at both ends
+        var stopperGeo = new THREE.SphereGeometry(holeDiameter * 0.85, 24, 24);
+        var stopper1 = new THREE.Mesh(stopperGeo, matStopper);
+        var stopper2 = new THREE.Mesh(stopperGeo, matStopper);
+
+        var endPos = (totalSpan / 2) + (beadSize / 2) + cordExtra * 0.7;
+        if (isHorizontal) {
+            stopper1.position.set(-endPos, 0, 0);
+            stopper2.position.set(endPos, 0, 0);
+        } else {
+            stopper1.position.set(0, endPos, 0);
+            stopper2.position.set(0, -endPos, 0);
+        }
+        this.keychainGroup.add(stopper1);
+        this.keychainGroup.add(stopper2);
+
+        this.scene.add(this.keychainGroup);
+
+        // Camera Framing for Name Beads String
+        var camDist = Math.max(80, totalSpan * 1.5);
+        this.camera.position.set(0, -camDist * 0.75, camDist * 0.85);
         this.camera.near = 1;
         this.camera.far = 1000;
         this.camera.updateProjectionMatrix();

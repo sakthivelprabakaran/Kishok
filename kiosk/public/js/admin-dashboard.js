@@ -130,6 +130,8 @@ const P_LABELS = {
     bordered_keychain: 'Bordered', flower_keychain: 'Flower Initial', nametag: 'Wavy Nametag',
     girly_keychain: 'Girly Keychain', tilekey: 'Letter Tiles', linked_initials: 'Linked Initials',
     supported_text: 'Supported Nameplate', wordart: 'Word Art', loveseries: 'LOVE Stand',
+    desk_organizer: 'Desk Organizer',
+    name_beads: 'Name Beads',
     keychain: 'Keychain', nameplate: 'Nameplate'
 };
 const plabel = t => P_LABELS[t] || t;
