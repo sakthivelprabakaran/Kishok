@@ -63,7 +63,7 @@
         nametag:           { lines: ['Priya'],        fonts: [FONT.chewy],    shape: 'letters', ring: true, combos: COMBOS_VIVID },
         girly_keychain:    { lines: ['Priya'],        fonts: [FONT.pacifico], shape: 'letters', ring: true, combos: COMBOS_VIVID },
         tilekey:           { lines: ['ABC'],          fonts: [FONT.bagel],    shape: 'tiles',   ring: true, combos: COMBOS_VIVID },
-        linked_initials:   { lines: ['SP'],           fonts: [FONT.bagel],    shape: 'letters', ring: true, combos: COMBOS_VIVID, halo: 8 },
+        linked_initials:   { lines: ['SP'],           fonts: [FONT.rockboys], shape: 'letters', ring: true, combos: COMBOS_VIVID, halo: 8 },
         supported_text:    { lines: ['Priya'],        fonts: [FONT.lobster],  shape: 'lines',   ring: false, combos: COMBOS_WORDART },
         wordart:           { lines: ['Vivi', 'SAKTHI'], fonts: [FONT.pacifico, FONT.rockboys], shape: 'lines', ring: false, combos: COMBOS_WORDART },
         loveseries:        { lines: ['Anjali', 'LOVE'], fonts: [FONT.pacifico, FONT.bagel],    shape: 'lines', ring: false, combos: COMBOS_LOVE, heart: true },

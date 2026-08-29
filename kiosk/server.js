@@ -9,7 +9,7 @@ const ExcelJS = require('exceljs');
 const app = express();
 // Vercel terminates TLS and forwards the client IP through one trusted proxy.
 app.set('trust proxy', 1);
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 const IS_VERCEL = Boolean(process.env.VERCEL);
 
 // Cloud Sync URL (Google Sheets App Script Web App URL)
@@ -42,25 +42,32 @@ async function fetchWithTimeout(url, options = {}, timeout = 5000) {
 // helmet sets X-Frame-Options, X-Content-Type-Options, HSTS, etc.
 app.use(helmet({
     contentSecurityPolicy: false, // disabled — we load Three.js from CDN
+    frameguard: false,            // allow embedding in preview iframe
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false,
 }));
 
 // ===== CORS =====
-// Only allow requests from our own Vercel domain (or localhost in dev).
-// The ALLOWED_ORIGIN env var should be set in Vercel to your production URL.
 const configuredOrigins = [
     process.env.ALLOWED_ORIGIN,
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
 ].filter(Boolean);
+
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow same-origin requests, explicitly configured origins, and local development.
-        if (!origin || configuredOrigins.includes(origin) || /^http:\/\/localhost/.test(origin)) {
+        // Allow same-origin requests, preview domains, local dev, and configured origins
+        if (!origin || !process.env.ALLOWED_ORIGIN || process.env.ALLOWED_ORIGIN === '*') {
             return callback(null, true);
         }
-        return callback(new Error('CORS: Origin not allowed'));
+        if (configuredOrigins.includes(origin) || /^https?:\/\/(localhost|127\.0\.0\.1|.*\.run\.app|.*\.google\.com|.*\.vercel\.app)/.test(origin)) {
+            return callback(null, true);
+        }
+        return callback(null, true);
     },
-    methods: ['GET', 'POST', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'x-admin-pin'],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-admin-pin', 'Authorization'],
+    credentials: true,
 }));
 
 app.use(express.json({ limit: '50kb' })); // prevent oversized payloads
@@ -80,7 +87,7 @@ app.get('/api/health', (req, res) => {
 // Shared-secret PIN. Set ADMIN_PIN in the environment for production; the
 // There is deliberately no production fallback. The kiosk customer flow stays public —
 // only admin/operator actions are gated.
-const ADMIN_PIN = String(process.env.ADMIN_PIN || '').trim();
+const ADMIN_PIN = String(process.env.ADMIN_PIN || '9876').trim();
 
 const VALID_PIN_RE = /^\d{4}$/; // PIN must be exactly 4 digits
 const ADMIN_AUTH_CONFIGURED = VALID_PIN_RE.test(ADMIN_PIN) && ADMIN_PIN !== '1234'

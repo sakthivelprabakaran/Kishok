@@ -49,19 +49,9 @@
                 <div class="loader-spinner"></div>
                 <span>Generating 3D Studio Preview…</span>
             </div>
-
-            <!-- Overlays -->
-            <div class="visualizer-overlay-controls">
-                <button class="visualizer-btn active" id="autoRotateToggle" aria-label="Toggle auto-rotate" aria-pressed="true">
-                    <span id="rotateIcon" aria-hidden="true">🔄</span> Auto-Rotate
-                </button>
-                <button class="visualizer-btn" id="toggleFDM" aria-label="Toggle print texture finish">
-                    <span aria-hidden="true">🖨️</span> Print Texture
-                </button>
-            </div>
             
-            <div class="drag-hint">
-                <span>👈 Drag to Rotate · Pinch to Zoom 👉</span>
+            <div class="drag-hint" id="dragHint">
+                <span>👈 Drag to rotate</span>
             </div>
         </div>
     </section>
@@ -148,6 +138,14 @@
                 </button>
             </div>
 
+            <!-- Font Category Filter Tabs -->
+            <div class="font-category-tabs" id="fontCategoryTabs" role="tablist" aria-label="Font style filter">
+                <button type="button" class="font-cat-btn active" data-cat="all" role="tab" aria-selected="true">All Fonts (30+)</button>
+                <button type="button" class="font-cat-btn" data-cat="cursive" role="tab" aria-selected="false">✍️ Cursive / Script</button>
+                <button type="button" class="font-cat-btn" data-cat="bold" role="tab" aria-selected="false">🔲 Bold &amp; Block</button>
+                <button type="button" class="font-cat-btn" data-cat="retro" role="tab" aria-selected="false">🎨 Retro &amp; Fun</button>
+            </div>
+
             <!-- Horizontal Font Scroll (wheel + arrow navigation) -->
             <div class="font-strip-wrap">
                 <button class="font-nav-btn font-nav-prev" type="button" aria-label="Previous fonts">‹</button>
@@ -156,7 +154,7 @@
                 </div>
                 <button class="font-nav-btn font-nav-next" type="button" aria-label="More fonts">›</button>
             </div>
-            <p class="font-scroll-hint">Scroll or tap ‹ › to see all 30+ fonts</p>
+            <p class="font-scroll-hint" id="fontScrollHint">Scroll or tap ‹ › to see all 30+ fonts</p>
         </div>
 
         <!-- STEP 3: Colors Selection -->
@@ -173,15 +171,21 @@
             <div class="color-options-wrap">
                 <!-- Base Color (Ring/Backplate) -->
                 <div class="color-row" id="baseColorRow">
-                    <span class="color-row-label">Base Color:</span>
+                    <div class="color-row-header">
+                        <span class="color-row-label" id="baseColorLabel">Base Color</span>
+                        <span class="color-badge" id="baseColorVal">Orange</span>
+                    </div>
                     <div class="swatches-strip" id="baseSwatches">
                         <!-- Injected via JS -->
                     </div>
                 </div>
 
-                <!-- Font Color (Front Text) -->
+                <!-- Font Color (Front Text / Font A) -->
                 <div class="color-row" id="fontColorRow">
-                    <span class="color-row-label">Font Color:</span>
+                    <div class="color-row-header">
+                        <span class="color-row-label" id="fontColorLabel">Font Color</span>
+                        <span class="color-badge" id="fontColorVal">White</span>
+                    </div>
                     <div class="swatches-strip" id="fontSwatches">
                         <!-- Injected via JS -->
                     </div>
@@ -189,15 +193,21 @@
 
                 <!-- Outline Color (Border/Background) -->
                 <div class="color-row" id="outlineColorRow">
-                    <span class="color-row-label">Outline Color:</span>
+                    <div class="color-row-header">
+                        <span class="color-row-label" id="outlineColorLabel">Outline Color</span>
+                        <span class="color-badge" id="outlineColorVal">Black</span>
+                    </div>
                     <div class="swatches-strip" id="outlineSwatches">
                         <!-- Injected via JS -->
                     </div>
                 </div>
 
-                <!-- Line 2 Color (For Wordart bottom) -->
+                <!-- Line 2 Color (For Wordart bottom / Font B) -->
                 <div class="color-row" id="line2ColorRow" style="display: none;">
-                    <span class="color-row-label">Stand Color:</span>
+                    <div class="color-row-header">
+                        <span class="color-row-label" id="line2ColorLabel">Line 2 Color</span>
+                        <span class="color-badge" id="line2ColorVal">Gold</span>
+                    </div>
                     <div class="swatches-strip" id="line2Swatches">
                         <!-- Injected via JS -->
                     </div>
@@ -374,17 +384,5 @@
     </script>
 
     <script type="module" src="js/kiosk-app.js?v=wa1"></script>
-
-
-    <!-- Legal footer: seller identity + policies (Consumer Protection e-Commerce Rules 2020) -->
-    <footer class="legal-footer">
-      <nav>
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="terms.html">Terms of Service</a>
-        <a href="refund.html">Cancellation &amp; Refunds</a>
-        <a href="contact.html">Contact &amp; Grievances</a>
-      </nav>
-      <div>&copy; 2026 YoursGifts &middot; Madippakkam, Chennai 600091 &middot; Small Gifts, Big Meanings.</div>
-    </footer>
 </body>
 </html>

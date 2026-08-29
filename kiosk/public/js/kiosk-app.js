@@ -8,32 +8,44 @@ import { KeychainViewer } from './viewer3d.js?v=wa1';
 // ===== DATA & CONFIG =====
 
 const FONTS = [
+    // --- Cursive & Script Fonts ---
+    { name: 'Great Vibes',        label: 'Great Vibes',     file: 'Fonts/GreatVibes-Regular.ttf', lang: 'en', tags: ['cursive'] },
     { name: 'Brandy',             label: 'Brandy',          file: 'Fonts/Brandy.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Dancing Script',     label: 'Dancing Script',  file: 'Fonts/DancingScript-Regular.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Pacifico',           label: 'Pacifico',        file: 'Fonts/Pacifico-Regular.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Lobster',            label: 'Lobster',         file: 'Fonts/Lobster-Regular.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Sacramento',         label: 'Sacramento',      file: 'Fonts/Sacramento-Regular.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Satisfy',            label: 'Satisfy',         file: 'Fonts/Satisfy-Regular.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Parisienne',         label: 'Parisienne',      file: 'Fonts/Parisienne-Regular.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Alex Brush',         label: 'Alex Brush',      file: 'Fonts/AlexBrush-Regular.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Nature Beauty',      label: 'Nature Beauty',   file: 'Fonts/Nature Beauty.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'OleoScript',         label: 'Oleo Script',     file: 'Fonts/OleoScript-Bold.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Caveat',             label: 'Caveat',          file: 'Fonts/Caveat-Regular.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Shadows Into Light', label: 'Shadows Light',   file: 'Fonts/ShadowsIntoLight.ttf', lang: 'en', tags: ['cursive'] },
+    { name: 'Kavivanar',          label: 'Kavivanar',       file: 'Fonts/Kavivanar.ttf', lang: 'ta', tags: ['cursive'] },
+
+    // --- Bold & Display Fonts ---
     { name: 'CANAVAR',            label: 'Canavar',         file: 'Fonts/CANAVAR.ttf', lang: 'en', tags: ['bold'] },
     { name: 'Super Bubble',       label: 'Super Bubble',    file: 'Fonts/Super Bubble.ttf', lang: 'en', tags: ['bold'] },
+    { name: 'BagelFatOne',        label: 'Bagel Fat One',   file: 'Fonts/BagelFatOne-Regular.ttf', lang: 'en', tags: ['bold'] },
+    { name: 'Flockey',            label: 'Flockey',         file: 'Fonts/Flockey.ttf', lang: 'en', tags: ['bold'] },
+    { name: 'Chewy',              label: 'Chewy',           file: 'Fonts/Chewy-Regular.ttf', lang: 'en', tags: ['bold'] },
+    { name: 'Bebas Neue',         label: 'Bebas Neue',      file: 'Fonts/BebasNeue-Regular.ttf', lang: 'en', tags: ['bold'] },
+    { name: 'Anton',              label: 'Anton',           file: 'Fonts/Anton-Regular.ttf', lang: 'en', tags: ['bold'] },
+    { name: 'Archivo Black',      label: 'Archivo Black',   file: 'Fonts/ArchivoBlack-Regular.ttf', lang: 'en', tags: ['bold'] },
+    { name: 'Rock Boys',          label: 'Rock Boys',       file: 'Fonts/Rock Boys.ttf', lang: 'en', tags: ['bold'] },
+    { name: 'Baloo Thambi 2',     label: 'Baloo Thambi',    file: 'Fonts/BalooThambi2.ttf', lang: 'ta', tags: ['bold'] },
+
+    // --- Retro & Vintage Fonts ---
     { name: 'Franxurter',         label: 'Franxurter',      file: 'Fonts/Franxurter.ttf', lang: 'en', tags: ['retro'] },
     { name: 'Sunday Chillin',     label: 'Sunday Chillin',  file: 'Fonts/Sunday Chillin.ttf', lang: 'en', tags: ['retro'] },
     { name: 'Quicksilver Italic', label: 'Quicksilver',     file: 'Fonts/Quicksilver Italic.ttf', lang: 'en', tags: ['retro'] },
     { name: 'Retrow Mentho',      label: 'Retrow Mentho',   file: 'Fonts/Retrow Mentho.ttf', lang: 'en', tags: ['retro'] },
-    { name: 'BagelFatOne',        label: 'Bagel Fat One',   file: 'Fonts/BagelFatOne-Regular.ttf', lang: 'en', tags: ['bold'] },
-    { name: 'Flockey',            label: 'Flockey',         file: 'Fonts/Flockey.ttf', lang: 'en', tags: ['bold'] },
-    { name: 'OleoScript',         label: 'Oleo Script',     file: 'Fonts/OleoScript-Bold.ttf', lang: 'en', tags: ['cursive'] },
-    { name: 'Rock Boys',          label: 'Rock Boys',       file: 'Fonts/Rock Boys.ttf', lang: 'en', tags: ['bold'] },
     { name: 'Storm Catcher',      label: 'Storm Catcher',   file: 'Fonts/Storm Catcher.otf', lang: 'en', tags: ['retro'] },
-    { name: 'Nature Beauty',      label: 'Nature Beauty',   file: 'Fonts/Nature Beauty.ttf', lang: 'en', tags: ['cursive'] },
     { name: 'Nasi',               label: 'Nasi',            file: 'Fonts/Nasi.otf', lang: 'en', tags: ['retro'] },
-    { name: 'Baloo Thambi 2',     label: 'Baloo Thambi',    file: 'Fonts/BalooThambi2.ttf', lang: 'ta', tags: ['bold'] },
-    { name: 'Hind Madurai',       label: 'Hind Madurai',    file: 'Fonts/HindMadurai.ttf', lang: 'ta', tags: ['retro'] },
-    { name: 'Kavivanar',          label: 'Kavivanar',       file: 'Fonts/Kavivanar.ttf', lang: 'ta', tags: ['cursive'] },
-    // Wavy Nametag Fonts
-    { name: 'Chewy',              label: 'Chewy',           file: 'Fonts/Chewy-Regular.ttf', lang: 'en', tags: ['bold'] },
-    { name: 'Bebas Neue',         label: 'Bebas Neue',      file: 'Fonts/BebasNeue-Regular.ttf', lang: 'en', tags: ['bold'] },
-    { name: 'Lobster',            label: 'Lobster',         file: 'Fonts/Lobster-Regular.ttf', lang: 'en', tags: ['cursive'] },
-    { name: 'Pacifico',           label: 'Pacifico',        file: 'Fonts/Pacifico-Regular.ttf', lang: 'en', tags: ['cursive'] },
     { name: 'Raleway',            label: 'Raleway',         file: 'Fonts/Raleway-Regular.ttf', lang: 'en', tags: ['retro'] },
     { name: 'Oswald',             label: 'Oswald',          file: 'Fonts/Oswald-Regular.ttf', lang: 'en', tags: ['retro'] },
-    { name: 'Anton',              label: 'Anton',           file: 'Fonts/Anton-Regular.ttf', lang: 'en', tags: ['bold'] },
-    { name: 'Archivo Black',      label: 'Archivo Black',   file: 'Fonts/ArchivoBlack-Regular.ttf', lang: 'en', tags: ['bold'] }
+    { name: 'Hind Madurai',       label: 'Hind Madurai',    file: 'Fonts/HindMadurai.ttf', lang: 'ta', tags: ['retro'] }
 ];
 
 const COLOR_PALETTES = {
@@ -105,9 +117,10 @@ const state = {
     totalSteps: 4,
     hasRing: true,
     layers: '3L', // standard 3 layer customizer
-    name: 'SAMPLE',
+    name: 'Sample',
     productType: 'keychain', // default
     lang: 'en',
+    fontCategory: 'all',
     colors: {
         base: '#ff9933',
         font: '#FFFFFF',
@@ -145,9 +158,7 @@ const el = {};
 function cacheElements() {
     el.viewerCanvas    = document.getElementById('viewer3dCanvas');
     el.viewerLoading   = document.getElementById('viewerLoading');
-    el.autoRotate      = document.getElementById('autoRotateToggle');
-    el.rotateIcon      = document.getElementById('rotateIcon');
-    el.toggleFDM       = document.getElementById('toggleFDM');
+    el.dragHint        = document.getElementById('dragHint');
     
     el.productTitle    = document.getElementById('productTitle');
     el.productSubtitle = document.getElementById('productSubtitle');
@@ -174,11 +185,23 @@ function cacheElements() {
     el.langToggle      = document.getElementById('langToggleBtn');
     el.fontSlotTabs    = document.getElementById('wordartSlotTabs');
     el.fontStrip       = document.getElementById('fontSelectorStrip');
+    el.fontCategoryTabs = document.getElementById('fontCategoryTabs');
+    el.fontScrollHint  = document.getElementById('fontScrollHint');
     
     el.baseColorRow    = document.getElementById('baseColorRow');
     el.fontColorRow    = document.getElementById('fontColorRow');
     el.outlineColorRow = document.getElementById('outlineColorRow');
     el.line2ColorRow   = document.getElementById('line2ColorRow');
+
+    el.baseColorLabel  = document.getElementById('baseColorLabel');
+    el.fontColorLabel  = document.getElementById('fontColorLabel');
+    el.outlineColorLabel = document.getElementById('outlineColorLabel');
+    el.line2ColorLabel = document.getElementById('line2ColorLabel');
+
+    el.baseColorVal    = document.getElementById('baseColorVal');
+    el.fontColorVal    = document.getElementById('fontColorVal');
+    el.outlineColorVal = document.getElementById('outlineColorVal');
+    el.line2ColorVal   = document.getElementById('line2ColorVal');
     
     el.baseSwatches    = document.getElementById('baseSwatches');
     el.fontSwatches    = document.getElementById('fontSwatches');
@@ -593,11 +616,30 @@ function setupFontStripNav() {
 function renderFontList() {
     el.fontStrip.innerHTML = '';
 
-    const filtered = FONTS.filter(f => f.lang === state.lang);
+    const isLinkedInitials = state.productType === 'linked_initials';
+
+    if (isLinkedInitials) {
+        state.selectedFont = 'Rock Boys';
+        state.selectedFontFile = 'Fonts/Rock Boys.ttf';
+        if (el.fontCategoryTabs) el.fontCategoryTabs.style.display = 'none';
+        if (el.langToggle) el.langToggle.style.display = 'none';
+        if (el.fontScrollHint) el.fontScrollHint.textContent = 'Optimized exclusively with Rock Boys font for interlocking 3D fit';
+    } else {
+        if (el.fontCategoryTabs) el.fontCategoryTabs.style.display = 'flex';
+        if (el.langToggle) el.langToggle.style.display = '';
+        if (el.fontScrollHint) el.fontScrollHint.textContent = 'Scroll or tap ‹ › to see all 30+ fonts';
+    }
+
+    let filtered = FONTS.filter(f => f.lang === state.lang);
+    if (isLinkedInitials) {
+        filtered = FONTS.filter(f => f.name === 'Rock Boys');
+    } else if (state.fontCategory && state.fontCategory !== 'all') {
+        filtered = filtered.filter(f => f.tags && f.tags.includes(state.fontCategory));
+    }
 
     // What text to preview: the user's typed name (first line), else "Abc".
     let sample = (state.name || '').split('\n')[0].trim();
-    if (!sample) sample = 'Abc';
+    if (!sample) sample = isLinkedInitials ? 'SP' : 'Abc';
     sample = sample.slice(0, 6);   // keep previews readable
 
     filtered.forEach(font => {
@@ -653,25 +695,40 @@ function renderFontList() {
 
 function renderColorSwatches() {
     const swatchesConfigs = [
-        { container: el.baseSwatches, palette: COLOR_PALETTES.base, key: 'base' },
-        { container: el.fontSwatches, palette: COLOR_PALETTES.font, key: 'font' },
-        { container: el.outlineSwatches, palette: COLOR_PALETTES.outline, key: 'outline' },
-        { container: el.line2Swatches, palette: COLOR_PALETTES.line2, key: 'line2' }
+        { container: el.baseSwatches, badge: el.baseColorVal, palette: COLOR_PALETTES.base, key: 'base' },
+        { container: el.fontSwatches, badge: el.fontColorVal, palette: COLOR_PALETTES.font, key: 'font' },
+        { container: el.outlineSwatches, badge: el.outlineColorVal, palette: COLOR_PALETTES.outline, key: 'outline' },
+        { container: el.line2Swatches, badge: el.line2ColorVal, palette: COLOR_PALETTES.line2, key: 'line2' }
     ];
     
     swatchesConfigs.forEach(conf => {
+        if (!conf.container) return;
         conf.container.innerHTML = '';
+
+        // Update active badge name
+        const activeColor = conf.palette.find(c => c.hex.toLowerCase() === (state.colors[conf.key] || '').toLowerCase());
+        if (conf.badge && activeColor) {
+            conf.badge.textContent = activeColor.label;
+        }
+
         conf.palette.forEach(color => {
+            const isSelected = (state.colors[conf.key] || '').toLowerCase() === color.hex.toLowerCase();
             const swatch = document.createElement('div');
-            swatch.className = `swatch ${state.colors[conf.key].toLowerCase() === color.hex.toLowerCase() ? 'selected' : ''}`;
+            swatch.className = `swatch ${isSelected ? 'selected' : ''}`;
             swatch.style.backgroundColor = color.hex;
             swatch.title = color.label;
+            swatch.setAttribute('aria-label', color.label);
             
             swatch.addEventListener('click', () => {
                 conf.container.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
                 swatch.classList.add('selected');
                 state.colors[conf.key] = color.hex;
-                
+                if (conf.key === 'base') {
+                    state.colors.outline = color.hex;
+                }
+                if (conf.badge) {
+                    conf.badge.textContent = color.label;
+                }
                 update3DModel();
             });
             
@@ -687,12 +744,12 @@ function applyProductTypeConstraints() {
     const isLinkedInitials = state.productType === 'linked_initials';
     const isNametag    = state.productType === 'nametag';
     const isGirly      = state.productType === 'girly_keychain';
-    const isBordered   = state.productType === 'bordered_keychain';
     const isSupported  = state.productType === 'supported_text';
     const isFlower     = state.productType === 'flower_keychain';
     const isLedStand   = state.productType === 'led_word_stand';
     const isLedArt     = state.productType === 'led_word_art';
-    const isLed        = isLedStand || isLedArt;
+    const isBordered   = state.productType === 'bordered_keychain';
+    const isNameplate  = state.productType === 'nameplate';
     const isWordartLike = isWordart || isLoveSeries;
 
     // Toggle Input visibility
@@ -711,6 +768,8 @@ function applyProductTypeConstraints() {
         if (isLinkedInitials) {
             el.nameInput.maxLength = 2;
             state.name = state.name.substring(0, 2);
+            state.selectedFont = 'Rock Boys';
+            state.selectedFontFile = 'Fonts/Rock Boys.ttf';
         } else if (isFlower) {
             el.nameInput.maxLength = 1;
             state.name = state.name.substring(0, 1);
@@ -729,46 +788,142 @@ function applyProductTypeConstraints() {
     // Toggle Font tab slot select (Wordart line 1 vs line 2)
     el.fontSlotTabs.style.display = isWordart ? 'flex' : 'none';
 
-    // Show/Hide keyring position selector
-    const hasRing = state.productType === 'keychain' || state.productType === 'tilekey' || state.productType === 'linked_initials' || state.productType === 'nametag' || isBordered || isFlower;
+    // Show/Hide keyring position selector (only relevant and adjustable for standard keychain)
+    const hasRing = state.productType === 'keychain';
     state.hasRing = hasRing;
-    if (state.currentStep === 3) {
-        el.ringPositionSection.style.display = hasRing ? 'block' : 'none';
-    } else {
-        el.ringPositionSection.style.display = 'none';
+    if (el.ringPositionSection) {
+        el.ringPositionSection.style.display = (state.currentStep === 3 && hasRing) ? 'block' : 'none';
     }
 
-    // Toggle Color rows depending on item style
-    if (isTileKey) {
-        el.line2ColorRow.style.display   = 'flex';
-        el.baseColorRow.style.display    = 'flex';
-        el.outlineColorRow.style.display = 'none';
-    } else if (isLinkedInitials) {
-        el.line2ColorRow.style.display   = 'flex';
-        el.baseColorRow.style.display    = 'none';
-        el.outlineColorRow.style.display = 'none';
-    } else if (isNametag || isGirly || isBordered || isFlower || isLed) {
-        el.line2ColorRow.style.display   = 'none';
-        el.baseColorRow.style.display    = 'flex';
-        el.outlineColorRow.style.display = 'none';
-    } else if (isSupported) {
-        el.line2ColorRow.style.display   = 'none';
-        el.baseColorRow.style.display    = 'none';
-        el.outlineColorRow.style.display = 'none';
-    } else {
-        el.line2ColorRow.style.display   = isWordartLike ? 'flex' : 'none';
-        el.baseColorRow.style.display    = isWordartLike ? 'none' : 'flex';
-        el.outlineColorRow.style.display = 'flex'; // Standard 3-layer has outlines
+    // Toggle Thickness toggle (only relevant for standard keychain)
+    if (el.thicknessToggle && el.thicknessToggle.parentElement) {
+        const isStandardKeychain = state.productType === 'keychain';
+        el.thicknessToggle.parentElement.style.display = isStandardKeychain ? 'block' : 'none';
     }
+
+    // ── Dynamic Color Rows Configuration & Contextual Labels ──
+    if (isLinkedInitials) {
+        // Linked initials: Left initial = FONT A (colors.font), Right initial = FONT B (colors.line2)
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'FONT A';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'flex';
+        if (el.line2ColorLabel) el.line2ColorLabel.textContent = 'FONT B';
+        if (el.baseColorRow) el.baseColorRow.style.display = 'none';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+    } else if (isWordart) {
+        // Word art (2 layers: Back Panel + 2-Line Text)
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Line 1 Color (Top Text)';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'flex';
+        if (el.line2ColorLabel) el.line2ColorLabel.textContent = 'Line 2 Color (Bottom Text)';
+        if (el.baseColorRow) {
+            el.baseColorRow.style.display = 'flex';
+            if (el.baseColorLabel) el.baseColorLabel.textContent = 'Back Panel Color';
+        }
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+    } else if (isLoveSeries) {
+        // LOVE Series (2 layers: Back Panel + Texts)
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Name Color (Top)';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'flex';
+        if (el.line2ColorLabel) el.line2ColorLabel.textContent = 'LOVE Text Color';
+        if (el.baseColorRow) {
+            el.baseColorRow.style.display = 'flex';
+            if (el.baseColorLabel) el.baseColorLabel.textContent = 'Back Panel Color';
+        }
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+    } else if (isTileKey) {
+        // Tile keychain: Base = Strip, Line2 = Tile, Font = Letters
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Backing Strip Color';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'flex';
+        if (el.line2ColorLabel) el.line2ColorLabel.textContent = 'Tile Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Letter Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+    } else if (isNametag) {
+        // Wavy nametag: Single color body
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Nametag Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'none';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isGirly) {
+        // Girly keychain: Base & Bow = Base, Name text = Font
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Base & Bow Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Font Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isFlower) {
+        // Flower initial: Flower petal & center disc = Base, Letter = Font
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Flower Base Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Letter Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isSupported) {
+        // Supported cursive nameplate: Single piece cursive text + supports
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Nameplate Color';
+        if (el.baseColorRow) el.baseColorRow.style.display = 'none';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isLedStand) {
+        // LED word stand: Stand & housing = Base, Translucent cover = Font
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Stand & Housing Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Diffuser Cover Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isLedArt) {
+        // LED word art: Housing tray = Base, Translucent cover = Font
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Housing Tray Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Diffuser Cover Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isBordered) {
+        // Bordered keychain: Border = Base, Text = Font
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Border / Base Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Font Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else if (isNameplate) {
+        // Desk nameplate: Plaque = Base, Outline = Outline, Text = Font
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Plaque Base Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'flex';
+        if (el.outlineColorLabel) el.outlineColorLabel.textContent = 'Outline Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Font Color';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    } else {
+        // Classic keychain (2L vs 3L)
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Base Color';
+        if (el.outlineColorRow) {
+            el.outlineColorRow.style.display = (state.layers === '2L') ? 'none' : 'flex';
+            if (el.outlineColorLabel) el.outlineColorLabel.textContent = 'Outline Color';
+        }
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Font Color';
+        if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    }
+
+    // Refresh color swatches active badge labels
+    renderColorSwatches();
 
     // Update Product Details Title
     let titleStr = "Classic Keychain";
     let subStr = "Standard, sturdy extruded letters keychain";
     switch (state.productType) {
-        case 'bordered_keychain':
-            titleStr = "Bordered Keychain";
-            subStr = "Enclosed text in a customized raised outer frame";
-            break;
         case 'flower_keychain':
             titleStr = "Flower Initial";
             subStr = "Cursive initial letter surrounded by flower petals";
@@ -895,9 +1050,9 @@ function setupEvents() {
             if (state.currentStep < state.totalSteps) {
                 state.currentStep++;
                 renderStepper();
-                // Scroll to top of customizer pane
-                const pane = document.querySelector('.customizer-pane');
-                if(pane) pane.scrollIntoView({ behavior: 'smooth' });
+                if (!isDesktop()) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             }
         });
     }
@@ -907,9 +1062,39 @@ function setupEvents() {
             if (state.currentStep > 1) {
                 state.currentStep--;
                 renderStepper();
-                const pane = document.querySelector('.customizer-pane');
-                if(pane) pane.scrollIntoView({ behavior: 'smooth' });
+                if (!isDesktop()) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             }
+        });
+    }
+
+    // Step dots click navigation
+    if (el.stepDots && el.stepDots.length) {
+        el.stepDots.forEach(dot => {
+            dot.addEventListener('click', () => {
+                const targetStep = parseInt(dot.dataset.step);
+                if (targetStep && targetStep !== state.currentStep) {
+                    if (targetStep > 1 && state.currentStep === 1) {
+                        if (state.productType === 'wordart') {
+                            if (!el.wordartLine1.value.trim() && !el.wordartLine2.value.trim()) {
+                                alert('Please enter text for at least one line.');
+                                return;
+                            }
+                        } else {
+                            if (!el.nameInput.value.trim()) {
+                                alert('Please enter some text.');
+                                return;
+                            }
+                        }
+                    }
+                    state.currentStep = targetStep;
+                    renderStepper();
+                    if (!isDesktop()) {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                }
+            });
         });
     }
 
@@ -920,19 +1105,18 @@ function setupEvents() {
         state.productType = typeParam;
     }
     
-    // Auto-rotate
-    el.autoRotate.addEventListener('click', () => {
-        const active = viewer.toggleAutoRotate();
-        el.autoRotate.classList.toggle('active', active);
-        el.rotateIcon.textContent = active ? '🔄' : '⏸️';
-    });
-    
-    // FDM Texture toggle
-    el.toggleFDM.addEventListener('click', () => {
-        state.showFDMTexture = !state.showFDMTexture;
-        el.toggleFDM.classList.toggle('active', state.showFDMTexture);
-        update3DModel();
-    });
+    // Hide drag-hint on first user interaction with viewer
+    function hideDragHint() {
+        if (el.dragHint && !el.dragHint.classList.contains('hidden')) {
+            el.dragHint.classList.add('hidden');
+        }
+    }
+    if (el.viewerCanvas) {
+        el.viewerCanvas.addEventListener('pointerdown', hideDragHint, { passive: true });
+        el.viewerCanvas.addEventListener('touchstart', hideDragHint, { passive: true });
+        el.viewerCanvas.addEventListener('mousedown', hideDragHint, { passive: true });
+        el.viewerCanvas.addEventListener('viewerinteract', hideDragHint);
+    }
     
     // Tamil / English selector
     el.langToggle.addEventListener('click', () => {
@@ -952,6 +1136,23 @@ function setupEvents() {
         renderFontList();
         update3DModel();
     });
+
+    // Font category filter tabs (All, Cursive, Bold, Retro)
+    const fontCatBtns = document.querySelectorAll('.font-cat-btn');
+    if (fontCatBtns && fontCatBtns.length) {
+        fontCatBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                fontCatBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-selected', 'false');
+                });
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+                state.fontCategory = btn.dataset.cat || 'all';
+                renderFontList();
+            });
+        });
+    }
 
     // Font slot toggling for Word Art (Top font vs Bottom font)
     document.getElementById('btnSlotTop').addEventListener('click', (e) => {
@@ -1025,6 +1226,7 @@ function setupEvents() {
                     el.wordartBackingHint.textContent =
                         WORDART_BACKING_HINTS[state.wordartBase] || WORDART_BACKING_HINTS.none;
                 }
+                applyProductTypeConstraints();
                 update3DModel();   // rebuild -> new volume -> calculatePricing() reprices
             });
         });
@@ -1037,6 +1239,7 @@ function setupEvents() {
                 el.thicknessToggle.querySelectorAll('.pos-opt').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 state.layers = btn.dataset.val;
+                applyProductTypeConstraints();
                 update3DModel();
             });
         });
@@ -1110,7 +1313,7 @@ function setupEvents() {
         let fontColor = state.colors.font;
 
         if (state.productType === 'wordart' || state.productType === 'loveseries') {
-            baseColor = state.colors.outline; // background
+            baseColor = state.colors.base;
             fontColor = state.colors.font === state.colors.line2 
                 ? state.colors.font 
                 : `${state.colors.font}/${state.colors.line2}`;

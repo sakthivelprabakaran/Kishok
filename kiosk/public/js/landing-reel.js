@@ -19,7 +19,70 @@ import { KeychainViewer } from './viewer3d.js?v=led2';
   var mockFonts = document.getElementById('mockFonts');
   var mockColors= document.getElementById('mockColors');
   var caption   = document.getElementById('demoCaption');
+  var previewContainer = document.getElementById('demoPreviewContainer');
+  var touchHint = document.getElementById('demoTouchHint');
   if (!canvas) return;
+
+  /* ---- Mobile touch interaction management ----
+     Allows natural vertical scrolling over the 3D demo on touch devices,
+     while letting users enter 3D interaction mode on demand with auto-release. */
+  var touchTimeout = null;
+
+  function resetTouchTimeout() {
+    if (touchTimeout) clearTimeout(touchTimeout);
+    touchTimeout = setTimeout(function () {
+      exitInteractiveMode();
+    }, 4500);
+  }
+
+  function enterInteractiveMode() {
+    if (!previewContainer) return;
+    previewContainer.classList.add('is-interactive');
+    if (touchHint) {
+      touchHint.innerHTML = '<span class="touch-hint-label">✨ 3D Active</span><span class="exit-touch-btn">Done ✕</span>';
+      touchHint.setAttribute('aria-label', 'Exit 3D interactive mode');
+    }
+    resetTouchTimeout();
+  }
+
+  function exitInteractiveMode() {
+    if (!previewContainer) return;
+    if (touchTimeout) clearTimeout(touchTimeout);
+    previewContainer.classList.remove('is-interactive');
+    if (touchHint) {
+      touchHint.innerHTML = '<span class="touch-hint-label">👆 Tap to spin 3D</span>';
+      touchHint.setAttribute('aria-label', 'Toggle 3D interactive rotation');
+    }
+  }
+
+  if (touchHint && previewContainer) {
+    touchHint.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (previewContainer.classList.contains('is-interactive')) {
+        exitInteractiveMode();
+      } else {
+        enterInteractiveMode();
+      }
+    });
+
+    previewContainer.addEventListener('click', function (e) {
+      if (!previewContainer.classList.contains('is-interactive')) {
+        enterInteractiveMode();
+      }
+    });
+
+    previewContainer.addEventListener('pointerdown', function () {
+      if (previewContainer.classList.contains('is-interactive')) {
+        resetTouchTimeout();
+      }
+    }, { passive: true });
+
+    document.addEventListener('pointerdown', function (e) {
+      if (previewContainer.classList.contains('is-interactive') && !previewContainer.contains(e.target)) {
+        exitInteractiveMode();
+      }
+    }, { passive: true });
+  }
 
   /* ---- sample designs the reel cycles through ----
      fontPath/label mirror the customizer's FONTS catalog.

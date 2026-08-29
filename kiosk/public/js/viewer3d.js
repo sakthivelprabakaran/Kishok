@@ -16,7 +16,7 @@ import { Evaluator, Brush, SUBTRACTION, ADDITION } from 'three-bvh-csg';
 
 function shapeToClipperPaths(shape, scale) {
     const paths = [];
-    const pointsObj = shape.extractPoints(8);
+    const pointsObj = shape.extractPoints(12);
     
     // Add outer contour
     const contour = [];
@@ -35,6 +35,9 @@ function shapeToClipperPaths(shape, scale) {
         }
     }
     if (contour.length > 2) {
+        if (typeof ClipperLib !== 'undefined' && !ClipperLib.Clipper.Orientation(contour)) {
+            contour.reverse();
+        }
         paths.push(contour);
     }
     
@@ -57,6 +60,9 @@ function shapeToClipperPaths(shape, scale) {
                 }
             }
             if (holeContour.length > 2) {
+                if (typeof ClipperLib !== 'undefined' && ClipperLib.Clipper.Orientation(holeContour)) {
+                    holeContour.reverse();
+                }
                 paths.push(holeContour);
             }
         }
@@ -156,7 +162,8 @@ function subtractShapes(subjShapes, clipShapes) {
         ClipperLib.PolyFillType.pftNonZero
     );
     
-    return polyTreeToShapes(polyTree, scale);
+    const result = polyTreeToShapes(polyTree, scale);
+    return (result && result.length > 0) ? result : subjShapes;
 }
 
 function unionShapes(subjShapes, clipShapes) {
@@ -358,15 +365,14 @@ export class KeychainViewer {
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping   = true;
         this.controls.dampingFactor   = 0.07;
-        this.controls.autoRotate      = true;
+        this.controls.autoRotate      = false;
         this.controls.autoRotateSpeed = 1.8;
         this.controls.minDistance      = 40;
         this.controls.maxDistance      = 400;
         this.controls.enablePan        = false;
 
         this.controls.addEventListener('start', () => {
-            this.setAutoRotate(false);
-            this.container.dispatchEvent(new CustomEvent('autorotatestop'));
+            this.container.dispatchEvent(new CustomEvent('viewerinteract'));
         });
 
         // Resize observer
@@ -1017,37 +1023,56 @@ export class KeychainViewer {
 
         if (isLinkedInitials) {
             var char1 = displayText.charAt(0) || 'S';
-            var char2 = displayText.charAt(1) || 'P';
+            var char2 = displayText.charAt(1) || 'A';
             
-            initialSize = Math.round(55 * p.scaleFactor);
+            // Full bold size for linked initials
+            initialSize = Math.round(52 * (p.scaleFactor && p.scaleFactor !== 0.5 ? p.scaleFactor : 1.0));
             
-            xOffset = Math.round(15 * p.scaleFactor);
-            yOffset = Math.round(10 * p.scaleFactor);
-            
-            // Left Initial (Shifted left and up in Three.js / negative Y in SVG)
+            // Left Initial (S) - Stays in upper position
             var path1 = font.getPath(char1, 0, 0, initialSize);
             var bb1 = path1.getBoundingBox();
             cx1 = (bb1.x1 + bb1.x2) / 2;
             cy1 = (bb1.y1 + bb1.y2) / 2;
-            var leftPath = font.getPath(char1, -xOffset - cx1, -yOffset - cy1, initialSize);
-            var rawShapesLeft = this._pathDataToShapes(leftPath.toPathData(3));
-            
-            // Right Initial (Shifted right and down in Three.js / positive Y in SVG)
+            var w1 = (bb1.x2 - bb1.x1) || initialSize * 0.6;
+
+            // Right Initial (A) - Lowered down relative to first initial (stepping down)
             var path2 = font.getPath(char2, 0, 0, initialSize);
             var bb2 = path2.getBoundingBox();
             cx2 = (bb2.x1 + bb2.x2) / 2;
             cy2 = (bb2.y1 + bb2.y2) / 2;
-            var rightPath = font.getPath(char2, xOffset - cx2, yOffset - cy2, initialSize);
+            var w2 = (bb2.x2 - bb2.x1) || initialSize * 0.6;
+
+            var separation = Math.max(12, (w1 + w2) * 0.25);
+            xOffset = Math.round(separation);
+            
+            // Vertical step: In opentype coords (Y-down), positive Y shifts DOWN in 3D
+            // Left initial shifted slightly up (-yShift), Right initial shifted down (+yShift)
+            var yShift = Math.round(initialSize * 0.22);
+            
+            var leftPath = font.getPath(char1, -xOffset - cx1, -yShift - cy1, initialSize);
+            var rawShapesLeft = this._pathDataToShapes(leftPath.toPathData(3));
+            
+            var rightPath = font.getPath(char2, xOffset - cx2, yShift - cy2, initialSize);
             var rawShapesRight = this._pathDataToShapes(rightPath.toPathData(3));
             
-            // Heart shape in center (Cute and small, size ~26% of letter size)
-            var hSize = Math.round(initialSize * 0.26);
-            var heartShape = KeychainViewer.makeHeartShape(0, -hSize / 2, hSize);
+            // Heart placed directly in the center bridge connecting S and lowered A
+            var hSize = Math.round(initialSize * 0.42);
+            var heartTopY = -Math.round(hSize * 0.45); // Vertically centered at Y = 0 (exact junction between -yShift and +yShift)
+            var heartShape = KeychainViewer.makeHeartShape(0, heartTopY, hSize);
             shapesHeart = [heartShape];
 
-            // Perform 2D CSG boolean subtraction to cut out the heart area from the letters
-            shapesLeft = subtractShapes(rawShapesLeft, shapesHeart);
-            shapesRight = subtractShapes(rawShapesRight, shapesHeart);
+            // Perform 2D CAD Boolean Subtraction so each piece (Letter 1, Letter 2, Heart)
+            // has clean, non-overlapping boundary geometry with zero volume collision
+            var subLeft = subtractShapes(rawShapesLeft, shapesHeart);
+            shapesLeft = (subLeft && subLeft.length > 0) ? subLeft : rawShapesLeft;
+
+            var subRight = subtractShapes(rawShapesRight, shapesHeart);
+            if (subRight && subRight.length > 0) {
+                var subRight2 = subtractShapes(subRight, rawShapesLeft);
+                shapesRight = (subRight2 && subRight2.length > 0) ? subRight2 : subRight;
+            } else {
+                shapesRight = rawShapesRight;
+            }
             
             shapes = [...shapesLeft, ...shapesRight, ...shapesHeart];
         } else if (isWordart) {
@@ -1145,7 +1170,7 @@ export class KeychainViewer {
         this._applyFDMTexture(baseMat, p);
 
         var outlineMat = new THREE.MeshPhysicalMaterial({
-            color:              new THREE.Color(isWordart ? baseColor : outlineColor),
+            color:              new THREE.Color(outlineColor),
             roughness:          0.30,
             metalness:          0.0,
             clearcoat:          0.90,
@@ -1210,16 +1235,13 @@ export class KeychainViewer {
         }
 
         // ── Word-art backplate (optional) ──
-        // Word-art normally has no base at all. These two modes add one *behind* the
-        // letters, so the halo + text stack above is left exactly where it was.
-        if (isWordart) {
-            var wordartMode = p.base.wordartMode || 'none';
-            if (wordartMode === 'solid' || wordartMode === 'hollow') {
-                this._buildWordartBackplate(shapes, wordartMode, p, baseMat);
-            }
+        // Word-art can have an optional solid or hollow backplate behind the text.
+        var hasWordartBackplate = isWordart && (p.base.wordartMode === 'solid' || p.base.wordartMode === 'hollow');
+        if (hasWordartBackplate) {
+            this._buildWordartBackplate(shapes, p.base.wordartMode, p, baseMat);
         }
 
-        // Base front Z = depth + bevelThickness (0 for word-art, since there's no base)
+        // Base front Z = depth + bevelThickness (0 for word-art, since base spans [-depth, 0])
         var baseFrontZ = isWordart ? 0 : p.base.depth + p.base.bevelThickness;
 
         // Track the Z position for stacking layers
@@ -1242,8 +1264,10 @@ export class KeychainViewer {
         }
         var stackParent = this.keychainGroup;
 
-        // ── Outline Layer (Medium width, middle) — only in 3L mode ──
-        if ((p.layers === '3L' || isWordart) && !isLinkedInitials) {
+        // ── Outline Layer (Medium width, middle) — only in 3L mode OR Wordart with no backplate ──
+        // When wordart has a solid/hollow backplate, the backplate itself is the foundation so no extra outline is added.
+        // When wordart has no backplate (mode === 'none'), the outline halo acts as the single backing piece in baseMat.
+        if (((p.layers === '3L' && !isWordart) || (isWordart && !hasWordartBackplate)) && !isLinkedInitials) {
             var outlineSettings = {
                 depth:         p.outline.depth,
                 bevelEnabled:  true,
@@ -1265,7 +1289,7 @@ export class KeychainViewer {
             var outlineLayerBottomZ = currentZ + p.outline.bevelThickness;
             outlineGeo.translate(0, 0, outlineLayerBottomZ);
             if (shearMatrix) outlineGeo.applyMatrix4(shearMatrix);
-            var outlineMesh = new THREE.Mesh(outlineGeo, outlineMat);
+            var outlineMesh = new THREE.Mesh(outlineGeo, isWordart ? baseMat : outlineMat);
             stackParent.add(outlineMesh);
 
             currentZ = currentZ + p.outline.bevelThickness + p.outline.depth + p.outline.bevelThickness;
@@ -1322,6 +1346,18 @@ export class KeychainViewer {
                 stackParent.add(new THREE.Mesh(heartGeo, heartMat));
             }
         } else if (isLinkedInitials) {
+            // For linked initials, use a clean flush bevel with zero lateral expansion (bevelSize: 0)
+            // so boolean-subtracted mating boundaries remain sharp, precise, and non-overlapping.
+            var linkedFontSettings = {
+                depth:         fontSettings.depth,
+                bevelEnabled:  true,
+                bevelThickness: Math.min(0.4, p.font.bevelThickness || 0.4),
+                bevelSize:      0, // Zero lateral bevel expansion prevents boundary bulging / merging
+                bevelOffset:    0,
+                bevelSegments:  p.font.bevelSegments,
+                curveSegments:  8,
+            };
+
             // Left Initial mesh
             leftMat = new THREE.MeshPhysicalMaterial({
                 color:              new THREE.Color((p.lineColors && p.lineColors[0]) || fontColor),
@@ -1332,7 +1368,7 @@ export class KeychainViewer {
                 side:               THREE.DoubleSide,
             });
             this._applyFDMTexture(leftMat, p);
-            var leftGeo = new THREE.ExtrudeGeometry(shapesLeft, fontSettings);
+            var leftGeo = new THREE.ExtrudeGeometry(shapesLeft, linkedFontSettings);
             leftGeo.translate(0, 0, fontLayerBottomZ);
             stackParent.add(new THREE.Mesh(leftGeo, leftMat));
 
@@ -1346,7 +1382,7 @@ export class KeychainViewer {
                 side:               THREE.DoubleSide,
             });
             this._applyFDMTexture(rightMat, p);
-            var rightGeo = new THREE.ExtrudeGeometry(shapesRight, fontSettings);
+            var rightGeo = new THREE.ExtrudeGeometry(shapesRight, linkedFontSettings);
             rightGeo.translate(0, 0, fontLayerBottomZ);
             stackParent.add(new THREE.Mesh(rightGeo, rightMat));
 
@@ -1360,7 +1396,7 @@ export class KeychainViewer {
                 side:               THREE.DoubleSide,
             });
             this._applyFDMTexture(heartMat, p);
-            var heartGeo = new THREE.ExtrudeGeometry(shapesHeart, fontSettings);
+            var heartGeo = new THREE.ExtrudeGeometry(shapesHeart, linkedFontSettings);
             heartGeo.translate(0, 0, fontLayerBottomZ);
             stackParent.add(new THREE.Mesh(heartGeo, heartMat));
         } else {
@@ -1374,8 +1410,8 @@ export class KeychainViewer {
         // ── Programmatic Keychain Ring (Top-Left, like a Degree Symbol) ──
         // Skip for nameplates (sit flat on desk) and word-art (letters are the structure).
         if (!isNameplate && !isWordart && p.ringPosition !== 'none') {
-        var ringOuter = p.ring.outerRadius;
-        var ringInner = p.ring.innerRadius;
+        var ringOuter = isLinkedInitials ? 4.2 : p.ring.outerRadius;
+        var ringInner = isLinkedInitials ? 2.4 : p.ring.innerRadius;
         var ringShape = new THREE.Shape();
         ringShape.absarc(0, 0, ringOuter, 0, Math.PI * 2, false);
         var ringHole = new THREE.Path();
@@ -1389,18 +1425,18 @@ export class KeychainViewer {
 
         if (isLinkedInitials) {
             ringMat = (p.ringPosition === 'right') ? (rightMat || fontMat) : (leftMat || fontMat);
-            var totalFontThickness = fontSettings.depth + fontSettings.bevelThickness * 2;
+            var totalFontThickness = linkedFontSettings.depth + linkedFontSettings.bevelThickness * 2;
             var ringDepth = totalFontThickness - p.ring.bevelThickness * 2;
             ringDepthSettings = {
-                depth:         Math.max(1, ringDepth),
+                depth:         Math.max(2, ringDepth),
                 bevelEnabled:  true,
-                bevelThickness: p.ring.bevelThickness,
-                bevelSize:      p.ring.bevelSize,
+                bevelThickness: Math.min(0.4, p.ring.bevelThickness),
+                bevelSize:      Math.min(0.3, p.ring.bevelSize),
                 bevelOffset:    0,
                 bevelSegments:  p.ring.bevelSegments,
                 curveSegments:  8,
             };
-            ringZ = fontLayerBottomZ - fontSettings.bevelThickness + p.ring.bevelThickness;
+            ringZ = fontLayerBottomZ - linkedFontSettings.bevelThickness + p.ring.bevelThickness;
         } else {
             var totalBaseThickness = p.base.depth + p.base.bevelThickness * 2;
             var ringDepth = totalBaseThickness - p.ring.bevelThickness * 2;
@@ -1422,40 +1458,45 @@ export class KeychainViewer {
 
         if (p.ringPosition === 'right') {
             if (isLinkedInitials) {
-                // Find rightmost edge of the second initial (shapesRight)
-                var linkedMaxX = -Infinity;
-                var linkedYAtMaxX = 0;
-                var linkedClosestX = Infinity;
+                // Find top-right bounds of the second initial (shapesRight)
+                var linkedRMinX = Infinity, linkedRMaxX = -Infinity;
+                var linkedRMinY = Infinity, linkedRMaxY = -Infinity;
                 
                 for (var si = 0; si < shapesRight.length; si++) {
                     var pts = shapesRight[si].extractPoints(8).shape;
                     for (var pi = 0; pi < pts.length; pi++) {
                         var pt = pts[pi];
-                        if (pt.x > linkedMaxX) {
-                            linkedMaxX = pt.x;
-                        }
+                        if (pt.x < linkedRMinX) linkedRMinX = pt.x;
+                        if (pt.x > linkedRMaxX) linkedRMaxX = pt.x;
+                        if (pt.y < linkedRMinY) linkedRMinY = pt.y;
+                        if (pt.y > linkedRMaxY) linkedRMaxY = pt.y;
                     }
                 }
-                if (linkedMaxX === -Infinity) {
-                    linkedMaxX = xOffset; // fallback
+                if (linkedRMaxX === -Infinity) {
+                    linkedRMaxX = xOffset;
+                    linkedRMinY = -20;
+                    linkedRMaxY = 20;
                 }
                 
-                // Find the Y coordinate of the anchor point closest to the true right edge
+                // In opentype coords (Y-down), linkedRMinY is the visual TOP of the letter
+                var ringY = linkedRMinY + ringOuter * 0.7;
+                
+                // Find the rightmost point in the upper region
+                var topAnchorX = -Infinity;
                 for (var si = 0; si < shapesRight.length; si++) {
                     var pts = shapesRight[si].extractPoints(8).shape;
                     for (var pi = 0; pi < pts.length; pi++) {
                         var pt = pts[pi];
-                        var dist = Math.abs(pt.x - linkedMaxX);
-                        if (dist < linkedClosestX) {
-                            linkedClosestX = dist;
-                            linkedYAtMaxX = pt.y;
+                        if (pt.y <= linkedRMinY + (linkedRMaxY - linkedRMinY) * 0.5) {
+                            if (pt.x > topAnchorX) topAnchorX = pt.x;
                         }
                     }
                 }
+                if (topAnchorX === -Infinity) topAnchorX = linkedRMaxX;
 
                 var overlap = Math.min(4, ringOuter * 0.8);
-                ringMesh.position.x = linkedMaxX + ringOuter - overlap;
-                ringMesh.position.y = linkedYAtMaxX;
+                ringMesh.position.x = topAnchorX + ringOuter - overlap;
+                ringMesh.position.y = ringY;
                 this.keychainGroup.add(ringMesh);
             } else {
                 // Find rightmost edge + the text run's vertical span (same anchor fix).
@@ -1491,41 +1532,46 @@ export class KeychainViewer {
         } else {
             // Default left positioning
             if (isLinkedInitials) {
-                // Find leftmost edge of the first initial (shapesLeft)
-                var linkedMinX = Infinity;
-                var linkedYAtMinX = 0;
-                var linkedClosestX = Infinity;
+                // Find top-left bounds of the first initial (shapesLeft)
+                var linkedMinX = Infinity, linkedMaxX = -Infinity;
+                var linkedMinY = Infinity, linkedMaxY = -Infinity;
                 
                 for (var si = 0; si < shapesLeft.length; si++) {
                     var pts = shapesLeft[si].extractPoints(8).shape;
                     for (var pi = 0; pi < pts.length; pi++) {
                         var pt = pts[pi];
-                        if (pt.x < linkedMinX) {
-                            linkedMinX = pt.x;
-                        }
+                        if (pt.x < linkedMinX) linkedMinX = pt.x;
+                        if (pt.x > linkedMaxX) linkedMaxX = pt.x;
+                        if (pt.y < linkedMinY) linkedMinY = pt.y;
+                        if (pt.y > linkedMaxY) linkedMaxY = pt.y;
                     }
                 }
                 if (linkedMinX === Infinity) {
-                    linkedMinX = -xOffset; // fallback
+                    linkedMinX = -xOffset;
+                    linkedMinY = -20;
+                    linkedMaxY = 20;
                 }
                 
-                // Find the Y coordinate of the anchor point closest to the true left edge
+                // In opentype coords (Y-down), linkedMinY is the visual TOP of the letter in 3D
+                var ringY = linkedMinY + ringOuter * 0.7;
+                
+                // Find the leftmost point in the upper region of the first initial
+                var topAnchorX = Infinity;
                 for (var si = 0; si < shapesLeft.length; si++) {
                     var pts = shapesLeft[si].extractPoints(8).shape;
                     for (var pi = 0; pi < pts.length; pi++) {
                         var pt = pts[pi];
-                        var dist = Math.abs(pt.x - linkedMinX);
-                        if (dist < linkedClosestX) {
-                            linkedClosestX = dist;
-                            linkedYAtMinX = pt.y;
+                        if (pt.y <= linkedMinY + (linkedMaxY - linkedMinY) * 0.5) {
+                            if (pt.x < topAnchorX) topAnchorX = pt.x;
                         }
                     }
                 }
+                if (topAnchorX === Infinity) topAnchorX = linkedMinX;
 
-                // Position the ring securely attached to the leftmost edge of the first initial
+                // Position the ring securely attached to the top-left shoulder of the first initial
                 var overlap = Math.min(4, ringOuter * 0.8);
-                ringMesh.position.x = linkedMinX - ringOuter + overlap;
-                ringMesh.position.y = linkedYAtMinX;
+                ringMesh.position.x = topAnchorX - ringOuter + overlap;
+                ringMesh.position.y = ringY;
                 this.keychainGroup.add(ringMesh);
             } else {
                 // Position the ring securely attached to the leftmost ink of the first character

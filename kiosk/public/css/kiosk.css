@@ -384,6 +384,81 @@ body::before {
     color: var(--text-main); background: var(--bg-panel);
     border: 1.5px solid var(--text-main); border-radius: 999px;
     padding: 4px 11px; box-shadow: 2px 2px 0 var(--text-main);
+    z-index: 5;
+}
+
+/* Touch-friendly 3D Canvas Interaction for Mobile Landing */
+.demo-touch-hint {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-main);
+    background: var(--bg-panel);
+    border: 1.5px solid var(--text-main);
+    border-radius: 999px;
+    padding: 4px 11px;
+    box-shadow: 2px 2px 0 var(--text-main);
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.demo-touch-hint:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--text-main);
+}
+
+.demo-touch-hint .exit-touch-btn {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 2px;
+    padding: 1px 7px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+}
+
+/* Touch vs Mouse handling */
+@media (pointer: coarse) {
+    /* On mobile touch devices: default state passes vertical scrolls freely */
+    .demo-preview:not(.is-interactive) .demo-canvas {
+        pointer-events: none;
+    }
+    .demo-preview.is-interactive {
+        box-shadow: 0 0 0 3px var(--primary), 6px 6px 0 var(--cobalt), 6px 6px 0 1.5px var(--text-main);
+    }
+    .demo-preview.is-interactive .demo-canvas {
+        pointer-events: auto;
+        touch-action: none;
+    }
+    .demo-preview.is-interactive .demo-touch-hint {
+        background: var(--text-main);
+        color: var(--bg-panel);
+    }
+}
+
+@media (pointer: fine) and (hover: hover) {
+    /* On desktop mouse devices: mouse drag rotates 3D immediately, mouse wheel scrolls page */
+    .demo-canvas {
+        pointer-events: auto;
+        cursor: grab;
+    }
+    .demo-canvas:active {
+        cursor: grabbing;
+    }
+    .demo-touch-hint {
+        display: none;
+    }
 }
 
 /* scene dots */
