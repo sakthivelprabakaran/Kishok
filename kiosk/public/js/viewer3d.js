@@ -613,6 +613,13 @@ export class KeychainViewer {
             }
         });
         this.keychainGroup = null;
+        // Clear LED 2-part refs (back panel + CAP) — ported from Achuva
+        this._ledBackPanel = null;
+        this._ledCap = null;
+        // Clear Name Beads refs (preview-only cord/stoppers)
+        this._beadGroups = null;
+        this._beadCord = null;
+        this._beadStoppers = null;
     }
 
     // Builds a closed heart THREE.Shape in opentype/SVG coords (Y-down: cusps at low Y, point at high Y).
@@ -2683,7 +2690,7 @@ export class KeychainViewer {
         if (p.scaleFactor && p.scaleFactor !== 1) {
             this.keychainGroup.scale.setScalar(p.scaleFactor);
         }
-        this.keychainGroup.scale.y = -1;
+        this.keychainGroup.scale.y = -Math.abs(this.keychainGroup.scale.y);
 
         var box = new THREE.Box3().setFromObject(this.keychainGroup);
         var center = box.getCenter(new THREE.Vector3());
@@ -2902,7 +2909,8 @@ export class KeychainViewer {
 
         var extrusion = p.supported_extrusion || 3.0;
         var offs = p.supported_offs !== undefined ? p.supported_offs : 0.01;
-        var fontSize = p.text_size || 12;
+        // Fix: Studio sends p.supported_text_size, but engine was reading p.text_size (leaked from nametag)
+        var fontSize = (p.supported_text_size !== undefined ? p.supported_text_size : (p.text_size || 12));
 
         var heart1_enable = p.supported_heart1_enable !== undefined ? p.supported_heart1_enable : false;
         var heart1_size = p.supported_heart1_size || 5.0;
@@ -3604,7 +3612,12 @@ export class KeychainViewer {
         this.keychainGroup = new THREE.Group();
 
         var font_size      = p.font_size      !== undefined ? parseFloat(p.font_size)      : 100.0;
-        var letter_spacing = p.letter_spacing !== undefined ? parseFloat(p.letter_spacing) : 4.0;
+        // Default to a negative letter spacing so adjacent glyphs overlap and
+        // Clipper's union fuses them into ONE connected solid for any font
+        // (mirrors the storefront, which forces letter_spacing = -12 for this
+        // type). Word STAND is a separate builder and is intentionally NOT
+        // overlapped, so its letters stay apart.
+        var letter_spacing = p.letter_spacing !== undefined ? parseFloat(p.letter_spacing) : -12.0;
         var wall_thickness = p.wall_thickness !== undefined ? parseFloat(p.wall_thickness) : 2.0;
         var body_depth     = p.body_depth     !== undefined ? parseFloat(p.body_depth)     : 25.0;
         var back_wall_thickness = p.back_wall_thickness !== undefined ? parseFloat(p.back_wall_thickness) : 2.0;
@@ -3708,6 +3721,10 @@ export class KeychainViewer {
 
         this.keychainGroup.add(housingGroup);
         this.keychainGroup.add(coverGroup);
+
+        // Store 2-part refs for selective STL export (Back Panel vs CAP) — Achuva pattern
+        this._ledBackPanel = housingGroup;
+        this._ledCap = coverGroup;
 
         if (scale !== 1) {
             this.keychainGroup.scale.set(scale, -scale, scale);
@@ -3943,6 +3960,10 @@ export class KeychainViewer {
     _buildNameBeads(text, font, baseColor, fontColor, outlineColor, p) {
         this._clearKeychain();
         this.keychainGroup = new THREE.Group();
+        // For STL export: store bead groups separately, exclude cord/stoppers (preview-only)
+        this._beadGroups = [];
+        this._beadCord = null;
+        this._beadStoppers = [];
 
         var rawText = (text || '').replace(/[\r\n]/g, '');
         var chars = rawText.toUpperCase().split('').slice(0, 12);
@@ -4043,22 +4064,32 @@ export class KeychainViewer {
                     curveSegments: 16
                 });
                 sqGeo.translate(0, 0, -beadSize / 2);
-                var beadMesh = new THREE.Mesh(sqGeo, matBead);
-                beadGroup.add(beadMesh);
-
-                // Hole Cylinder Visualizer inside bead
-                var holeRadius = holeDiameter / 2;
-                var holeGeom = new THREE.CylinderGeometry(holeRadius, holeRadius, beadSize + 1.8, 24, 1, true);
-                if (isHorizontal) {
-                    holeGeom.rotateZ(Math.PI / 2);
+                var beadMesh;
+                try {
+                    var holeRadiusSq = holeDiameter / 2;
+                    var holeGeomSq = new THREE.CylinderGeometry(holeRadiusSq, holeRadiusSq, beadSize + 4, 24);
+                    if (isHorizontal) holeGeomSq.rotateZ(Math.PI / 2);
+                    var beadBrushSq = new Brush(sqGeo, matBead);
+                    var holeBrushSq = new Brush(holeGeomSq, matBead);
+                    beadBrushSq.updateMatrixWorld();
+                    holeBrushSq.updateMatrixWorld();
+                    var evaluatorSq = new Evaluator();
+                    var resultBrushSq = evaluator.evaluate(beadBrushSq, holeBrushSq, SUBTRACTION);
+                    var resultGeoSq = resultBrushSq.geometry;
+                    sqGeo.dispose();
+                    holeGeomSq.dispose();
+                    beadMesh = new THREE.Mesh(resultGeoSq, matBead);
+                } catch (e) {
+                    console.warn('Bead CSG failed, fallback to solid', e);
+                    beadMesh = new THREE.Mesh(sqGeo, matBead);
+                    var holeRadiusSq2 = holeDiameter / 2;
+                    var holeGeomSq2 = new THREE.CylinderGeometry(holeRadiusSq2, holeRadiusSq2, beadSize + 1.8, 24, 1, true);
+                    if (isHorizontal) holeGeomSq2.rotateZ(Math.PI / 2);
+                    var holeMatSq2 = new THREE.MeshStandardMaterial({ color: new THREE.Color(baseColor).multiplyScalar(0.5), roughness: 0.9, side: THREE.BackSide });
+                    var holeMeshSq2 = new THREE.Mesh(holeGeomSq2, holeMatSq2);
+                    beadGroup.add(holeMeshSq2);
                 }
-                var holeMat = new THREE.MeshStandardMaterial({
-                    color: new THREE.Color(baseColor).multiplyScalar(0.5),
-                    roughness: 0.9,
-                    side: THREE.BackSide
-                });
-                var holeMesh = new THREE.Mesh(holeGeom, holeMat);
-                beadGroup.add(holeMesh);
+                beadGroup.add(beadMesh);
 
                 // Embossed Letter on top
                 var pGlyph = font.getPath(char, 0, 0, fontSize);
@@ -4095,22 +4126,32 @@ export class KeychainViewer {
                     curveSegments: 32
                 });
                 discGeo.translate(0, 0, -discH / 2);
-                var discMesh = new THREE.Mesh(discGeo, matBead);
-                beadGroup.add(discMesh);
-
-                // Hole Cylinder Visualizer
-                var holeRadius = holeDiameter / 2;
-                var holeGeom = new THREE.CylinderGeometry(holeRadius, holeRadius, beadSize + 1.8, 24, 1, true);
-                if (isHorizontal) {
-                    holeGeom.rotateZ(Math.PI / 2);
+                var discMesh;
+                try {
+                    var holeRadiusDisc = holeDiameter / 2;
+                    var holeGeomDisc = new THREE.CylinderGeometry(holeRadiusDisc, holeRadiusDisc, beadSize + 4, 24);
+                    if (isHorizontal) holeGeomDisc.rotateZ(Math.PI / 2);
+                    var discBrush = new Brush(discGeo, matBead);
+                    var holeBrushDisc = new Brush(holeGeomDisc, matBead);
+                    discBrush.updateMatrixWorld();
+                    holeBrushDisc.updateMatrixWorld();
+                    var evaluatorDisc = new Evaluator();
+                    var resultBrushDisc = evaluatorDisc.evaluate(discBrush, holeBrushDisc, SUBTRACTION);
+                    var resultGeoDisc = resultBrushDisc.geometry;
+                    discGeo.dispose();
+                    holeGeomDisc.dispose();
+                    discMesh = new THREE.Mesh(resultGeoDisc, matBead);
+                } catch (e) {
+                    console.warn('Disc bead CSG failed, fallback', e);
+                    discMesh = new THREE.Mesh(discGeo, matBead);
+                    var holeRadiusDisc2 = holeDiameter / 2;
+                    var holeGeomDisc2 = new THREE.CylinderGeometry(holeRadiusDisc2, holeRadiusDisc2, beadSize + 1.8, 24, 1, true);
+                    if (isHorizontal) holeGeomDisc2.rotateZ(Math.PI / 2);
+                    var holeMatDisc2 = new THREE.MeshStandardMaterial({ color: new THREE.Color(baseColor).multiplyScalar(0.5), roughness: 0.9, side: THREE.BackSide });
+                    var holeMeshDisc2 = new THREE.Mesh(holeGeomDisc2, holeMatDisc2);
+                    beadGroup.add(holeMeshDisc2);
                 }
-                var holeMat = new THREE.MeshStandardMaterial({
-                    color: new THREE.Color(baseColor).multiplyScalar(0.5),
-                    roughness: 0.9,
-                    side: THREE.BackSide
-                });
-                var holeMesh = new THREE.Mesh(holeGeom, holeMat);
-                beadGroup.add(holeMesh);
+                beadGroup.add(discMesh);
 
                 // Embossed Letter on top
                 var pGlyph = font.getPath(char, 0, 0, fontSize);
@@ -4157,23 +4198,33 @@ export class KeychainViewer {
                         curveSegments: 16
                     });
                     baseGeo.translate(-cx, -cy, -letterBaseHeight / 2);
-                    var baseMesh = new THREE.Mesh(baseGeo, matBead);
+                    var baseMesh;
+                    try {
+                        var holeRadiusLetter = holeDiameter / 2;
+                        var holeGeomLetter = new THREE.CylinderGeometry(holeRadiusLetter, holeRadiusLetter, beadSize + 4, 24);
+                        if (isHorizontal) holeGeomLetter.rotateZ(Math.PI / 2);
+                        var baseBrushLetter = new Brush(baseGeo, matBead);
+                        var holeBrushLetter = new Brush(holeGeomLetter, matBead);
+                        baseBrushLetter.updateMatrixWorld();
+                        holeBrushLetter.updateMatrixWorld();
+                        var evaluatorLetter = new Evaluator();
+                        var resultBrushLetter = evaluatorLetter.evaluate(baseBrushLetter, holeBrushLetter, SUBTRACTION);
+                        var resultGeoLetter = resultBrushLetter.geometry;
+                        baseGeo.dispose();
+                        holeGeomLetter.dispose();
+                        baseMesh = new THREE.Mesh(resultGeoLetter, matBead);
+                    } catch (e) {
+                        console.warn('Letter bead CSG failed, fallback', e);
+                        baseMesh = new THREE.Mesh(baseGeo, matBead);
+                        var holeRadiusLetter2 = holeDiameter / 2;
+                        var holeGeomLetter2 = new THREE.CylinderGeometry(holeRadiusLetter2, holeRadiusLetter2, beadSize + 2, 24, 1, true);
+                        if (isHorizontal) holeGeomLetter2.rotateZ(Math.PI / 2);
+                        var holeMatLetter2 = new THREE.MeshStandardMaterial({ color: new THREE.Color(baseColor).multiplyScalar(0.5), roughness: 0.9, side: THREE.BackSide });
+                        var holeMeshLetter2 = new THREE.Mesh(holeGeomLetter2, holeMatLetter2);
+                        beadGroup.add(holeMeshLetter2);
+                    }
                     beadGroup.add(baseMesh);
                 }
-
-                // Hole Cylinder Visualizer
-                var holeRadius = holeDiameter / 2;
-                var holeGeom = new THREE.CylinderGeometry(holeRadius, holeRadius, beadSize + 2, 24, 1, true);
-                if (isHorizontal) {
-                    holeGeom.rotateZ(Math.PI / 2);
-                }
-                var holeMat = new THREE.MeshStandardMaterial({
-                    color: new THREE.Color(baseColor).multiplyScalar(0.5),
-                    roughness: 0.9,
-                    side: THREE.BackSide
-                });
-                var holeMesh = new THREE.Mesh(holeGeom, holeMat);
-                beadGroup.add(holeMesh);
 
                 // Embossed letter on top
                 if (rawCharShapes && rawCharShapes.length) {
@@ -4188,10 +4239,12 @@ export class KeychainViewer {
                 }
             }
 
+            beadGroup.scale.y = -1;
             this.keychainGroup.add(beadGroup);
+            this._beadGroups.push(beadGroup);
         }
 
-        // ── Threaded Elastic Cord & Stopper Beads ──
+        // ── Threaded Elastic Cord & Stopper Beads (preview-only, not in STL) ──
         var cordExtra = 24.0; // Extension on left/right or top/bottom
         var cordLength = totalSpan + beadSize + cordExtra * 2;
         var cordRadius = (holeDiameter * 0.45) / 2; // fits nicely inside 4mm hole
@@ -4200,12 +4253,16 @@ export class KeychainViewer {
             cordGeo.rotateZ(Math.PI / 2);
         }
         var cordMesh = new THREE.Mesh(cordGeo, matCord);
+        cordMesh.userData.isPreviewOnly = true;
         this.keychainGroup.add(cordMesh);
+        this._beadCord = cordMesh;
 
-        // Metallic Stopper Beads at both ends
+        // Metallic Stopper Beads at both ends (preview-only)
         var stopperGeo = new THREE.SphereGeometry(holeDiameter * 0.85, 24, 24);
         var stopper1 = new THREE.Mesh(stopperGeo, matStopper);
         var stopper2 = new THREE.Mesh(stopperGeo, matStopper);
+        stopper1.userData.isPreviewOnly = true;
+        stopper2.userData.isPreviewOnly = true;
 
         var endPos = (totalSpan / 2) + (beadSize / 2) + cordExtra * 0.7;
         if (isHorizontal) {
@@ -4217,6 +4274,7 @@ export class KeychainViewer {
         }
         this.keychainGroup.add(stopper1);
         this.keychainGroup.add(stopper2);
+        this._beadStoppers.push(stopper1, stopper2);
 
         this.scene.add(this.keychainGroup);
 
@@ -4414,12 +4472,56 @@ export class KeychainViewer {
     }
 
     /* ── Download STL (For 3D Printing) ── */
-    exportSTL(filename) {
+    // For LED Word Art (2-part: Back Panel + CAP) — ported from Achuva
+    // Achuva exports box vs cover separately; we support the same via `part` arg:
+    //   'back'/'housing' → back panel (housing tray)
+    //   'cap'/'cover'    → diffuser cover (lid with lip)
+    // If no part or not an LED product, exports the whole assembly.
+    exportSTL(filename, part) {
         if (!this.keychainGroup) return;
         
+        // For Name Beads: exclude preview-only cord/stoppers from STL (keep them in 3D view)
+        let _wasDetachedForBeads = [];
+        if (this._lastParams && this._lastParams.productType === 'name_beads' && this._beadGroups) {
+            const toDetach = [];
+            // Collect preview-only children
+            this.keychainGroup.children.slice().forEach(child => {
+                if (child.userData && child.userData.isPreviewOnly) toDetach.push(child);
+            });
+            if (this._beadCord && this._beadCord.parent === this.keychainGroup && !toDetach.includes(this._beadCord)) toDetach.push(this._beadCord);
+            if (this._beadStoppers) {
+                this._beadStoppers.forEach(s => {
+                    if (s.parent === this.keychainGroup && !toDetach.includes(s)) toDetach.push(s);
+                });
+            }
+            toDetach.forEach(obj => {
+                this.keychainGroup.remove(obj);
+                _wasDetachedForBeads.push(obj);
+            });
+            if (_wasDetachedForBeads.length) this.keychainGroup.updateMatrixWorld(true);
+        }
+
+        let target = this.keychainGroup;
+        if (part && this._lastParams && (this._lastParams.productType === 'led_word_art' || this._lastParams.productType === 'led_word_stand')) {
+            if ((part === 'back' || part === 'housing' || part === 'box') && this._ledBackPanel) {
+                target = this._ledBackPanel;
+            } else if ((part === 'cap' || part === 'cover') && this._ledCap) {
+                target = this._ledCap;
+            }
+        }
+        // Ensure matrixWorld is up-to-date for selective export (housing/cap are children of keychainGroup)
+        if (target !== this.keychainGroup) {
+            this.scene.updateMatrixWorld(true);
+        }
         // Use binary:true to produce a smaller, standard STL file for slicers
         const exporter = new STLExporter();
-        const stlString = exporter.parse(this.keychainGroup, { binary: true });
+        const stlString = exporter.parse(target, { binary: true });
+        
+        // Re-attach preview-only beads cord/stoppers after export
+        if (_wasDetachedForBeads.length) {
+            _wasDetachedForBeads.forEach(obj => this.keychainGroup.add(obj));
+            this.keychainGroup.updateMatrixWorld(true);
+        }
         
         const blob = new Blob([stlString], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);

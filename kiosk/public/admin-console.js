@@ -3,50 +3,51 @@
    Full-screen STL Generation Console
    ========================================= */
 
-import { KeychainViewer } from './js/viewer3d.js?v=wa1';
+import { KeychainViewer } from './js/viewer3d.js?v=wa5';
 
 // ===== FONT & COLOR DATA (mirrors script.js) =====
 
 const FONTS = [
-    { name: 'Brandy',             label: 'Brandy',          file: 'Fonts/Brandy.ttf',             lang: 'en' },
-    { name: 'CANAVAR',            label: 'Canavar',         file: 'Fonts/CANAVAR.ttf',            lang: 'en' },
-    { name: 'Super Bubble',       label: 'Super Bubble',    file: 'Fonts/Super Bubble.ttf',       lang: 'en' },
-    { name: 'Franxurter',         label: 'Franxurter',      file: 'Fonts/Franxurter.ttf',         lang: 'en' },
-    { name: 'Sunday Chillin',     label: 'Sunday Chillin',  file: 'Fonts/Sunday Chillin.ttf',     lang: 'en' },
-    { name: 'Quicksilver Italic', label: 'Quicksilver',     file: 'Fonts/Quicksilver Italic.ttf', lang: 'en' },
-    { name: 'Retrow Mentho',      label: 'Retrow Mentho',   file: 'Fonts/Retrow Mentho.ttf',      lang: 'en' },
-    { name: 'BagelFatOne',        label: 'Bagel Fat One',   file: 'Fonts/BagelFatOne-Regular.ttf', lang: 'en' },
-    { name: 'Flockey',            label: 'Flockey',         file: 'Fonts/Flockey.ttf',            lang: 'en' },
-    { name: 'OleoScript',         label: 'Oleo Script',     file: 'Fonts/OleoScript-Bold.ttf',    lang: 'en' },
-    { name: 'Rock Boys',          label: 'Rock Boys',       file: 'Fonts/Rock Boys.ttf',          lang: 'en' },
-    { name: 'Storm Catcher',      label: 'Storm Catcher',   file: 'Fonts/Storm Catcher.otf',      lang: 'en' },
-    { name: 'Nature Beauty',      label: 'Nature Beauty',   file: 'Fonts/Nature Beauty.ttf',      lang: 'en' },
-    { name: 'Nasi',               label: 'Nasi',            file: 'Fonts/Nasi.otf',               lang: 'en' },
-    { name: 'Baloo Thambi 2',     label: 'Baloo Thambi',    file: 'Fonts/BalooThambi2.ttf',       lang: 'ta' },
-    { name: 'Hind Madurai',       label: 'Hind Madurai',    file: 'Fonts/HindMadurai.ttf',        lang: 'ta' },
-    { name: 'Kavivanar',          label: 'Kavivanar',       file: 'Fonts/Kavivanar.ttf',          lang: 'ta' },
-    // Wavy Nametag Fonts
-    { name: 'Chewy',              label: 'Chewy',           file: 'Fonts/Chewy-Regular.ttf',      lang: 'en' },
-    { name: 'Bebas Neue',         label: 'Bebas Neue',      file: 'Fonts/BebasNeue-Regular.ttf',  lang: 'en' },
-    { name: 'Lobster',            label: 'Lobster',         file: 'Fonts/Lobster-Regular.ttf',    lang: 'en' },
-    { name: 'Pacifico',           label: 'Pacifico',        file: 'Fonts/Pacifico-Regular.ttf',   lang: 'en' },
-    { name: 'Raleway',            label: 'Raleway',         file: 'Fonts/Raleway-Regular.ttf',    lang: 'en' },
-    { name: 'Oswald',             label: 'Oswald',          file: 'Fonts/Oswald-Regular.ttf',     lang: 'en' },
-    { name: 'Anton',              label: 'Anton',           file: 'Fonts/Anton-Regular.ttf',      lang: 'en' },
-    { name: 'Archivo Black',      label: 'Archivo Black',   file: 'Fonts/ArchivoBlack-Regular.ttf', lang: 'en' },
-    { name: 'Impact',             label: 'Impact',          file: 'Fonts/impact.ttf',             lang: 'en' },
-    { name: 'Playfair Display',   label: 'Playfair Display',file: 'Fonts/PlayfairDisplay-Regular.ttf', lang: 'en' },
-    { name: 'Orbitron',           label: 'Orbitron',        file: 'Fonts/Orbitron-Regular.ttf',   lang: 'en' },
-    { name: 'Press Start 2P',     label: 'Press Start 2P',  file: 'Fonts/PressStart2P-Regular.ttf', lang: 'en' },
-    { name: 'Creepster',          label: 'Creepster',       file: 'Fonts/Creepster-Regular.ttf',  lang: 'en' },
-    { name: 'Poppins',            label: 'Poppins',         file: 'Fonts/Poppins-Regular.ttf',    lang: 'en' },
-    { name: 'Monoton',            label: 'Monoton',         file: 'Fonts/Monoton-Regular.ttf',    lang: 'en' },
+    { name: 'Amatic SC', label: 'Amatic SC', file: 'Fonts/AmaticSC-Regular.ttf', lang: 'en' },
+    { name: 'Anton', label: 'Anton', file: 'Fonts/Anton-Regular.ttf', lang: 'en' },
+    { name: 'Archivo Black', label: 'Archivo Black', file: 'Fonts/ArchivoBlack-Regular.ttf', lang: 'en' },
+    { name: 'BagelFatOne', label: 'Bagel Fat One', file: 'Fonts/BagelFatOne-Regular.ttf', lang: 'en' },
+    { name: 'Baloo Thambi 2', label: 'Baloo Thambi', file: 'Fonts/BalooThambi2.ttf', lang: 'ta' },
+    { name: 'Bebas Neue', label: 'Bebas Neue', file: 'Fonts/BebasNeue-Regular.ttf', lang: 'en' },
+    { name: 'Brandy', label: 'Brandy', file: 'Fonts/Brandy.ttf', lang: 'en' },
+    { name: 'CANAVAR', label: 'Canavar', file: 'Fonts/CANAVAR.ttf', lang: 'en' },
+    { name: 'Chewy', label: 'Chewy', file: 'Fonts/Chewy-Regular.ttf', lang: 'en' },
+    { name: 'Cinzel', label: 'Cinzel', file: 'Fonts/Cinzel-Regular.ttf', lang: 'en' },
+    { name: 'Creepster', label: 'Creepster', file: 'Fonts/Creepster-Regular.ttf', lang: 'en' },
+    { name: 'Exo 2', label: 'Exo 2', file: 'Fonts/Exo2-Regular.ttf', lang: 'en' },
+    { name: 'Flockey', label: 'Flockey', file: 'Fonts/Flockey.ttf', lang: 'en' },
+    { name: 'Franxurter', label: 'Franxurter', file: 'Fonts/Franxurter.ttf', lang: 'en' },
+    { name: 'Fredoka One', label: 'Fredoka One', file: 'Fonts/FredokaOne-Regular.ttf', lang: 'en' },
+    { name: 'Hind Madurai', label: 'Hind Madurai', file: 'Fonts/HindMadurai.ttf', lang: 'ta' },
+    { name: 'Impact', label: 'Impact', file: 'Fonts/impact.ttf', lang: 'en' },
+    { name: 'Kavivanar', label: 'Kavivanar', file: 'Fonts/Kavivanar.ttf', lang: 'ta' },
+    { name: 'Lobster', label: 'Lobster', file: 'Fonts/Lobster-Regular.ttf', lang: 'en' },
+    { name: 'Monoton', label: 'Monoton', file: 'Fonts/Monoton-Regular.ttf', lang: 'en' },
+    { name: 'Nasi', label: 'Nasi', file: 'Fonts/Nasi.otf', lang: 'en' },
+    { name: 'Nature Beauty', label: 'Nature Beauty', file: 'Fonts/Nature Beauty.ttf', lang: 'en' },
+    { name: 'OleoScript', label: 'Oleo Script', file: 'Fonts/OleoScript-Bold.ttf', lang: 'en' },
+    { name: 'Orbitron', label: 'Orbitron', file: 'Fonts/Orbitron-Regular.ttf', lang: 'en' },
+    { name: 'Oswald', label: 'Oswald', file: 'Fonts/Oswald-Regular.ttf', lang: 'en' },
+    { name: 'Pacifico', label: 'Pacifico', file: 'Fonts/Pacifico-Regular.ttf', lang: 'en' },
+    { name: 'Playfair Display', label: 'Playfair Display', file: 'Fonts/PlayfairDisplay-Regular.ttf', lang: 'en' },
+    { name: 'Poppins', label: 'Poppins', file: 'Fonts/Poppins-Regular.ttf', lang: 'en' },
+    { name: 'Press Start 2P', label: 'Press Start 2P', file: 'Fonts/PressStart2P-Regular.ttf', lang: 'en' },
+    { name: 'Quicksilver Italic', label: 'Quicksilver', file: 'Fonts/Quicksilver Italic.ttf', lang: 'en' },
+    { name: 'Raleway', label: 'Raleway', file: 'Fonts/Raleway-Regular.ttf', lang: 'en' },
+    { name: 'Retrow Mentho', label: 'Retrow Mentho', file: 'Fonts/Retrow Mentho.ttf', lang: 'en' },
+    { name: 'Rock Boys', label: 'Rock Boys', file: 'Fonts/Rock Boys.ttf', lang: 'en' },
+    { name: 'Satisfy', label: 'Satisfy', file: 'Fonts/Satisfy-Regular.ttf', lang: 'en' },
     { name: 'Shadows Into Light', label: 'Shadows Into Light', file: 'Fonts/ShadowsIntoLight.ttf', lang: 'en' },
-    { name: 'Fredoka One',        label: 'Fredoka One',     file: 'Fonts/FredokaOne-Regular.ttf', lang: 'en' },
-    { name: 'Cinzel',             label: 'Cinzel',          file: 'Fonts/Cinzel-Regular.ttf',     lang: 'en' },
-    { name: 'Amatic SC',          label: 'Amatic SC',       file: 'Fonts/AmaticSC-Regular.ttf',   lang: 'en' },
-    { name: 'Exo 2',              label: 'Exo 2',           file: 'Fonts/Exo2-Regular.ttf',       lang: 'en' },
+    { name: 'Storm Catcher', label: 'Storm Catcher', file: 'Fonts/Storm Catcher.otf', lang: 'en' },
+    { name: 'Sunday Chillin', label: 'Sunday Chillin', file: 'Fonts/Sunday Chillin.ttf', lang: 'en' },
+    { name: 'Super Bubble', label: 'Super Bubble', file: 'Fonts/Super Bubble.ttf', lang: 'en' }
 ];
+;
 
 const NAMETAG_FONT_ALLOWLIST = [
     'Chewy', 'Bebas Neue', 'Lobster', 'Pacifico', 'Raleway', 'Oswald', 'Anton',
@@ -183,6 +184,9 @@ const state = {
     _borderedColorsApplied: false,
     _flowerColorsApplied: false,
     _nametagColorsApplied: false,
+    _organizerColorsApplied: false,
+    _beadsColorsApplied: false,
+    _ledColorsApplied: false,
 };
 
 // ===== DOM REFERENCES =====
@@ -293,6 +297,26 @@ const SLIDER_MAP = {
     organizer_height:       { range: 'adminOrganizerHeight',      num: 'adminOrganizerHeightNum' },
     organizer_wall_thk:     { range: 'adminOrganizerWallThk',     num: 'adminOrganizerWallThkNum' },
     organizer_letter_depth: { range: 'adminOrganizerLetterDepth', num: 'adminOrganizerLetterDepthNum' },
+
+    // LED Word Art Sliders — 2-Part (Back Panel + CAP) — Ported from Achuva
+    // Back Panel (Housing)
+    led_font_size:      { range: 'adminLedFontSize',      num: 'adminLedFontSizeNum' },
+    led_body_depth:     { range: 'adminLedBodyDepth',     num: 'adminLedBodyDepthNum' },
+    led_wall_thk:       { range: 'adminLedWallThk',       num: 'adminLedWallThkNum' },
+    led_back_thk:       { range: 'adminLedBackThk',       num: 'adminLedBackThkNum' },
+    led_letter_spacing: { range: 'adminLedLetterSpacing', num: 'adminLedLetterSpacingNum' },
+    // CAP (Diffuser Cover)
+    led_cover_thk:  { range: 'adminLedCoverThk',  num: 'adminLedCoverThkNum' },
+    led_lip_depth:  { range: 'adminLedLipDepth',  num: 'adminLedLipDepthNum' },
+    led_lip_width:  { range: 'adminLedLipWidth',  num: 'adminLedLipWidthNum' },
+    led_tolerance:  { range: 'adminLedTolerance', num: 'adminLedToleranceNum' },
+    led_explode:    { range: 'adminLedExplode',   num: 'adminLedExplodeNum' },
+
+    // Name Beads — Jackson's SCAD Generator
+    bead_size:          { range: 'adminBeadSize',         num: 'adminBeadSizeNum' },
+    bead_hole:          { range: 'adminBeadHole',         num: 'adminBeadHoleNum' },
+    bead_spacing:       { range: 'adminBeadSpacing',      num: 'adminBeadSpacingNum' },
+    bead_letter_height: { range: 'adminBeadLetterHeight', num: 'adminBeadLetterHeightNum' },
 };
 
 // Resolve DOM references
@@ -687,6 +711,42 @@ function collectParams() {
         p.organizer_wall_thk = parseFloat(sliders.organizer_wall_thk.range.value);
         p.organizer_letter_depth = parseFloat(sliders.organizer_letter_depth.range.value);
     }
+
+    // LED Word Art — 2-Part (Back Panel + CAP) — Ported from Achuva
+    // Achuva groups Back Panel and CAP separately; we expose the same split.
+    if (sliders.led_font_size) {
+        p.font_size      = parseFloat(sliders.led_font_size.range.value);
+        p.body_depth     = parseFloat(sliders.led_body_depth.range.value);
+        p.wall_thickness = parseFloat(sliders.led_wall_thk.range.value);
+        p.back_wall_thickness = parseFloat(sliders.led_back_thk.range.value);
+        p.letter_spacing = parseFloat(sliders.led_letter_spacing.range.value);
+        p.cover_thickness = parseFloat(sliders.led_cover_thk.range.value);
+        p.cover_lip_depth = parseFloat(sliders.led_lip_depth.range.value);
+        p.cover_lip_width = parseFloat(sliders.led_lip_width.range.value);
+        p.cover_tolerance = parseFloat(sliders.led_tolerance.range.value);
+        p.explode_cover   = parseFloat(sliders.led_explode.range.value);
+    }
+
+    // Name Beads — Jackson's Custom Bead Generator (SCAD)
+    if (sliders.bead_size) {
+        p.bead_size = parseFloat(sliders.bead_size.range.value);
+        p.hole_diameter = parseFloat(sliders.bead_hole.range.value);
+        p.spacing = parseFloat(sliders.bead_spacing.range.value);
+        p.letter_height = parseFloat(sliders.bead_letter_height.range.value);
+        const shapeEl = $('adminBeadShape');
+        const dirEl = $('adminBeadDirection');
+        if (shapeEl) {
+            const v = shapeEl.value;
+            p.bead_shape = parseInt(v, 10);
+            // also send string variants for viewer compatibility
+            p.beadShape = v === '0' ? 'square' : (v === '1' ? 'circle' : 'letter');
+        }
+        if (dirEl) {
+            const v = dirEl.value;
+            p.layout_direction = parseInt(v, 10);
+            p.beadDirection = v === '0' ? 'horizontal' : 'vertical';
+        }
+    }
     return p;
 }
 
@@ -977,6 +1037,84 @@ function setSliders(p) {
         sliders.organizer_letter_depth.range.value = p.organizer_letter_depth;
         sliders.organizer_letter_depth.num.value   = p.organizer_letter_depth;
     }
+
+    // LED Word Art — 2-Part (Back Panel + CAP) — Ported from Achuva
+    if (p.font_size !== undefined) {
+        sliders.led_font_size.range.value = p.font_size;
+        sliders.led_font_size.num.value   = p.font_size;
+    }
+    if (p.body_depth !== undefined) {
+        sliders.led_body_depth.range.value = p.body_depth;
+        sliders.led_body_depth.num.value   = p.body_depth;
+    }
+    if (p.wall_thickness !== undefined) {
+        sliders.led_wall_thk.range.value = p.wall_thickness;
+        sliders.led_wall_thk.num.value   = p.wall_thickness;
+    }
+    if (p.back_wall_thickness !== undefined) {
+        sliders.led_back_thk.range.value = p.back_wall_thickness;
+        sliders.led_back_thk.num.value   = p.back_wall_thickness;
+    }
+    if (p.letter_spacing !== undefined) {
+        sliders.led_letter_spacing.range.value = p.letter_spacing;
+        sliders.led_letter_spacing.num.value   = p.letter_spacing;
+    }
+    if (p.cover_thickness !== undefined) {
+        sliders.led_cover_thk.range.value = p.cover_thickness;
+        sliders.led_cover_thk.num.value   = p.cover_thickness;
+    }
+    if (p.cover_lip_depth !== undefined) {
+        sliders.led_lip_depth.range.value = p.cover_lip_depth;
+        sliders.led_lip_depth.num.value   = p.cover_lip_depth;
+    }
+    if (p.cover_lip_width !== undefined) {
+        sliders.led_lip_width.range.value = p.cover_lip_width;
+        sliders.led_lip_width.num.value   = p.cover_lip_width;
+    }
+    if (p.cover_tolerance !== undefined) {
+        sliders.led_tolerance.range.value = p.cover_tolerance;
+        sliders.led_tolerance.num.value   = p.cover_tolerance;
+    }
+    if (p.explode_cover !== undefined) {
+        sliders.led_explode.range.value = p.explode_cover;
+        sliders.led_explode.num.value   = p.explode_cover;
+    }
+
+    // Name Beads — Jackson's SCAD
+    if (p.bead_size !== undefined) {
+        sliders.bead_size.range.value = p.bead_size;
+        sliders.bead_size.num.value   = p.bead_size;
+    }
+    if (p.hole_diameter !== undefined) {
+        sliders.bead_hole.range.value = p.hole_diameter;
+        sliders.bead_hole.num.value   = p.hole_diameter;
+    }
+    if (p.spacing !== undefined) {
+        sliders.bead_spacing.range.value = p.spacing;
+        sliders.bead_spacing.num.value   = p.spacing;
+    }
+    if (p.letter_height !== undefined) {
+        sliders.bead_letter_height.range.value = p.letter_height;
+        sliders.bead_letter_height.num.value   = p.letter_height;
+    }
+    if (p.bead_shape !== undefined) {
+        const el = $('adminBeadShape');
+        if (el) el.value = String(p.bead_shape);
+    } else if (p.beadShape !== undefined) {
+        const el = $('adminBeadShape');
+        if (el) {
+            if (p.beadShape === 'square' || p.beadShape === 0) el.value = '0';
+            else if (p.beadShape === 'circle' || p.beadShape === 1) el.value = '1';
+            else el.value = '2';
+        }
+    }
+    if (p.layout_direction !== undefined) {
+        const el = $('adminBeadDirection');
+        if (el) el.value = String(p.layout_direction);
+    } else if (p.beadDirection !== undefined) {
+        const el = $('adminBeadDirection');
+        if (el) el.value = (p.beadDirection === 'vertical' || p.beadDirection === '1' || p.beadDirection === 1) ? '1' : '0';
+    }
 }
 
 // ===== DEBOUNCED REBUILD =====
@@ -1099,9 +1237,16 @@ function initViewportActions() {
         KeychainViewer.downloadSVG(svg);
     });
 
-    // Quick STL export
+    // Quick STL export — also 2-part for LED Word Art
     vpSTLBtn.addEventListener('click', () => {
-        if (viewer) viewer.exportSTL();
+        if (!viewer) return;
+        if (state.productType === 'led_word_art' || state.productType === 'led_word_stand') {
+            const base = (filenameInput.value.trim() || 'keychain_3d_print');
+            viewer.exportSTL(base + '_back.stl', 'back');
+            setTimeout(() => { if (viewer) viewer.exportSTL(base + '_cap.stl', 'cap'); }, 350);
+            return;
+        }
+        viewer.exportSTL();
     });
 }
 
@@ -1175,19 +1320,33 @@ function initPresets() {
 // ===== EXPORT & RESET =====
 
 function initExportReset() {
-    // Export STL
+    if (!exportBtn) return;
+    // Export STL — for LED Word Art (2-part: Back Panel + CAP) we export two files
+    // (ported from Achuva's box/cover dual-download pattern)
     exportBtn.addEventListener('click', () => {
         if (!viewer) return;
         if (_printCheckHasErrors) {
             alert('This model has printability errors and would fail on the printer. Fix them before exporting.');
             return;
         }
-        const filename = (filenameInput.value.trim() || 'keychain_3d_print') + '.stl';
+        const baseName = (filenameInput.value.trim() || 'keychain_3d_print');
+        // 2-part product: LED Word Art → export Back Panel + CAP separately
+        if (state.productType === 'led_word_art' || state.productType === 'led_word_stand') {
+            const backFile = baseName + '_back.stl';
+            const capFile  = baseName + '_cap.stl';
+            viewer.exportSTL(backFile, 'back');
+            // Small delay so browser triggers two separate downloads (Achuva pattern: 300ms)
+            setTimeout(() => {
+                if (viewer) viewer.exportSTL(capFile, 'cap');
+            }, 350);
+            return;
+        }
+        const filename = baseName + '.stl';
         viewer.exportSTL(filename);
     });
 
     // Reset
-    resetBtn.addEventListener('click', () => {
+    if (resetBtn) resetBtn.addEventListener('click', () => {
         setSliders(PRESETS.standard);
         document.querySelectorAll('.preset-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.preset === 'standard');
@@ -1301,6 +1460,27 @@ function ensureDefaultsForProductType() {
             state._flowerColorsApplied = false;
             buildSwatches();
         }
+        if (state.productType !== 'led_word_art' && state.productType !== 'led_word_stand' && state._ledColorsApplied) {
+            state.colors.base = '#ff9933';
+            state.colors.font = '#FFFFFF';
+            state.colors.outline = '#000000';
+            state._ledColorsApplied = false;
+            buildSwatches();
+        }
+        if (state.productType !== 'desk_organizer' && state._organizerColorsApplied) {
+            state.colors.base = '#ff9933';
+            state.colors.font = '#FFFFFF';
+            state.colors.outline = '#000000';
+            state._organizerColorsApplied = false;
+            buildSwatches();
+        }
+        if (state.productType !== 'name_beads' && state._beadsColorsApplied) {
+            state.colors.base = '#ff9933';
+            state.colors.font = '#FFFFFF';
+            state.colors.outline = '#000000';
+            state._beadsColorsApplied = false;
+            buildSwatches();
+        }
         
         let selectedAllowed = true;
         if (state.productType === 'loveseries') {
@@ -1344,6 +1524,15 @@ function ensureDefaultsForProductType() {
                 state._flowerColorsApplied = true;
                 buildSwatches();
             }
+        } else if (state.productType === 'led_word_art' || state.productType === 'led_word_stand') {
+            if (!state._ledColorsApplied) {
+                // Ported from Achuva: dark housing + bright diffuser for LED (2-part)
+                state.colors.base = '#1e293b';
+                state.colors.font = '#38bdf8';
+                state.colors.outline = '#000000';
+                state._ledColorsApplied = true;
+                buildSwatches();
+            }
         } else if (state.productType === 'desk_organizer') {
             if (!state._organizerColorsApplied) {
                 state.colors.base = '#2c3e50';
@@ -1385,6 +1574,12 @@ function applyProductTypeUI() {
     const isFlower = state.productType === 'flower_keychain';
     const isDeskOrganizer = state.productType === 'desk_organizer';
     const isBeads = state.productType === 'name_beads';
+    const isLedArt = state.productType === 'led_word_art';
+    const isLedStand = state.productType === 'led_word_stand';
+    const isLed = isLedArt || isLedStand;
+    const isBubble = state.productType === 'bubble_keychain';
+    const isTile = state.productType === 'tilekey';
+    const isLinked = state.productType === 'linked_initials';
     // LOVE Series renders through the word-art pipeline, so it gets the same backing options.
     const isWordartFamily = state.productType === 'wordart' || state.productType === 'loveseries';
 
@@ -1406,6 +1601,15 @@ function applyProductTypeUI() {
     const organizerSection = $('adminDeskOrganizerSection');
     if (organizerSection) organizerSection.style.display = isDeskOrganizer ? 'block' : 'none';
 
+    // LED Word Art — 2-Part (Back Panel + CAP) — Ported from Achuva
+    const ledBackSection = $('adminLedBackSection');
+    if (ledBackSection) ledBackSection.style.display = isLed ? 'block' : 'none';
+    const ledCapSection = $('adminLedCapSection');
+    if (ledCapSection) ledCapSection.style.display = isLed ? 'block' : 'none';
+
+    const beadsSection = $('adminBeadsSection');
+    if (beadsSection) beadsSection.style.display = isBeads ? 'block' : 'none';
+
     const standardSections = [
         $('adminBaseSection'),
         $('adminOutlineSection'),
@@ -1415,7 +1619,7 @@ function applyProductTypeUI() {
     ];
     standardSections.forEach(sec => {
         if (sec) {
-            const hideStandard = isNametag || isBordered || isSupported || isFlower || isDeskOrganizer || isBeads;
+            const hideStandard = isNametag || isBordered || isSupported || isFlower || isDeskOrganizer || isBeads || isLed || isBubble || isTile || isLinked;
             sec.style.display = hideStandard ? 'none' : 'block';
         }
     });
@@ -1424,12 +1628,39 @@ function applyProductTypeUI() {
     const outlineSwatchGroup = $('adminOutlineSwatchGroup');
     const layerToggleWrap = $('adminLayerToggleWrap');
 
-    const hideOutlineAndLayers = isNametag || isBordered || isSupported || isFlower || isBeads;
+    const hideOutlineAndLayers = isNametag || isBordered || isSupported || isFlower || isLed;
 
     if (fontSwatchGroup) fontSwatchGroup.style.display = isNametag ? 'none' : '';
     const isWordartLike = state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey' || state.productType === 'linked_initials';
-    if (outlineSwatchGroup) outlineSwatchGroup.style.display = (hideOutlineAndLayers || (state.layers !== '3L' && !isWordartLike && !isDeskOrganizer)) ? 'none' : '';
-    if (layerToggleWrap) layerToggleWrap.style.display = (hideOutlineAndLayers || isDeskOrganizer || isBeads) ? 'none' : '';
+    if (outlineSwatchGroup) outlineSwatchGroup.style.display = (hideOutlineAndLayers || (state.layers !== '3L' && !isWordartLike && !isDeskOrganizer && !isBeads)) ? 'none' : '';
+    if (layerToggleWrap) layerToggleWrap.style.display = (hideOutlineAndLayers || isDeskOrganizer || isBeads || isLed) ? 'none' : '';
+
+    // LED: Update color labels to reflect 2-part product (Housing + Diffuser) — Achuva style
+    if (isLed) {
+        const baseLabel = document.querySelector('#adminBaseSwatchGroup .swatchLabel');
+        const fontLabel = document.querySelector('#adminFontSwatchGroup .swatchLabel');
+        if (baseLabel) baseLabel.textContent = 'Housing Tray';
+        if (fontLabel) fontLabel.textContent = 'Diffuser Cover';
+        if (outlineSwatchGroup) outlineSwatchGroup.style.display = 'none';
+        if (layerToggleWrap) layerToggleWrap.style.display = 'none';
+    } else if (isBeads) {
+        const baseLabel = document.querySelector('#adminBaseSwatchGroup .swatchLabel');
+        const fontLabel = document.querySelector('#adminFontSwatchGroup .swatchLabel');
+        const outlineLabel = document.querySelector('#adminOutlineSwatchGroup .swatchLabel');
+        if (baseLabel) baseLabel.textContent = 'Bead Body';
+        if (fontLabel) fontLabel.textContent = 'Letter';
+        if (outlineLabel) outlineLabel.textContent = 'Cord / Elastic';
+        if (outlineSwatchGroup) outlineSwatchGroup.style.display = '';
+        if (fontSwatchGroup) fontSwatchGroup.style.display = '';
+        if (layerToggleWrap) layerToggleWrap.style.display = 'none';
+    } else {
+        const baseLabel = document.querySelector('#adminBaseSwatchGroup .swatchLabel');
+        const fontLabel = document.querySelector('#adminFontSwatchGroup .swatchLabel');
+        const outlineLabel = document.querySelector('#adminOutlineSwatchGroup .swatchLabel');
+        if (baseLabel) baseLabel.textContent = 'Base Color';
+        if (fontLabel) fontLabel.textContent = 'Text Color';
+        if (outlineLabel) outlineLabel.textContent = 'Outline Color';
+    }
 
     if (isNametag) {
         nameInput.placeholder = 'e.g. Priya (Max 15 chars)';
@@ -1462,6 +1693,25 @@ function applyProductTypeUI() {
     } else if (isBeads) {
         nameInput.placeholder = 'e.g. EMMA (Max 10 chars)';
         nameInput.maxLength = 10;
+        if (nameInput.value.includes('\n')) {
+            nameInput.value = nameInput.value.replace(/\n/g, '');
+            state.name = nameInput.value;
+        }
+    } else if (isLedArt || isLedStand) {
+        nameInput.placeholder = 'e.g. DREAM (Max 15 chars)';
+        nameInput.maxLength = 15;
+        // Keep letter_spacing product-appropriate (art merged -12, stand separated 4)
+        // when switching between the two variants — Achuva keeps them distinct.
+        if (sliders.led_letter_spacing) {
+            const cur = parseFloat(sliders.led_letter_spacing.range.value);
+            if (isLedArt && Math.abs(cur - 4) < 0.01) {
+                sliders.led_letter_spacing.range.value = '-12';
+                sliders.led_letter_spacing.num.value = '-12';
+            } else if (isLedStand && Math.abs(cur - (-12)) < 0.01) {
+                sliders.led_letter_spacing.range.value = '4';
+                sliders.led_letter_spacing.num.value = '4';
+            }
+        }
         if (nameInput.value.includes('\n')) {
             nameInput.value = nameInput.value.replace(/\n/g, '');
             state.name = nameInput.value;
@@ -1616,6 +1866,26 @@ function init() {
             debouncedRebuild();
         });
     }
+
+    // Bind Name Beads shape/direction (Jackson's SCAD)
+    const beadShapeSelect = $('adminBeadShape');
+    if (beadShapeSelect) {
+        beadShapeSelect.addEventListener('change', () => debouncedRebuild());
+    }
+    const beadDirSelect = $('adminBeadDirection');
+    if (beadDirSelect) {
+        beadDirSelect.addEventListener('change', () => debouncedRebuild());
+    }
+
+    // Bind Desk Organizer layout & Supported/Bordered/Flower selects that affect rebuild
+    const organizerLayoutSelect = $('adminOrganizerLayout');
+    if (organizerLayoutSelect) organizerLayoutSelect.addEventListener('change', () => debouncedRebuild());
+    const borderedShowRingSelect = $('adminBorderedShowRing');
+    if (borderedShowRingSelect) borderedShowRingSelect.addEventListener('change', () => debouncedRebuild());
+    ['adminSupportedHeart1Enable','adminSupportedHeart2Enable','adminSupportedStar1Enable','adminSupportedStar2Enable'].forEach(id => {
+        const el = $(id);
+        if (el) el.addEventListener('change', () => debouncedRebuild());
+    });
 
     // Auto-select font FIRST (skipping render so we don't trigger twice)
     if (!state.selectedFont) {

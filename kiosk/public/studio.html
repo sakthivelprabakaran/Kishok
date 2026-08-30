@@ -105,6 +105,7 @@
 <!-- Product Select extracted from body -->
 <select class="productSelect" id="adminProductType" style="">
 <option selected="" value="keychain">🔑 Classic Keychain</option>
+<option value="bubble_keychain">🔵 Bubble Keychain</option>
 <option value="nameplate">🪧 Nameplate</option>
 <option value="wordart">✨ Word Art</option>
 <option value="loveseries">❤ LOVE Series</option>
@@ -116,6 +117,8 @@
 <option value="supported_text">🧱 Supported Nameplate</option>
 <option value="flower_keychain">🌸 Flower Initial</option>
 <option value="desk_organizer">🗄️ Desk Organizer</option>
+<option value="led_word_stand">💡 LED Word Stand</option>
+<option value="led_word_art">💡 LED Word Art</option>
 <option value="name_beads">📿 Custom Name Beads</option>
 </select>
 <div class="presetGroup" id="adminPresetsSection">
@@ -800,6 +803,142 @@ Letters only — the word itself is the whole structure.
 <span class="valSuffix">mm</span>
 </div>
 </div>
+</div><div class="ctrlSection" id="adminLedBackSection" style="display: none;">
+<div class="ctrlSectionTitle">🔙 Back Panel (Housing) — LED Word Art</div>
+<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;line-height:1.4;">2-part hollow tray that houses the LED strip. Adjust the tray dimensions below.</div>
+<div class="sliderRow">
+<span class="sliderLabel">Font Size</span>
+<input class="sliderRange" id="adminLedFontSize" max="200" min="40" step="1" type="range" value="100"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedFontSizeNum" max="200" min="40" step="1" type="number" value="100"/>
+<span class="valSuffix">px</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Base Depth (Tray)</span>
+<input class="sliderRange" id="adminLedBodyDepth" max="60" min="10" step="0.5" type="range" value="25"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedBodyDepthNum" max="60" min="10" step="0.5" type="number" value="25"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Wall Thickness</span>
+<input class="sliderRange" id="adminLedWallThk" max="6" min="1" step="0.1" type="range" value="2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedWallThkNum" max="6" min="1" step="0.1" type="number" value="2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Back Thickness</span>
+<input class="sliderRange" id="adminLedBackThk" max="8" min="1" step="0.1" type="range" value="2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedBackThkNum" max="8" min="1" step="0.1" type="number" value="2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Letter Spacing</span>
+<input class="sliderRange" id="adminLedLetterSpacing" max="20" min="-15" step="0.5" type="range" value="-12"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedLetterSpacingNum" max="20" min="-15" step="0.5" type="number" value="-12"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+</div><div class="ctrlSection" id="adminLedCapSection" style="display: none;">
+<div class="ctrlSectionTitle">🧢 CAP (Diffuser Cover) — LED Word Art</div>
+<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;line-height:1.4;">Friction-fit translucent cover. Lip inserts into the housing for a press-fit.</div>
+<div class="sliderRow">
+<span class="sliderLabel">Cover Thickness</span>
+<input class="sliderRange" id="adminLedCoverThk" max="6" min="0.6" step="0.1" type="range" value="2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedCoverThkNum" max="6" min="0.6" step="0.1" type="number" value="2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Lip Depth</span>
+<input class="sliderRange" id="adminLedLipDepth" max="15" min="0.5" step="0.1" type="range" value="3"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedLipDepthNum" max="15" min="0.5" step="0.1" type="number" value="3"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Lip Width</span>
+<input class="sliderRange" id="adminLedLipWidth" max="8" min="0.5" step="0.1" type="range" value="1.5"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedLipWidthNum" max="8" min="0.5" step="0.1" type="number" value="1.5"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Tolerance (Gap)</span>
+<input class="sliderRange" id="adminLedTolerance" max="1" min="0" step="0.01" type="range" value="0.15"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedToleranceNum" max="1" min="0" step="0.01" type="number" value="0.15"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Explode Cover</span>
+<input class="sliderRange" id="adminLedExplode" max="80" min="0" step="1" type="range" value="0"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLedExplodeNum" max="80" min="0" step="1" type="number" value="0"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+</div><div class="ctrlSection" id="adminBeadsSection" style="display: none;">
+<div class="ctrlSectionTitle">📿 Name Beads — Jackson's Generator (SCAD)</div>
+<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;line-height:1.4;">Bead on elastic cord. Top-face letter. 2-part hollow? No — single bead with hole & raised letter.</div>
+<div class="sliderRow">
+<span class="sliderLabel">Bead Size</span>
+<input class="sliderRange" id="adminBeadSize" max="20" min="8" step="0.5" type="range" value="12"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBeadSizeNum" max="20" min="8" step="0.5" type="number" value="12"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Hole Diameter</span>
+<input class="sliderRange" id="adminBeadHole" max="8" min="2" step="0.5" type="range" value="4"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBeadHoleNum" max="8" min="2" step="0.5" type="number" value="4"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Spacing (Gap)</span>
+<input class="sliderRange" id="adminBeadSpacing" max="5" min="0" step="0.5" type="range" value="2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBeadSpacingNum" max="5" min="0" step="0.5" type="number" value="2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Letter Height (Emboss)</span>
+<input class="sliderRange" id="adminBeadLetterHeight" max="3" min="0.5" step="0.1" type="range" value="1.2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBeadLetterHeightNum" max="3" min="0.5" step="0.1" type="number" value="1.2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Bead Shape</span>
+<select class="ctrl-select-input" id="adminBeadShape" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+<option value="0" selected="">⬜ Square (Rounded)</option>
+<option value="1">⭕ Circle (Disc)</option>
+<option value="2">🔤 Letter Shape</option>
+</select>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Layout Direction</span>
+<select class="ctrl-select-input" id="adminBeadDirection" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+<option value="0" selected="">➡️ Left to Right</option>
+<option value="1">⬇️ Up and Down (Vertical)</option>
+</select>
+</div>
 </div>
 </div>
 <div class="exportSection">
@@ -812,6 +951,7 @@ Letters only — the word itself is the whole structure.
 <div class="print-check" id="adminPrintCheck" data-state="ok" aria-live="polite"></div>
 <div class="exportBtns">
 <button class="exportBtn" id="adminExportSTL">🖨️ Download STL</button>
+<button class="exportBtn exportBtnSecondary" id="adminResetBtn">↺ Reset</button>
 </div>
 </div>
 </div>
@@ -883,6 +1023,6 @@ Letters only — the word itself is the whole structure.
   boot();
 })();
 </script>
-<script src="admin-console.js?v=4" type="module"></script>
+<script src="admin-console.js?v=10" type="module"></script>
 </body>
 </html>
