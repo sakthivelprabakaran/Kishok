@@ -799,3 +799,257 @@ body:has(.studio) {
     cursor: not-allowed;
     filter: grayscale(0.6);
 }
+
+/* =========================================================
+   STUDIO — Mobile adaptation (careful, desktop untouched)
+   Mirrors admin.css @768 + customizer @1024 pattern.
+   No JS changes, no class renames, only stacked layout
+   below breakpoint and safe-area padding.
+   ========================================================= */
+
+/* PIN gate: prevent 320px overflow on SE / narrow viewports */
+#studioLoginCard {
+    width: min(320px, 90vw);
+    max-width: 340px;
+    box-sizing: border-box;
+}
+#studioLoginGate {
+    padding: 1.5rem;
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+/* Touch hint swap (pointer-coarse) — same as styles-root.css:152 */
+@media (hover: none) and (pointer: coarse) {
+    .viewportHint::after {
+        content: " · Tap Unlock to interact";
+        font-weight: 600;
+    }
+}
+
+@media (max-width: 1024px) {
+    /* Page scrolls instead of clipped 100dvh — required for sticky */
+    body:has(.studio) {
+        overflow: auto;
+        overflow-x: hidden;
+    }
+    .studio {
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+    }
+    .studioBody {
+        display: block;
+        height: auto;
+        overflow: visible;
+    }
+    /* Viewport becomes sticky top preview (customizer pattern) */
+    .viewport {
+        position: sticky;
+        top: 48px;
+        z-index: 5;
+        height: 46vh;
+        min-height: 260px;
+        border-bottom: 1px solid var(--border-subtle);
+        /* keep canvas rendering correct when sticky */
+        contain: layout;
+    }
+    .controlsPanel {
+        min-width: 0;
+        max-width: none;
+        border-left: none;
+        border-top: 1px solid var(--border-subtle);
+        /* let the page scroll own the overflow */
+        overflow: visible;
+    }
+    .controlsBody {
+        overflow: visible;
+        /* extra bottom padding so export isn't flush to home bar */
+        padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
+    }
+}
+
+@media (max-width: 768px) {
+    .toolbar {
+        height: auto;
+        min-height: 48px;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 6px 10px;
+        padding-top: max(6px, env(safe-area-inset-top));
+        row-gap: 6px;
+    }
+    .toolbarLeft {
+        gap: 6px;
+        min-width: 0;
+    }
+    .toolbarLogo {
+        font-size: 0.95rem;
+    }
+    .toolbarTitle {
+        font-size: 0.78rem;
+    }
+    .toolbarCenter {
+        flex-wrap: wrap;
+        gap: 6px;
+        width: 100%;
+        order: 3;
+        /* allow product select + presets to breathe on next line */
+        justify-content: flex-start;
+    }
+    .productSelect {
+        flex: 1 1 160px;
+        min-width: 0;
+        max-width: 100%;
+        font-size: 0.78rem;
+    }
+    .presetGroup {
+        flex: 0 0 auto;
+    }
+    .toolbarRight {
+        margin-left: auto;
+    }
+    /* Viewport height tighter on tablets */
+    .viewport {
+        height: 42vh;
+        min-height: 240px;
+    }
+    .dimReadout {
+        top: 10px;
+        right: 10px;
+        padding: 6px 10px;
+    }
+    .viewportBar {
+        bottom: 10px;
+        padding: 3px;
+    }
+    .viewportHint {
+        bottom: 8px;
+        right: 10px;
+        font-size: 10px;
+        max-width: 62%;
+        text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    /* Controls: slightly tighter on tablet */
+    .controlsBody {
+        padding: 12px;
+        gap: 12px;
+    }
+    .sliderLabel {
+        min-width: 92px;
+        font-size: 11px;
+    }
+    .sliderNum {
+        width: 44px;
+    }
+}
+
+@media (max-width: 640px) {
+    .viewport {
+        height: 42vh;
+        min-height: 240px;
+    }
+    .toolbar {
+        padding-left: max(10px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+    }
+    .controlsBody {
+        padding: 10px;
+    }
+    .ctrlSectionTitle {
+        font-size: 0.7rem;
+    }
+    .sliderLabel {
+        min-width: 88px;
+        font-size: 11px;
+    }
+    .sliderRow {
+        gap: 6px;
+        padding: 3px 0;
+    }
+    .sliderVal {
+        min-width: 52px;
+    }
+    .sliderNum {
+        width: 42px;
+        font-size: 11px;
+    }
+    .fontChips {
+        gap: 3px;
+    }
+    .font-chip {
+        padding: 3px 8px;
+        font-size: 11px;
+    }
+    .swatchRow {
+        gap: 3px;
+    }
+    .ctrl-swatch {
+        width: 22px;
+        height: 22px;
+    }
+    /* Keep export reachable without scrolling past all sliders */
+    .exportSection {
+        position: sticky;
+        bottom: 0;
+        z-index: 4;
+        background: var(--bg-secondary);
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+        /* subtle top shadow when stuck */
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+    }
+    .filenameRow {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .filenameLabel {
+        min-width: 0;
+    }
+    .filenameInput {
+        min-width: 120px;
+    }
+    /* Hide secondary viewport bar clutter on phones (keep main export) */
+    #vpDownloadPNG {
+        display: none;
+    }
+}
+
+@media (max-width: 420px) {
+    .viewport {
+        height: 40vh;
+        min-height: 220px;
+    }
+    .toolbarLogo {
+        display: none;
+    }
+    .toolbarDivider {
+        display: none;
+    }
+    .sliderLabel {
+        min-width: 76px;
+        font-size: 10.5px;
+    }
+    .sliderVal {
+        min-width: 48px;
+    }
+    .ctrlSectionTitle {
+        letter-spacing: 0.06em;
+    }
+    .productSelect {
+        font-size: 0.74rem;
+        padding: 4px 8px;
+    }
+    .preset-btn {
+        padding: 3px 8px;
+        font-size: 10px;
+    }
+    .dimReadout {
+        padding: 5px 8px;
+    }
+    .dimRow {
+        font-size: 11px;
+    }
+}
