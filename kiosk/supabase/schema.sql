@@ -111,3 +111,4 @@ $$;
 -- The cleanup endpoint is called by Cloudflare, not through public PostgREST.
 -- Keep the SECURITY DEFINER helper private to prevent anonymous RPC execution.
 revoke execute on function public.prune_login_attempts() from anon, authenticated;
+revoke execute on function public.prune_login_attempts() from public;
