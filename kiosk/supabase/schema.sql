@@ -107,3 +107,7 @@ set search_path = public
 as $$
     delete from public.login_attempts where at < now() - interval '1 day';
 $$;
+
+-- The cleanup endpoint is called by Cloudflare, not through public PostgREST.
+-- Keep the SECURITY DEFINER helper private to prevent anonymous RPC execution.
+revoke execute on function public.prune_login_attempts() from anon, authenticated;
