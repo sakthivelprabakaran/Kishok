@@ -1,7 +1,7 @@
 import { json, guard, readJson, requireAdmin } from '../../../shared/http.js';
 import { db, rowToOrder } from '../../../shared/db.js';
 
-const ALLOWED_STATUS = ['Pending', 'Verified', 'Printed', 'Cancelled'];
+const ALLOWED_STATUS = ['Pending', 'Verified', 'Printed', 'PickedUp', 'Cancelled'];
 
 // Admin: update an order's status / UPI txn id. `id` is the order_num.
 export const onRequestPatch = guard(async ({ request, env, params }) => {

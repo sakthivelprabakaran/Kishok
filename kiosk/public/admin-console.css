@@ -848,11 +848,11 @@ body:has(.studio) {
         position: sticky;
         top: 48px;
         z-index: 5;
-        height: 46vh;
-        min-height: 260px;
+        height: 48vh;
+        min-height: 280px;
         border-bottom: 1px solid var(--border-subtle);
-        /* keep canvas rendering correct when sticky */
-        contain: layout;
+        /* removed contain:layout which clipped bottom of tall models on some browsers */
+        overflow: hidden;
     }
     .controlsPanel {
         min-width: 0;

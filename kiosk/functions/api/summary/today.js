@@ -14,7 +14,7 @@ export const onRequestGet = guard(async ({ request, env }) => {
         `select=*&created_at=gte.${encodeURIComponent(start)}&created_at=lt.${encodeURIComponent(end)}`
     );
     const orders = (rows || []).map(rowToOrder);
-    const paid = orders.filter(o => o.status === 'Verified' || o.status === 'Printed');
+    const paid = orders.filter(o => o.status === 'Verified' || o.status === 'Printed' || o.status === 'PickedUp');
 
     const comboMap = {};
     for (const o of paid) {

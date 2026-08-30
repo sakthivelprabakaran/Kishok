@@ -3588,6 +3588,9 @@ export class KeychainViewer {
         this.keychainGroup.traverse(function(child) {
             if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
         });
+        if (this.shadowPlane) {
+            this.shadowPlane.position.y = -size.y / 2 - 0.15;
+        }
         this.scene.add(this.keychainGroup);
 
         // Camera framing
@@ -3740,6 +3743,9 @@ export class KeychainViewer {
         this.keychainGroup.traverse(function(child) {
             if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
         });
+        if (this.shadowPlane) {
+            this.shadowPlane.position.y = -size.y / 2 - 0.15;
+        }
         this.scene.add(this.keychainGroup);
 
         var maxDim = Math.max(size.x, size.y, size.z);
@@ -3933,6 +3939,7 @@ export class KeychainViewer {
         // Center model and orient nicely
         var box = new THREE.Box3().setFromObject(this.keychainGroup);
         var center = box.getCenter(new THREE.Vector3());
+        var size = box.getSize(new THREE.Vector3());
         this.keychainGroup.position.sub(center);
 
         this.keychainGroup.traverse(function(child) {
@@ -3941,6 +3948,9 @@ export class KeychainViewer {
                 child.receiveShadow = true;
             }
         });
+        if (this.shadowPlane) {
+            this.shadowPlane.position.y = -size.y / 2 - 0.15;
+        }
         this.scene.add(this.keychainGroup);
 
         // Optimal camera framing looking down into the desk organizer compartments
@@ -4275,6 +4285,13 @@ export class KeychainViewer {
         this.keychainGroup.add(stopper1);
         this.keychainGroup.add(stopper2);
         this._beadStoppers.push(stopper1, stopper2);
+
+        // Shadow plane just below beads
+        var beadBox = new THREE.Box3().setFromObject(this.keychainGroup);
+        var beadSizeVec = beadBox.getSize(new THREE.Vector3());
+        if (this.shadowPlane) {
+            this.shadowPlane.position.y = -beadSizeVec.y / 2 - 0.15;
+        }
 
         this.scene.add(this.keychainGroup);
 

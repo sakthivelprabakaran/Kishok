@@ -100,10 +100,10 @@ const COLOR_PALETTES = {
 
 const PRESETS = {
     thin: {
-        scaleFactor: 0.7,
-        base:    { depth: 1,   bevelThickness: 1,   bevelSize: 3,   bevelSegments: 6 },     // 1 + 2 = 3mm
-        outline: { depth: 0.6, bevelThickness: 0.2, bevelSize: 1,   bevelSegments: 3 },     // 0.6 + 0.4 = 1mm
-        font:    { depth: 0.6, bevelThickness: 0.2, bevelSize: 0,   bevelSegments: 3 },     // 0.6 + 0.4 = 1mm
+        scaleFactor: 0.8,
+        base:    { depth: 1,   bevelThickness: 1,   bevelSize: 3,   bevelSegments: 6 },     // 1 + 2*1 = 3mm
+        outline: { depth: 0.6, bevelThickness: 0.2, bevelSize: 1,   bevelSegments: 3 },     // 0.6 + 2*0.2 = 1mm
+        font:    { depth: 0.6, bevelThickness: 0.2, bevelSize: 0,   bevelSegments: 3 },     // 0.6 + 2*0.2 = 1mm
         ring:    { outerRadius: 6,  innerRadius: 2.5, bevelThickness: 0.3, bevelSize: 0.3, bevelSegments: 4 },
         
         // Nametag specific
@@ -119,12 +119,12 @@ const PRESETS = {
         ring_height: 3.0,
         ring_x: -1,
         ring_y: 8,
-    }, // Total = 5mm
+    }, // Total = 5mm (thin < standard < thick)
     standard: {
-        scaleFactor: 0.5,
-        base:    { depth: 3,   bevelThickness: 0,   bevelSize: 3,   bevelSegments: 8 },     // 3 + 0 = 3mm
-        outline: { depth: 1.5, bevelThickness: 0,   bevelSize: 2,   bevelSegments: 3 },     // 1.5 + 0 = 1.5mm
-        font:    { depth: 1.5, bevelThickness: 0,   bevelSize: 0.2, bevelSegments: 3 },     // 1.5 + 0 = 1.5mm
+        scaleFactor: 1.0,
+        base:    { depth: 3,   bevelThickness: 0,   bevelSize: 3,   bevelSegments: 8 },     // 3 + 2*0 = 3mm
+        outline: { depth: 1.5, bevelThickness: 0,   bevelSize: 2,   bevelSegments: 3 },     // 1.5 + 2*0 = 1.5mm
+        font:    { depth: 1.5, bevelThickness: 0,   bevelSize: 0.2, bevelSegments: 3 },     // 1.5 + 2*0 = 1.5mm
         ring:    { outerRadius: 5.5, innerRadius: 3, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 4 },
         
         // Nametag specific
@@ -142,7 +142,7 @@ const PRESETS = {
         ring_y: 10,
     }, // Total = 6.0mm
     thick: {
-        scaleFactor: 1.3,
+        scaleFactor: 1.25,
         base:    { depth: 4,   bevelThickness: 1.5, bevelSize: 5.5, bevelSegments: 10 },    // 4 + 3 = 7mm
         outline: { depth: 1.5, bevelThickness: 0.5, bevelSize: 2,   bevelSegments: 4 },     // 1.5 + 1 = 2.5mm
         font:    { depth: 1.5, bevelThickness: 0.5, bevelSize: 0,   bevelSegments: 4 },     // 1.5 + 1 = 2.5mm
@@ -559,7 +559,9 @@ function initTextInput() {
             nameInput.setSelectionRange(cap, cap);
         }
         state.name = nameInput.value || 'Sample';
-        charCountEl.textContent = longestLineLen(nameInput.value);
+        // Show total length /31 (clamp is 15 per line ×2 + newline =31) — clearer than longest-line /15
+        charCountEl.textContent = nameInput.value.length;
+        charCountEl.title = `Longest line ${longestLineLen(nameInput.value)}/15`;
         updateViewer();
     });
 }
@@ -1749,7 +1751,8 @@ function parseURLParameters() {
         }
         state.name = decodedText;
         nameInput.value = state.name;
-        charCountEl.textContent = longestLineLen(state.name);
+        charCountEl.textContent = state.name.length;
+        charCountEl.title = `Longest line ${longestLineLen(state.name)}/15`;
     }
     
     const fontParam = params.get('font');
@@ -1806,6 +1809,42 @@ function parseURLParameters() {
                 state.layers = '2L';
             }
         }
+    }
+
+    const wordartBaseParam = params.get('wordartBase');
+    if (wordartBaseParam) {
+        const v = decodeURIComponent(wordartBaseParam).trim();
+        if (['none','solid','hollow'].includes(v)) state.wordartBase = v;
+    }
+
+    // Full order payload (base64 JSON) from Admin “DESIGN” button — restores exact spec
+    const orderPayload = params.get('o');
+    if (orderPayload) {
+        try {
+            const json = decodeURIComponent(escape(atob(decodeURIComponent(orderPayload))));
+            const o = JSON.parse(json);
+            if (o.wordartBase && ['none','solid','hollow'].includes(o.wordartBase)) state.wordartBase = o.wordartBase;
+            if (o.text) {
+                let t = String(o.text);
+                if (t.includes('/') && (state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey')) t = t.replace(/\//g, '\n');
+                state.name = t;
+                nameInput.value = state.name;
+            }
+            if (o.productType) {
+                state.productType = String(o.productType);
+                const sel = $('adminProductType');
+                if (sel) sel.value = state.productType;
+            }
+            if (o.font) {
+                const name = String(o.font).split('/')[0].trim();
+                const idx = FONTS.findIndex(f => f.name.toLowerCase() === name.toLowerCase());
+                if (idx > -1) { state.selectedFontIndex = idx; state.selectedFont = FONTS[idx]; state.lang = FONTS[idx].lang || state.lang; }
+            }
+            if (o.baseColor) state.colors.base = String(o.baseColor);
+            if (o.fontColor) state.colors.font = String(o.fontColor);
+            // outline/line2 may be in fontColor when it was “a/b”
+            if (o.baseColor) state.colors.base = String(o.baseColor);
+        } catch (e) { console.warn('Failed to parse order payload', e); }
     }
     
     window.loadedFromURL = true; // Mark as loaded from URL so ensureDefaults doesn't obliterate these colors immediately

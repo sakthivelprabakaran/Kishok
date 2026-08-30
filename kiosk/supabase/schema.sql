@@ -47,7 +47,7 @@ create table if not exists public.orders (
     batch_size        integer     not null default 5,
     upi_txn_id        text        not null default '',
     status            text        not null default 'Pending'
-                                  check (status in ('Pending', 'Verified', 'Printed', 'Cancelled'))
+                                  check (status in ('Pending', 'Verified', 'Printed', 'PickedUp', 'Cancelled'))
 );
 
 -- /api/orders/today and /api/summary/today filter by day, newest first.

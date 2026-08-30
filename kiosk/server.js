@@ -567,7 +567,7 @@ app.patch('/api/order/:id', requireAdmin, async (req, res) => {
 
 // End-of-day summary (admin only): totals + top colour combos + filament grams
 app.get('/api/summary/today', requireAdmin, (req, res) => {
-    const paid = activeOrders.filter(o => o.status === 'Verified' || o.status === 'Printed');
+    const paid = activeOrders.filter(o => o.status === 'Verified' || o.status === 'Printed' || o.status === 'PickedUp');
     const revenue = paid.reduce((s, o) => s + (o.finalAmount || 0), 0);
     const grams = paid.reduce((s, o) => s + (o.weightG || 0), 0);
 

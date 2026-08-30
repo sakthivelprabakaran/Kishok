@@ -39,9 +39,14 @@ function esc(str) {
 
 function renderColorSwatches(colorVal, title, extraStyle = '') {
     if (!colorVal) return '';
-    return colorVal.split('/').map(c => 
-        `<span class="mini-swatch" style="background-color:${c.trim()};${extraStyle}" title="${title}"></span>`
-    ).join('');
+    const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+    const safeTitle = esc(title);
+    const safeExtra = String(extraStyle || '').replace(/[^a-zA-Z0-9:; %.\-#]/g, '');
+    return colorVal.split('/').map(c => {
+        const raw = c.trim();
+        if (!HEX_RE.test(raw)) return '';
+        return `<span class="mini-swatch" style="background-color:${esc(raw)};${safeExtra}" title="${safeTitle}"></span>`;
+    }).join('');
 }
 
 /* ---------- auth helpers ---------- */
@@ -132,6 +137,9 @@ const P_LABELS = {
     supported_text: 'Supported Nameplate', wordart: 'Word Art', loveseries: 'LOVE Stand',
     desk_organizer: 'Desk Organizer',
     name_beads: 'Name Beads',
+    bubble_keychain: 'Bubble Badge',
+    led_word_art: 'LED Word Art',
+    led_word_stand: 'LED Word Stand',
     keychain: 'Keychain', nameplate: 'Nameplate'
 };
 const plabel = t => P_LABELS[t] || t;
@@ -167,7 +175,7 @@ function renderQueue() {
 
     el.queueList.innerHTML = combos.map(c => {
         const isActive = activeKey.has(`${c.baseColor}|${c.fontColor}`);
-        const names = c.items.map(i => `${i.orderNum} (${i.name})`).join(', ');
+        const names = c.items.map(i => `${esc(i.orderNum)} (${esc(i.name)})`).join(', ');
         return `
         <div class="queue-combo ${isActive ? 'active-batch' : ''}">
             <div class="queue-combo-head">
@@ -179,7 +187,7 @@ function renderQueue() {
                 <span class="combo-grams">${Math.round(c.grams * 10) / 10}g</span>
                 ${isActive ? '<span class="combo-active-tag">● BATCH ON</span>' : ''}
             </div>
-            <div class="queue-combo-orders">${names}</div>
+            <div class="queue-combo-orders">${esc(names)}</div>
         </div>`;
     }).join('');
 }
@@ -201,9 +209,14 @@ function orderCardHTML(order) {
     const statusClass = esc((order.status || '').toLowerCase());
     const upiVerified = order.status !== 'Pending' ? 'verified-txn' : '';
 
-    // Link to the studio console with URL query parameters representing the design choices
-    const designLink = `studio.html?text=${encodeURIComponent(order.text)}&productType=${encodeURIComponent(order.productType)}&font=${encodeURIComponent(order.font)}&baseColor=${encodeURIComponent(order.baseColor)}&fontColor=${encodeURIComponent(order.fontColor)}`;
-    const designBtn = `<a class="action-btn design" href="${designLink}" target="_blank">📐 DESIGN</a>`;
+    // Link to Studio: carry all specs + orderNum + base64 payload so Studio can fully restore.
+    // Studio's parseURLParameters now understands wordartBase, orderNum and `o` (full order JSON).
+    let designLink = `studio.html?text=${encodeURIComponent(order.text)}&productType=${encodeURIComponent(order.productType)}&font=${encodeURIComponent(order.font)}&baseColor=${encodeURIComponent(order.baseColor)}&fontColor=${encodeURIComponent(order.fontColor)}&wordartBase=${encodeURIComponent(order.wordartBase||'none')}&orderNum=${encodeURIComponent(order.orderNum||'')}`;
+    try {
+        const payload = btoa(unescape(encodeURIComponent(JSON.stringify(order))));
+        designLink += `&o=${encodeURIComponent(payload)}`;
+    } catch (_) { /* ignore btoa failure, link still works with explicit params */ }
+    const designBtn = `<a class="action-btn design" href="${designLink}" target="_blank" rel="noopener">📐 DESIGN</a>`;
 
     let actions = '';
     if (order.status === 'Pending')
@@ -312,10 +325,10 @@ function renderBatches() {
             <div class="batch-colors-preview">
                 ${renderColorSwatches(batch.baseColor, 'Base', 'width:16px;height:16px;')}
                 ${renderColorSwatches(batch.fontColor, 'Font', 'width:16px;height:16px;')}
-                <span class="batch-name-label">${batch.name}</span>
-                <span class="batch-qty-badge">${batch.count} items</span>
+                <span class="batch-name-label">${esc(batch.name)}</span>
+                <span class="batch-qty-badge">${esc(batch.count)} items</span>
             </div>
-            <button class="delete-batch-btn" data-base="${batch.baseColor}" data-font="${batch.fontColor}">&times;</button>`;
+            <button class="delete-batch-btn" data-base="${esc(batch.baseColor)}" data-font="${esc(batch.fontColor)}">&times;</button>`;
         item.querySelector('.delete-batch-btn').addEventListener('click', (e) =>
             saveBatch(e.currentTarget.dataset.base, e.currentTarget.dataset.font, 0));
         el.batchesList.appendChild(item);
