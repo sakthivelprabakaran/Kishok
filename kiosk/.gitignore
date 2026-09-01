@@ -4,3 +4,6 @@ data/orders.xlsx
 data/*.xlsx
 *.log
 .DS_Store
+.env
+.env.*
+!.env.example

@@ -52,7 +52,7 @@ export async function readJson(request) {
 const VALID_PIN_RE = /^\d{4}$/;
 
 /** Timing-safe-ish comparison so response time does not leak the PIN. */
-function pinMatches(a, b) {
+export function pinMatches(a, b) {
     if (a.length !== b.length) return false;
     let diff = 0;
     for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);

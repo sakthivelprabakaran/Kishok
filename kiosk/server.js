@@ -63,7 +63,7 @@ app.use(cors({
         if (configuredOrigins.includes(origin) || /^https?:\/\/(localhost|127\.0\.0\.1|.*\.run\.app|.*\.google\.com|.*\.vercel\.app)/.test(origin)) {
             return callback(null, true);
         }
-        return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
     },
     methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-admin-pin', 'Authorization'],
@@ -87,17 +87,24 @@ app.get('/api/health', (req, res) => {
 // Shared-secret PIN. Set ADMIN_PIN in the environment for production; the
 // There is deliberately no production fallback. The kiosk customer flow stays public —
 // only admin/operator actions are gated.
-const ADMIN_PIN = String(process.env.ADMIN_PIN || '9876').trim();
+const ADMIN_PIN = String(process.env.ADMIN_PIN || '').trim();
 
 const VALID_PIN_RE = /^\d{4}$/; // PIN must be exactly 4 digits
-const ADMIN_AUTH_CONFIGURED = VALID_PIN_RE.test(ADMIN_PIN) && ADMIN_PIN !== '1234'
+const ADMIN_AUTH_CONFIGURED = VALID_PIN_RE.test(ADMIN_PIN);
+
+function pinMatches(a, b) {
+    if (a.length !== b.length) return false;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+}
 
 function requireAdmin(req, res, next) {
     if (!ADMIN_AUTH_CONFIGURED) {
         return res.status(503).json({ error: 'Admin authentication is not configured' });
     }
     const pin = String(req.headers['x-admin-pin'] || '').trim();
-    if (VALID_PIN_RE.test(pin) && pin === ADMIN_PIN) return next();
+    if (VALID_PIN_RE.test(pin) && pinMatches(pin, ADMIN_PIN)) return next();
     return res.status(401).json({ error: 'Unauthorized — admin PIN required' });
 }
 
@@ -111,12 +118,21 @@ const loginLimiter = rateLimit({
     skipSuccessfulRequests: true,
 });
 
+// Order rate limiter: max 30 orders per IP per 15 minutes.
+const orderLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many order submissions — please wait a few minutes.' },
+});
+
 // Login: validate a PIN, let the client cache it for subsequent x-admin-pin headers.
 app.post('/api/admin/login', loginLimiter, (req, res) => {
     const pin = String((req.body || {}).pin || '').trim();
     if (!ADMIN_AUTH_CONFIGURED) return res.status(503).json({ success: false, error: 'Admin authentication is not configured' });
     if (!VALID_PIN_RE.test(pin)) return res.status(400).json({ success: false, error: 'PIN must be exactly 4 digits' });
-    if (pin === ADMIN_PIN) return res.json({ success: true });
+    if (pinMatches(pin, ADMIN_PIN)) return res.json({ success: true });
     return res.status(401).json({ success: false, error: 'Invalid PIN' });
 });
 
@@ -346,7 +362,7 @@ app.post('/api/batches', requireAdmin, (req, res) => {
 });
 
 // Submit a new order (public — customer-facing)
-app.post('/api/order', async (req, res) => {
+app.post('/api/order', orderLimiter, async (req, res) => {
     try {
         const orderData = req.body;
 
@@ -358,8 +374,8 @@ app.post('/api/order', async (req, res) => {
         // ── Length / type validation ──
         if (typeof orderData.name !== 'string' || orderData.name.length > 80)
             return res.status(400).json({ error: 'Name must be a string ≤ 80 characters' });
-        if (typeof orderData.phone !== 'string' || orderData.phone.length > 20)
-            return res.status(400).json({ error: 'Phone must be ≤ 20 characters' });
+        if (typeof orderData.phone !== 'string' || !/^\d{10}$/.test(orderData.phone.trim()))
+            return res.status(400).json({ error: 'Phone must be exactly 10 digits' });
         if (typeof orderData.text !== 'string' || orderData.text.length > 100)
             return res.status(400).json({ error: 'Text must be ≤ 100 characters' });
         if (typeof orderData.productType !== 'string' || orderData.productType.length > 40)

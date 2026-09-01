@@ -1504,9 +1504,10 @@ export class KeychainViewer {
         };
         var fontLayerBottomZ = currentZ + p.font.bevelThickness;
 
-        // Word-art and Linked Initials use thicker text since they have no base plate.
+        // Word-art and Linked Initials: allow dedicated letter thickness control (2–10mm)
         if (isWordart || isLinkedInitials) {
-            fontSettings.depth = Math.max(p.font.depth, 6);
+            const wt = p.wordartLetterThickness !== undefined ? p.wordartLetterThickness : (p.font.depth >= 6 ? p.font.depth : 6);
+            fontSettings.depth = Math.max(wt, 2);
         }
 
         if (isWordart && perLine && perLine.length > 0) {
@@ -1852,32 +1853,33 @@ export class KeychainViewer {
         this._clearKeychain();
         this.keychainGroup = new THREE.Group();
 
-        // Color slots reused (no new UI): strip = colors.base, letter = colors.font, tile = colors.line2.
-        // (lineColors[1] carries colors.line2 in update() above.)
-        var tileColor = (p.lineColors && p.lineColors[1]) || outlineColorFallback || '#FFFFFF';
+        // Color slots: strip = colors.base, letter = colors.font, tile = colors.outline / colors.line2.
+        var tileColor         = (p.lineColors && p.lineColors[1]) || outlineColorFallback || '#FFFFFF';
+        var actualLetterColor = (p.lineColors && p.lineColors[0]) || letterColor || '#FF9933';
 
-        console.log('[TileKey rebuild]', { stripColor: stripColor, letterColor: letterColor, tileColor: tileColor, lineColors: p.lineColors });
+        console.log('[TileKey rebuild]', { stripColor: stripColor, letterColor: actualLetterColor, tileColor: tileColor, lineColors: p.lineColors });
 
         var rawText = (text || '').replace(/[\r\n]/g, '');
         var chars   = rawText.toUpperCase().split('').slice(0, 8);
         if (chars.length === 0) return;
 
-        // ── Sizing (mm) ──
-        var TILE_SIZE        = 22;            // square tile edge
-        var TILE_GAP         = 1.5;           // vertical gap between tiles
-        var STRIP_PAD_X      = 5;             // left/right margin around tiles
-        var STRIP_PAD_TOP    = 18;            // extra top space for lanyard hole
-        var STRIP_PAD_BOTTOM = 6;
-        var STRIP_CORNER     = 8;
-        var TILE_CORNER      = 4;
-        var LANYARD_RADIUS   = 4;
-        var LANYARD_FROM_TOP = 9;             // hole center distance from strip top
-        var STRIP_DEPTH      = 3;
-        var TILE_DEPTH       = 1.8;
-        var LETTER_DEPTH     = 1.2;
+        // ── Sizing (mm) from dynamic parameters (with 13mm/20mm defaults) ──
+        var TILE_SIZE        = (p.tile_size !== undefined && p.tile_size > 0) ? p.tile_size : 13.0;
+        var TILE_GAP         = (p.tile_gap !== undefined && p.tile_gap >= 0) ? p.tile_gap : 1.0;
+        var STRIP_PAD_X      = (p.tile_pad_x !== undefined && p.tile_pad_x >= 0) ? p.tile_pad_x : 3.5;
+        var STRIP_PAD_TOP    = 11.0;          // top space for lanyard hole
+        var STRIP_PAD_BOTTOM = 4.0;
+        var STRIP_CORNER     = 4.0;
+        var TILE_CORNER      = 2.0;
+        var LANYARD_RADIUS   = (p.tile_ring_radius !== undefined && p.tile_ring_radius > 0) ? p.tile_ring_radius : 2.2;
+        var LANYARD_FROM_TOP = 5.5;           // hole center distance from strip top
+        var STRIP_DEPTH      = (p.tile_strip_depth !== undefined && p.tile_strip_depth > 0) ? p.tile_strip_depth : 3.0;
+        var TILE_DEPTH       = (p.tile_square_depth !== undefined && p.tile_square_depth > 0) ? p.tile_square_depth : 1.5;
+        var LETTER_DEPTH     = (p.tile_letter_depth !== undefined && p.tile_letter_depth > 0) ? p.tile_letter_depth : 1.5;
+        var LETTER_RATIO     = (p.tile_letter_ratio !== undefined && p.tile_letter_ratio > 0) ? (p.tile_letter_ratio <= 1.0 ? p.tile_letter_ratio : p.tile_letter_ratio / 100) : 0.70;
 
-        // Apply user scaleFactor to the whole assembly.
-        var scale = p.scaleFactor || 1;
+        // Apply user scaleFactor to the whole assembly (1:1 mm default).
+        var scale = (p.scaleFactor && p.scaleFactor !== 0.5) ? p.scaleFactor : 1.0;
 
         var stripW = TILE_SIZE + STRIP_PAD_X * 2;
         var tilesH = chars.length * TILE_SIZE + (chars.length - 1) * TILE_GAP;
@@ -1932,7 +1934,7 @@ export class KeychainViewer {
         this._applyFDMTexture(matTile, p);
 
         var matLetter = new THREE.MeshPhysicalMaterial({
-            color:              new THREE.Color(letterColor),
+            color:              new THREE.Color(actualLetterColor),
             roughness:          0.28,
             metalness:          0.0,
             clearcoat:          0.95,
@@ -1945,9 +1947,9 @@ export class KeychainViewer {
         var stripGeo = new THREE.ExtrudeGeometry(strip, {
             depth:          STRIP_DEPTH,
             bevelEnabled:   true,
-            bevelThickness: 0.6,
-            bevelSize:      1.2,
-            bevelSegments:  4,
+            bevelThickness: 0.3,
+            bevelSize:      0.4,
+            bevelSegments:  3,
             curveSegments:  8,
         });
         this.keychainGroup.add(new THREE.Mesh(stripGeo, matStrip));
@@ -1982,17 +1984,17 @@ export class KeychainViewer {
             var tileGeo = new THREE.ExtrudeGeometry(tile, {
                 depth:          TILE_DEPTH,
                 bevelEnabled:   true,
-                bevelThickness: 0.3,
-                bevelSize:      0.5,
+                bevelThickness: 0.2,
+                bevelSize:      0.25,
                 bevelSegments:  3,
                 curveSegments:  8,
             });
             tileGeo.translate(0, 0, tileFrontZ);
             this.keychainGroup.add(new THREE.Mesh(tileGeo, matTile));
 
-            // Letter — fit a single char to ~70% of tile size.
+            // Letter — fit a single char to LETTER_RATIO of tile size.
             var ch = chars[i];
-            var targetGlyphHeight = TILE_SIZE * 0.70;
+            var targetGlyphHeight = TILE_SIZE * LETTER_RATIO;
             // Use font metrics to back-solve the fontSize that gives this glyph height.
             var upm     = font.unitsPerEm || 1000;
             var capH    = ((font.ascender || 0) * 1) / upm; // ratio of cap height to em
@@ -2019,8 +2021,8 @@ export class KeychainViewer {
             var letterGeo = new THREE.ExtrudeGeometry(letterShapes, {
                 depth:          LETTER_DEPTH,
                 bevelEnabled:   true,
-                bevelThickness: 0.2,
-                bevelSize:      0.3,
+                bevelThickness: 0.15,
+                bevelSize:      0.15,
                 bevelSegments:  3,
                 curveSegments:  8,
             });
@@ -2090,7 +2092,8 @@ export class KeychainViewer {
         var ring_x = p.ring_x;
         var ring_y = p.ring_y;
 
-        var scale = p.scaleFactor || 1;
+        // Apply user scaleFactor (1:1 mm default).
+        var scale = (p.scaleFactor && p.scaleFactor !== 0.5) ? p.scaleFactor : 1.0;
 
         // Clean text
         var rawText = (text || '').replace(/[\r\n]/g, '');
@@ -2474,10 +2477,7 @@ export class KeychainViewer {
         var fontMesh = new THREE.Mesh(fontGeo, fontMat);
         this.keychainGroup.add(fontMesh);
 
-        // 8. Scale & Center the group
-        if (p.scaleFactor !== 1) {
-            this.keychainGroup.scale.setScalar(p.scaleFactor);
-        }
+        // 8. Flip Y & Center the group
         this.keychainGroup.scale.y = -1;
 
         var box = new THREE.Box3().setFromObject(this.keychainGroup);
@@ -2686,8 +2686,8 @@ export class KeychainViewer {
         var fontMesh = new THREE.Mesh(fontGeo, fontMat);
         this.keychainGroup.add(fontMesh);
 
-        // ── 5. Transform, Scale & Center ──
-        if (p.scaleFactor && p.scaleFactor !== 1) {
+        // ── 5. Transform, Scale & Center (1:1 mm default) ──
+        if (p.scaleFactor && p.scaleFactor !== 1 && p.scaleFactor !== 0.5) {
             this.keychainGroup.scale.setScalar(p.scaleFactor);
         }
         this.keychainGroup.scale.y = -Math.abs(this.keychainGroup.scale.y);
@@ -2740,7 +2740,8 @@ export class KeychainViewer {
         var ring_x = p.bordered_ring_x !== undefined ? p.bordered_ring_x : 0.0;
         var ring_y = p.bordered_ring_y !== undefined ? p.bordered_ring_y : 0.0;
 
-        var scale = p.scaleFactor || 1;
+        // Apply user scaleFactor (1:1 mm default).
+        var scale = (p.scaleFactor && p.scaleFactor !== 0.5) ? p.scaleFactor : 1.0;
 
         // Clean text
         var displayText = (text || '').replace(/\r/g, '');
@@ -2928,13 +2929,16 @@ export class KeychainViewer {
         var star1_size = p.supported_star1_size || 5.0;
         var star1_x = p.supported_star1_x !== undefined ? p.supported_star1_x : 0.0;
         var star1_y = p.supported_star1_y !== undefined ? p.supported_star1_y : 0.0;
+        var star1_angle = p.supported_star1_angle !== undefined ? p.supported_star1_angle : 54.0;
 
         var star2_enable = p.supported_star2_enable !== undefined ? p.supported_star2_enable : false;
         var star2_size = p.supported_star2_size || 5.0;
         var star2_x = p.supported_star2_x !== undefined ? p.supported_star2_x : 0.0;
         var star2_y = p.supported_star2_y !== undefined ? p.supported_star2_y : 0.0;
+        var star2_angle = p.supported_star2_angle !== undefined ? p.supported_star2_angle : 54.0;
 
-        var scale = p.scaleFactor || 1;
+        // Apply user scaleFactor (1:1 mm default).
+        var scale = (p.scaleFactor && p.scaleFactor !== 0.5) ? p.scaleFactor : 1.0;
 
         var displayText = (text || '').replace(/[\r\n]/g, '');
         if (displayText === '') displayText = 'Name';
@@ -2947,17 +2951,22 @@ export class KeychainViewer {
 
         var finalShapes = offsetShapes(textShapes, offs);
 
+        var extrudeSettings = {
+            depth: extrusion,
+            bevelEnabled: false,
+            curveSegments: 8
+        };
+
         var mainMat = new THREE.MeshPhysicalMaterial({
-            color:              new THREE.Color(fontColor),
-            roughness:          0.28,
-            metalness:          0.0,
-            clearcoat:          0.95,
-            clearcoatRoughness: 0.08,
-            side:               THREE.DoubleSide,
+            color: new THREE.Color(baseColor),
+            roughness: 0.32,
+            metalness: 0.0,
+            clearcoat: 0.85,
+            clearcoatRoughness: 0.12,
+            side: THREE.DoubleSide
         });
         this._applyFDMTexture(mainMat, p);
 
-        var extrudeSettings = { depth: extrusion, bevelEnabled: false, curveSegments: 16 };
         var textGeo = new THREE.ExtrudeGeometry(finalShapes, extrudeSettings);
         var textMesh = new THREE.Mesh(textGeo, mainMat);
         this.keychainGroup.add(textMesh);
@@ -3001,7 +3010,7 @@ export class KeychainViewer {
             var sGeo = new THREE.ExtrudeGeometry([sShape], extrudeSettings);
             var sMesh = new THREE.Mesh(sGeo, mainMat);
             sMesh.position.set(star1_x, star1_y, 0);
-            sMesh.rotation.z = 54 * Math.PI / 180;
+            sMesh.rotation.z = star1_angle * Math.PI / 180;
             this.keychainGroup.add(sMesh);
         }
         if (star2_enable) {
@@ -3009,7 +3018,7 @@ export class KeychainViewer {
             var sGeo = new THREE.ExtrudeGeometry([sShape], extrudeSettings);
             var sMesh = new THREE.Mesh(sGeo, mainMat);
             sMesh.position.set(star2_x, star2_y, 0);
-            sMesh.rotation.z = 54 * Math.PI / 180;
+            sMesh.rotation.z = star2_angle * Math.PI / 180;
             this.keychainGroup.add(sMesh);
         }
 
@@ -3066,7 +3075,8 @@ export class KeychainViewer {
         var base_radius = p.flower_base_radius || 25.0;
         var petal_amplitude = p.flower_petal_amplitude || 6.0;
 
-        var scale = p.scaleFactor || 1;
+        // Apply user scaleFactor (1:1 mm default).
+        var scale = (p.scaleFactor && p.scaleFactor !== 0.5) ? p.scaleFactor : 1.0;
 
         var char = (text || 'A').charAt(0).toUpperCase();
 
@@ -3218,7 +3228,8 @@ export class KeychainViewer {
         var cover_insert_clearance = p.cover_insert_clearance !== undefined ? parseFloat(p.cover_insert_clearance) : 0.3;
         var explode_cover          = p.explode_cover          !== undefined ? parseFloat(p.explode_cover)          : 0.0;
         var explode_stand          = p.explode_stand          !== undefined ? parseFloat(p.explode_stand)          : 0.0;
-        var scale                  = p.scaleFactor || 1;
+        // Apply user scaleFactor (1:1 mm default).
+        var scale                  = (p.scaleFactor && p.scaleFactor !== 0.5) ? p.scaleFactor : 1.0;
 
         // ── Materials ────────────────────────────────────────────────────────
         var matBase = new THREE.MeshPhysicalMaterial({
@@ -3631,7 +3642,8 @@ export class KeychainViewer {
         var cover_lip_depth = p.cover_lip_depth !== undefined ? parseFloat(p.cover_lip_depth) : 3.0;
 
         var explode_cover   = p.explode_cover !== undefined ? parseFloat(p.explode_cover) : 0.0;
-        var scale           = p.scaleFactor || 1;
+        // Apply user scaleFactor (1:1 mm default).
+        var scale           = (p.scaleFactor && p.scaleFactor !== 0.5) ? p.scaleFactor : 1.0;
 
         var matBase = new THREE.MeshPhysicalMaterial({
             color: new THREE.Color(baseColor),
@@ -4422,11 +4434,10 @@ export class KeychainViewer {
         }
 
         if (params.productType === 'tilekey') {
-            // Pass tile color via lineColors[1] (reusing the slot to avoid expanding the API).
-            // Strip color = colors.base, letter color = colors.font, tile color = colors.line2.
+            // Strip color = colors.base, letter color = colors.font, tile color = colors.outline || colors.line2.
             params.lineColors = [
-                colors.font || '#FFFFFF',
-                colors.line2 || '#FFFFFF',
+                colors.font || '#FF9933',
+                colors.outline || colors.line2 || '#FFFFFF',
             ];
         }
         if (params.productType === 'wordart') {

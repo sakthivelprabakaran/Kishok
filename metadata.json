@@ -2,7 +2,5 @@
   "name": "YoursGifts Kiosk",
   "description": "Custom 3D-printed keychains, nameplates, and word art mobile ordering kiosk with real-time 3D preview and UPI payments",
   "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "majorCapabilities": []
 }

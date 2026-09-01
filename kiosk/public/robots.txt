@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /studio.html
+Disallow: /api/
+
+Sitemap: https://kiosk-nine-tau.vercel.app/sitemap.xml

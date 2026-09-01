@@ -1,4 +1,4 @@
-import { json, fail, guard, readJson, adminConfigured, clientIp, loginBlocked, recordLoginAttempt } from '../../../shared/http.js';
+import { json, fail, guard, readJson, adminConfigured, pinMatches, clientIp, loginBlocked, recordLoginAttempt } from '../../../shared/http.js';
 
 const VALID_PIN_RE = /^\d{4}$/;
 
@@ -17,7 +17,7 @@ export const onRequestPost = guard(async ({ request, env }) => {
         return json({ success: false, error: 'PIN must be exactly 4 digits' }, 400);
     }
 
-    if (pin === String(env.ADMIN_PIN)) {
+    if (pinMatches(pin, String(env.ADMIN_PIN))) {
         return json({ success: true });
     }
 

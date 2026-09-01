@@ -1192,10 +1192,15 @@ function setupEvents() {
         });
     }
 
-    // URL Query check for product type
+    const VALID_TYPES = [
+        'keychain', 'wordart', 'loveseries', 'tilekey', 'linked_initials',
+        'nametag', 'girly_keychain', 'supported_text', 'flower_keychain',
+        'led_word_stand', 'led_word_art', 'bordered_keychain', 'bubble_keychain',
+        'nameplate', 'desk_organizer', 'name_beads',
+    ];
     const urlParams = new URLSearchParams(window.location.search);
     const typeParam = urlParams.get('type');
-    if (typeParam) {
+    if (typeParam && VALID_TYPES.includes(typeParam)) {
         state.productType = typeParam;
     }
     
@@ -1384,9 +1389,11 @@ function setupEvents() {
         }
     });
     el.qtyPlus.addEventListener('click', () => {
-        state.quantity++;
-        el.qtyVal.textContent = state.quantity;
-        calculatePricing();
+        if (state.quantity < 20) {
+            state.quantity++;
+            el.qtyVal.textContent = state.quantity;
+            calculatePricing();
+        }
     });
 
     // Payment triggers
@@ -1513,7 +1520,10 @@ async function init() {
     // Fetch active batches from server
     try {
         const response = await fetch('/api/batches');
-        state.activeBatches = await response.json();
+        if (response.ok) {
+            const data = await response.json();
+            state.activeBatches = Array.isArray(data) ? data : [];
+        }
     } catch (err) {
         console.error('Failed to load active batches from server:', err);
     }

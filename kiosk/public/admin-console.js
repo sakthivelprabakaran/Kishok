@@ -100,11 +100,11 @@ const COLOR_PALETTES = {
 
 const PRESETS = {
     thin: {
-        scaleFactor: 0.8,
+        scaleFactor: 0.4,
         base:    { depth: 1,   bevelThickness: 1,   bevelSize: 3,   bevelSegments: 6 },     // 1 + 2*1 = 3mm
         outline: { depth: 0.6, bevelThickness: 0.2, bevelSize: 1,   bevelSegments: 3 },     // 0.6 + 2*0.2 = 1mm
         font:    { depth: 0.6, bevelThickness: 0.2, bevelSize: 0,   bevelSegments: 3 },     // 0.6 + 2*0.2 = 1mm
-        ring:    { outerRadius: 6,  innerRadius: 2.5, bevelThickness: 0.3, bevelSize: 0.3, bevelSegments: 4 },
+        ring:    { outerRadius: 5.0, innerRadius: 2.5, bevelThickness: 0.3, bevelSize: 0.3, bevelSegments: 4 },
         
         // Nametag specific
         wave_amplitude: 3.0,
@@ -121,7 +121,7 @@ const PRESETS = {
         ring_y: 8,
     }, // Total = 5mm (thin < standard < thick)
     standard: {
-        scaleFactor: 1.0,
+        scaleFactor: 0.5,
         base:    { depth: 3,   bevelThickness: 0,   bevelSize: 3,   bevelSegments: 8 },     // 3 + 2*0 = 3mm
         outline: { depth: 1.5, bevelThickness: 0,   bevelSize: 2,   bevelSegments: 3 },     // 1.5 + 2*0 = 1.5mm
         font:    { depth: 1.5, bevelThickness: 0,   bevelSize: 0.2, bevelSegments: 3 },     // 1.5 + 2*0 = 1.5mm
@@ -142,11 +142,11 @@ const PRESETS = {
         ring_y: 10,
     }, // Total = 6.0mm
     thick: {
-        scaleFactor: 1.25,
+        scaleFactor: 0.65,
         base:    { depth: 4,   bevelThickness: 1.5, bevelSize: 5.5, bevelSegments: 10 },    // 4 + 3 = 7mm
         outline: { depth: 1.5, bevelThickness: 0.5, bevelSize: 2,   bevelSegments: 4 },     // 1.5 + 1 = 2.5mm
         font:    { depth: 1.5, bevelThickness: 0.5, bevelSize: 0,   bevelSegments: 4 },     // 1.5 + 1 = 2.5mm
-        ring:    { outerRadius: 10, innerRadius: 4.5, bevelThickness: 0.6, bevelSize: 0.6, bevelSegments: 5 },
+        ring:    { outerRadius: 6.5, innerRadius: 3.5, bevelThickness: 0.6, bevelSize: 0.6, bevelSegments: 5 },
         
         // Nametag specific
         wave_amplitude: 7.0,
@@ -234,6 +234,7 @@ const SLIDER_MAP = {
     fontBevelSize:    { range: 'adminFontBevelSize',     num: 'adminFontBevelSizeNum' },
     ringOuter:        { range: 'adminRingOuter',         num: 'adminRingOuterNum' },
     ringInner:        { range: 'adminRingInner',         num: 'adminRingInnerNum' },
+    wordartLetterThk: { range: 'adminWordartLetterThk',  num: 'adminWordartLetterThkNum' },
     // Wavy Nametag Sliders
     wave_amplitude:   { range: 'adminWaveAmplitude',     num: 'adminWaveAmplitudeNum' },
     wave_cycles:      { range: 'adminWaveCycles',        num: 'adminWaveCyclesNum' },
@@ -275,9 +276,11 @@ const SLIDER_MAP = {
     supported_star1_size:      { range: 'adminSupportedStar1Size',   num: 'adminSupportedStar1SizeNum' },
     supported_star1_x:         { range: 'adminSupportedStar1X',      num: 'adminSupportedStar1XNum' },
     supported_star1_y:         { range: 'adminSupportedStar1Y',      num: 'adminSupportedStar1YNum' },
+    supported_star1_angle:     { range: 'adminSupportedStar1Angle',  num: 'adminSupportedStar1AngleNum' },
     supported_star2_size:      { range: 'adminSupportedStar2Size',   num: 'adminSupportedStar2SizeNum' },
     supported_star2_x:         { range: 'adminSupportedStar2X',      num: 'adminSupportedStar2XNum' },
     supported_star2_y:         { range: 'adminSupportedStar2Y',      num: 'adminSupportedStar2YNum' },
+    supported_star2_angle:     { range: 'adminSupportedStar2Angle',  num: 'adminSupportedStar2AngleNum' },
 
     // Flower Keychain Sliders
     flower_num_petals:            { range: 'adminFlowerNumPetals',            num: 'adminFlowerNumPetalsNum' },
@@ -317,6 +320,16 @@ const SLIDER_MAP = {
     bead_hole:          { range: 'adminBeadHole',         num: 'adminBeadHoleNum' },
     bead_spacing:       { range: 'adminBeadSpacing',      num: 'adminBeadSpacingNum' },
     bead_letter_height: { range: 'adminBeadLetterHeight', num: 'adminBeadLetterHeightNum' },
+
+    // Letter Tiles (tilekey) Sliders
+    tile_size:          { range: 'adminTileSize',         num: 'adminTileSizeNum' },
+    tile_pad_x:         { range: 'adminTilePadX',         num: 'adminTilePadXNum' },
+    tile_gap:           { range: 'adminTileGap',          num: 'adminTileGapNum' },
+    tile_strip_depth:   { range: 'adminTileStripDepth',   num: 'adminTileStripDepthNum' },
+    tile_square_depth:  { range: 'adminTileSquareDepth',  num: 'adminTileSquareDepthNum' },
+    tile_letter_ratio:  { range: 'adminTileLetterRatio',  num: 'adminTileLetterRatioNum' },
+    tile_letter_depth:  { range: 'adminTileLetterDepth',  num: 'adminTileLetterDepthNum' },
+    tile_ring_radius:   { range: 'adminTileRingRadius',   num: 'adminTileRingRadiusNum' },
 };
 
 // Resolve DOM references
@@ -610,7 +623,7 @@ function collectParams() {
             bevelThickness: parseFloat(sliders.baseBevelThk.range.value),
             bevelSize:      parseFloat(sliders.baseBevelSize.range.value),
             bevelSegments:  parseInt(sliders.baseBevelSeg.range.value, 10),
-            wordartMode:    state.wordartBase,
+            wordartMode:    (state.productType === 'wordart' || state.productType === 'loveseries') ? (state.wordartBase || 'none') : 'none',
         },
         outline: {
             depth:          parseFloat(sliders.outlineDepth.range.value),
@@ -632,6 +645,14 @@ function collectParams() {
             bevelSegments:  4,
         },
     };
+
+    // Word Art letter thickness — separate param so Classic Keychain Font Depth stays independent
+    if (sliders.wordartLetterThk && (state.productType === 'wordart' || state.productType === 'loveseries')) {
+        const v = parseFloat(sliders.wordartLetterThk.range.value);
+        if (!isNaN(v)) {
+            p.wordartLetterThickness = v;
+        }
+    }
 
     if (sliders.wave_amplitude) {
         p.wave_mode = $('adminWaveMode').value;
@@ -683,10 +704,12 @@ function collectParams() {
         p.supported_star1_size = parseFloat(sliders.supported_star1_size.range.value);
         p.supported_star1_x = parseFloat(sliders.supported_star1_x.range.value);
         p.supported_star1_y = parseFloat(sliders.supported_star1_y.range.value);
+        p.supported_star1_angle = parseFloat(sliders.supported_star1_angle.range.value);
         p.supported_star2_enable = $('adminSupportedStar2Enable').value === 'yes';
         p.supported_star2_size = parseFloat(sliders.supported_star2_size.range.value);
         p.supported_star2_x = parseFloat(sliders.supported_star2_x.range.value);
         p.supported_star2_y = parseFloat(sliders.supported_star2_y.range.value);
+        p.supported_star2_angle = parseFloat(sliders.supported_star2_angle.range.value);
     }
 
     // Flower Keychain
@@ -749,6 +772,18 @@ function collectParams() {
             p.beadDirection = v === '0' ? 'horizontal' : 'vertical';
         }
     }
+
+    // Letter Tiles (tilekey)
+    if (sliders.tile_size) {
+        p.tile_size          = parseFloat(sliders.tile_size.range.value);
+        p.tile_pad_x         = parseFloat(sliders.tile_pad_x.range.value);
+        p.tile_gap           = parseFloat(sliders.tile_gap.range.value);
+        p.tile_strip_depth   = parseFloat(sliders.tile_strip_depth.range.value);
+        p.tile_square_depth  = parseFloat(sliders.tile_square_depth.range.value);
+        p.tile_letter_ratio  = parseFloat(sliders.tile_letter_ratio.range.value) / 100;
+        p.tile_letter_depth  = parseFloat(sliders.tile_letter_depth.range.value);
+        p.tile_ring_radius   = parseFloat(sliders.tile_ring_radius.range.value);
+    }
     return p;
 }
 
@@ -790,6 +825,16 @@ function setSliders(p) {
         sliders.ringOuter.num.value       = p.ring.outerRadius;
         sliders.ringInner.range.value     = p.ring.innerRadius;
         sliders.ringInner.num.value       = p.ring.innerRadius;
+    }
+
+    if (sliders.wordartLetterThk) {
+        if (p.wordartLetterThickness !== undefined) {
+            sliders.wordartLetterThk.range.value = p.wordartLetterThickness;
+            sliders.wordartLetterThk.num.value   = p.wordartLetterThickness;
+        } else if (p.font && p.font.depth) {
+            sliders.wordartLetterThk.range.value = p.font.depth;
+            sliders.wordartLetterThk.num.value   = p.font.depth;
+        }
     }
 
     // Nametag specific
@@ -956,6 +1001,10 @@ function setSliders(p) {
         sliders.supported_star1_y.range.value = p.supported_star1_y;
         sliders.supported_star1_y.num.value   = p.supported_star1_y;
     }
+    if (p.supported_star1_angle !== undefined) {
+        sliders.supported_star1_angle.range.value = p.supported_star1_angle;
+        sliders.supported_star1_angle.num.value   = p.supported_star1_angle;
+    }
     if (p.supported_star2_enable !== undefined) {
         $('adminSupportedStar2Enable').value = p.supported_star2_enable ? 'yes' : 'no';
     }
@@ -970,6 +1019,10 @@ function setSliders(p) {
     if (p.supported_star2_y !== undefined) {
         sliders.supported_star2_y.range.value = p.supported_star2_y;
         sliders.supported_star2_y.num.value   = p.supported_star2_y;
+    }
+    if (p.supported_star2_angle !== undefined) {
+        sliders.supported_star2_angle.range.value = p.supported_star2_angle;
+        sliders.supported_star2_angle.num.value   = p.supported_star2_angle;
     }
 
     // Flower Keychain
@@ -1116,6 +1169,41 @@ function setSliders(p) {
     } else if (p.beadDirection !== undefined) {
         const el = $('adminBeadDirection');
         if (el) el.value = (p.beadDirection === 'vertical' || p.beadDirection === '1' || p.beadDirection === 1) ? '1' : '0';
+    }
+
+    // Letter Tiles (tilekey)
+    if (p.tile_size !== undefined && sliders.tile_size) {
+        sliders.tile_size.range.value = p.tile_size;
+        sliders.tile_size.num.value   = p.tile_size;
+    }
+    if (p.tile_pad_x !== undefined && sliders.tile_pad_x) {
+        sliders.tile_pad_x.range.value = p.tile_pad_x;
+        sliders.tile_pad_x.num.value   = p.tile_pad_x;
+    }
+    if (p.tile_gap !== undefined && sliders.tile_gap) {
+        sliders.tile_gap.range.value = p.tile_gap;
+        sliders.tile_gap.num.value   = p.tile_gap;
+    }
+    if (p.tile_strip_depth !== undefined && sliders.tile_strip_depth) {
+        sliders.tile_strip_depth.range.value = p.tile_strip_depth;
+        sliders.tile_strip_depth.num.value   = p.tile_strip_depth;
+    }
+    if (p.tile_square_depth !== undefined && sliders.tile_square_depth) {
+        sliders.tile_square_depth.range.value = p.tile_square_depth;
+        sliders.tile_square_depth.num.value   = p.tile_square_depth;
+    }
+    if (p.tile_letter_ratio !== undefined && sliders.tile_letter_ratio) {
+        const ratioPercent = p.tile_letter_ratio <= 1.0 ? Math.round(p.tile_letter_ratio * 100) : p.tile_letter_ratio;
+        sliders.tile_letter_ratio.range.value = ratioPercent;
+        sliders.tile_letter_ratio.num.value   = ratioPercent;
+    }
+    if (p.tile_letter_depth !== undefined && sliders.tile_letter_depth) {
+        sliders.tile_letter_depth.range.value = p.tile_letter_depth;
+        sliders.tile_letter_depth.num.value   = p.tile_letter_depth;
+    }
+    if (p.tile_ring_radius !== undefined && sliders.tile_ring_radius) {
+        sliders.tile_ring_radius.range.value = p.tile_ring_radius;
+        sliders.tile_ring_radius.num.value   = p.tile_ring_radius;
     }
 }
 
@@ -1349,6 +1437,10 @@ function initExportReset() {
 
     // Reset
     if (resetBtn) resetBtn.addEventListener('click', () => {
+        try {
+            localStorage.removeItem('adminConsoleParams');
+            localStorage.removeItem('adminConsoleState');
+        } catch(e) {}
         setSliders(PRESETS.standard);
         document.querySelectorAll('.preset-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.preset === 'standard');
@@ -1483,6 +1575,13 @@ function ensureDefaultsForProductType() {
             state._beadsColorsApplied = false;
             buildSwatches();
         }
+        if (state.productType !== 'tilekey' && state._tilekeyColorsApplied) {
+            state.colors.base = '#ff9933';
+            state.colors.font = '#FFFFFF';
+            state.colors.outline = '#000000';
+            state._tilekeyColorsApplied = false;
+            buildSwatches();
+        }
         
         let selectedAllowed = true;
         if (state.productType === 'loveseries') {
@@ -1496,6 +1595,14 @@ function ensureDefaultsForProductType() {
             if (!selectedAllowed) {
                 const idx = FONTS.findIndex(f => f.name === TILEKEY_DEFAULT_FONT);
                 selectFont(idx >= 0 ? idx : 0);
+            }
+            if (!state._tilekeyColorsApplied) {
+                state.colors.base = '#2B2D7F';
+                state.colors.outline = '#FFFFFF';
+                state.colors.font = '#FF9933';
+                state.colors.line2 = '#FFFFFF';
+                state._tilekeyColorsApplied = true;
+                buildSwatches();
             }
         } else if (state.productType === 'girly_keychain') {
             selectedAllowed = state.selectedFont && state.selectedFont.name === 'Sunday Chillin';
@@ -1603,6 +1710,9 @@ function applyProductTypeUI() {
     const organizerSection = $('adminDeskOrganizerSection');
     if (organizerSection) organizerSection.style.display = isDeskOrganizer ? 'block' : 'none';
 
+    const tileSection = $('adminTilekeySection');
+    if (tileSection) tileSection.style.display = isTile ? 'block' : 'none';
+
     // LED Word Art — 2-Part (Back Panel + CAP) — Ported from Achuva
     const ledBackSection = $('adminLedBackSection');
     if (ledBackSection) ledBackSection.style.display = isLed ? 'block' : 'none';
@@ -1617,7 +1727,6 @@ function applyProductTypeUI() {
         $('adminOutlineSection'),
         $('adminFontSection'),
         $('adminRingSection'),
-        $('adminPresetsSection')
     ];
     standardSections.forEach(sec => {
         if (sec) {
@@ -1625,6 +1734,13 @@ function applyProductTypeUI() {
             sec.style.display = hideStandard ? 'none' : 'block';
         }
     });
+
+    // Preset section is available for Classic Keychain, Word Art, and Nametag
+    const presetsSec = $('adminPresetsSection');
+    if (presetsSec) {
+        const showPresets = !isBordered && !isSupported && !isFlower && !isDeskOrganizer && !isBeads && !isLed && !isBubble && !isTile && !isLinked;
+        presetsSec.style.display = showPresets ? 'block' : 'none';
+    }
 
     const fontSwatchGroup = $('adminFontSwatchGroup');
     const outlineSwatchGroup = $('adminOutlineSwatchGroup');
@@ -1635,30 +1751,52 @@ function applyProductTypeUI() {
     if (fontSwatchGroup) fontSwatchGroup.style.display = isNametag ? 'none' : '';
     const isWordartLike = state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey' || state.productType === 'linked_initials';
     if (outlineSwatchGroup) outlineSwatchGroup.style.display = (hideOutlineAndLayers || (state.layers !== '3L' && !isWordartLike && !isDeskOrganizer && !isBeads)) ? 'none' : '';
-    if (layerToggleWrap) layerToggleWrap.style.display = (hideOutlineAndLayers || isDeskOrganizer || isBeads || isLed) ? 'none' : '';
+    if (layerToggleWrap) layerToggleWrap.style.display = (hideOutlineAndLayers || isDeskOrganizer || isBeads || isLed || isTile || isWordartFamily) ? 'none' : '';
 
-    // LED: Update color labels to reflect 2-part product (Housing + Diffuser) — Achuva style
+    const baseLabel = document.getElementById('adminBaseSwatchLabel');
+    const fontLabel = document.getElementById('adminFontSwatchLabel');
+    const outlineLabel = document.getElementById('adminOutlineSwatchLabel');
+
     if (isLed) {
-        const baseLabel = document.querySelector('#adminBaseSwatchGroup .swatchLabel');
-        const fontLabel = document.querySelector('#adminFontSwatchGroup .swatchLabel');
         if (baseLabel) baseLabel.textContent = 'Housing Tray';
-        if (fontLabel) fontLabel.textContent = 'Diffuser Cover';
+        if (fontLabel) fontLabel.textContent = 'Diffuser Cover (CAP)';
         if (outlineSwatchGroup) outlineSwatchGroup.style.display = 'none';
         if (layerToggleWrap) layerToggleWrap.style.display = 'none';
     } else if (isBeads) {
-        const baseLabel = document.querySelector('#adminBaseSwatchGroup .swatchLabel');
-        const fontLabel = document.querySelector('#adminFontSwatchGroup .swatchLabel');
-        const outlineLabel = document.querySelector('#adminOutlineSwatchGroup .swatchLabel');
         if (baseLabel) baseLabel.textContent = 'Bead Body';
-        if (fontLabel) fontLabel.textContent = 'Letter';
-        if (outlineLabel) outlineLabel.textContent = 'Cord / Elastic';
+        if (fontLabel) fontLabel.textContent = 'Letter Stamp';
+        if (outlineLabel) outlineLabel.textContent = 'Cord / Stopper';
         if (outlineSwatchGroup) outlineSwatchGroup.style.display = '';
         if (fontSwatchGroup) fontSwatchGroup.style.display = '';
         if (layerToggleWrap) layerToggleWrap.style.display = 'none';
+    } else if (isTile) {
+        if (baseLabel) baseLabel.textContent = 'Strip Body';
+        if (fontLabel) fontLabel.textContent = 'Letter Color';
+        if (outlineLabel) outlineLabel.textContent = 'Tile Square Base';
+        if (outlineSwatchGroup) outlineSwatchGroup.style.display = '';
+        if (fontSwatchGroup) fontSwatchGroup.style.display = '';
+        if (layerToggleWrap) layerToggleWrap.style.display = 'none';
+    } else if (isDeskOrganizer) {
+        if (baseLabel) baseLabel.textContent = 'Organizer Box';
+        if (fontLabel) fontLabel.textContent = 'Nameplate Text';
+        if (outlineLabel) outlineLabel.textContent = 'Dividers Accent';
+        if (outlineSwatchGroup) outlineSwatchGroup.style.display = '';
+        if (fontSwatchGroup) fontSwatchGroup.style.display = '';
+        if (layerToggleWrap) layerToggleWrap.style.display = 'none';
+    } else if (isFlower) {
+        if (baseLabel) baseLabel.textContent = 'Flower Petals';
+        if (fontLabel) fontLabel.textContent = 'Initial Letter';
+        if (outlineLabel) outlineLabel.textContent = 'Center Disc';
+    } else if (isBordered) {
+        if (baseLabel) baseLabel.textContent = 'Inner Plate';
+        if (fontLabel) fontLabel.textContent = 'Text Color';
+        if (outlineLabel) outlineLabel.textContent = 'Outer Border';
+    } else if (isWordartFamily) {
+        if (baseLabel) baseLabel.textContent = 'Backing Plaque';
+        if (fontLabel) fontLabel.textContent = 'Top Line Color';
+        if (outlineLabel) outlineLabel.textContent = 'Bottom Line Color';
+        if (outlineSwatchGroup) outlineSwatchGroup.style.display = '';
     } else {
-        const baseLabel = document.querySelector('#adminBaseSwatchGroup .swatchLabel');
-        const fontLabel = document.querySelector('#adminFontSwatchGroup .swatchLabel');
-        const outlineLabel = document.querySelector('#adminOutlineSwatchGroup .swatchLabel');
         if (baseLabel) baseLabel.textContent = 'Base Color';
         if (fontLabel) fontLabel.textContent = 'Text Color';
         if (outlineLabel) outlineLabel.textContent = 'Outline Color';
