@@ -5,6 +5,7 @@
  * lands via textContent, and previews pass through Cart.cleanPreview before
  * touching img.src, same as the cart page.
  */
+import { bootAuthUi } from './auth-ui.js?v=auth1';
 import * as Cart from './cart.js?v=kootzy1';
 import { PRODUCT_LABELS } from './product-labels.js?v=kootzy1';
 import { metaFor, flowFor } from './order-status.js?v=kootzy1';
@@ -226,6 +227,9 @@ async function renderDetail(orderNum) {
         }
     }
 }
+
+/* Auth first so Cart.isSignedIn() / authHeaders() see the session. */
+await bootAuthUi();
 
 const orderParam = new URLSearchParams(window.location.search).get('order');
 if (orderParam && /^\d{1,10}$/.test(orderParam)) {
