@@ -14,7 +14,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 0 1.25rem;
-    border-bottom: 1px solid var(--border-color, #E4D8C6);
+    border-bottom: 1px solid var(--border-color, #D3E7EB);
     margin-bottom: 1.5rem;
 }
 
@@ -24,7 +24,7 @@
     margin-left: auto;
     font-size: 0.85rem;
     font-weight: 700;
-    color: var(--primary, #FF4D2E);
+    color: var(--primary-strong, #DB0B21);
     text-decoration: none;
 }
 
@@ -55,12 +55,12 @@
 .legal-page ul { padding-left: 1.15rem; }
 .legal-page li { margin-bottom: 0.4rem; }
 
-.legal-page a { color: var(--primary, #FF4D2E); }
+.legal-page a { color: var(--primary-strong, #DB0B21); }
 
 /* Seller-identity / contact block */
 .legal-card {
     background: var(--bg-panel, #fff);
-    border: 1px solid var(--border-color, #E4D8C6);
+    border: 1px solid var(--border-color, #D3E7EB);
     border-radius: 14px;
     padding: 1rem 1.15rem;
     margin: 1rem 0 1.5rem;
@@ -102,7 +102,7 @@
 
 /* Footer links, reused on the storefront */
 .legal-footer {
-    border-top: 1px solid var(--border-color, #E4D8C6);
+    border-top: 1px solid var(--border-color, #D3E7EB);
     margin-top: 2.5rem;
     padding: 1.25rem 1rem 2rem;
     text-align: center;
@@ -119,4 +119,4 @@
 }
 
 .legal-footer a { color: var(--text-muted, #7a6a58); text-decoration: none; font-weight: 600; }
-.legal-footer a:hover { color: var(--primary, #FF4D2E); text-decoration: underline; }
+.legal-footer a:hover { color: var(--primary-strong, #DB0B21); text-decoration: underline; }

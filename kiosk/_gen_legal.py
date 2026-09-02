@@ -47,24 +47,25 @@ def shell(slug, title, heading, body):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title} — YoursGifts</title>
-    <meta name="description" content="{heading} for YoursGifts custom 3D-printed gifts.">
+    <title>{title} — Kootzy</title>
+    <meta name="description" content="{heading} for Kootzy custom 3D-printed gifts.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{ORIGIN}/{slug}.html">
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <meta name="theme-color" content="#FF4D2E">
+    <link rel="icon" href="/favicon.ico?v=kootzy1" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg?v=kootzy1">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=kootzy1">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=kootzy1">
+    <meta name="theme-color" content="#00B5C8">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/kiosk.css?v=desk3">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css?v=kootzy1">
     <link rel="stylesheet" href="css/legal.css?v=wa1">
 </head>
 <body>
   <main class="legal-page">
     <div class="legal-topbar">
-      <img src="LOGO WITH SLOGAN.png" alt="YoursGifts">
+      <img src="brand/logo-with-tagline.svg" alt="Kootzy — made to make you smile" width="98" height="42" decoding="async">
       <a class="legal-back" href="index.html">&larr; Back to shop</a>
     </div>
 
