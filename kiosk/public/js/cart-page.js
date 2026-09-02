@@ -41,6 +41,17 @@ function lineNode(item) {
         thumb.alt = '';
         thumb.decoding = 'async';
         thumb.loading = 'lazy';
+    } else {
+        // Capture missing (failed at add time, or an older line): brand mark on
+        // the mint well rather than an empty hole.
+        thumb = document.createElement('div');
+        thumb.className = 'cart-thumb cart-thumb-placeholder';
+        const mark = document.createElement('img');
+        mark.src = 'brand/icon-mark.svg';
+        mark.alt = '';
+        mark.width = 40;
+        mark.height = 40;
+        thumb.appendChild(mark);
     }
 
     const swatches = document.createElement('div');

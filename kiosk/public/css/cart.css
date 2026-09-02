@@ -78,6 +78,17 @@
     .cart-thumb { width: 120px; height: 88px; }
 }
 
+/* Placeholder when a line has no captured preview (older order, or the capture
+   failed at add time): the brand mark on the mint well, never an empty hole. */
+.cart-thumb-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper-2);
+}
+.cart-thumb-placeholder img { opacity: 0.55; }
+
+
 .cart-line-name {
     font-family: var(--font-display);
     font-weight: 700;

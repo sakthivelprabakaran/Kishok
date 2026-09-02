@@ -177,6 +177,18 @@ async function renderDetail(orderNum) {
             img.decoding = 'async';
             img.loading = 'lazy';
             li.appendChild(img);
+        } else {
+            // No capture (older order, or capture failed at add time): show the
+            // brand mark as a placeholder rather than an empty hole in the card.
+            const ph = document.createElement('div');
+            ph.className = 'cart-thumb cart-thumb-placeholder';
+            const mark = document.createElement('img');
+            mark.src = 'brand/icon-mark.svg';
+            mark.alt = '';
+            mark.width = 40;
+            mark.height = 40;
+            ph.appendChild(mark);
+            li.appendChild(ph);
         }
 
         const info = document.createElement('div');
