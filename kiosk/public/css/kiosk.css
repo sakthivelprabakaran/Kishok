@@ -132,6 +132,17 @@ body::before {
 }
 
 /* ── Cart link + count badge in the header ── */
+.header-orders-link {
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    text-decoration: none;
+    padding: 0.5rem 0.6rem;
+    border-radius: 8px;
+    margin-left: auto;          /* pushes itself + cart to the right edge */
+}
+.header-orders-link:hover { background: var(--paper-2); }
 .cart-link {
     position: relative;
     display: inline-flex;

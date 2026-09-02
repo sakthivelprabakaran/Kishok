@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>My orders — Kootzy</title>
+    <meta name="description" content="Track your Kootzy orders and see the designs you created.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="/favicon.ico?v=kootzy1" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg?v=kootzy1">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=kootzy1">
+    <meta name="theme-color" content="#00B5C8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css?v=kootzy1">
+    <link rel="stylesheet" href="css/cart.css?v=kootzy2">
+    <link rel="stylesheet" href="css/orders.css?v=kootzy1">
+</head>
+<body>
+    <div class="kiosk-container">
+        <header class="kiosk-header">
+            <div class="logo-area">
+                <a href="index.html" aria-label="Kootzy home">
+                    <img src="brand/logo-primary.svg" alt="Kootzy" class="logo-mark" width="140" height="47" decoding="async">
+                </a>
+            </div>
+            <a class="cart-back" href="index.html">Keep shopping</a>
+        </header>
+
+        <main class="orders-page">
+            <!-- list view -->
+            <div id="listView">
+                <h1 class="cart-title">My orders</h1>
+                <p id="ordersLoading" class="cart-note">Loading your orders…</p>
+
+                <div id="ordersSignedOut" class="cart-empty" hidden>
+                    <img src="brand/states/no-results-illus.svg" alt="" class="state-illus" aria-hidden="true">
+                    <h2>Sign in to see your orders</h2>
+                    <p>Your orders and the designs you created live with your account.</p>
+                    <a class="state-btn" href="index.html">Back to the shop</a>
+                </div>
+
+                <div id="ordersEmpty" class="cart-empty" hidden>
+                    <img src="brand/states/empty-cart-illus.svg" alt="" class="state-illus" aria-hidden="true">
+                    <h2>No orders yet</h2>
+                    <p>Design something and it will show up here, from order to delivery.</p>
+                    <a class="state-btn" href="index.html">Start designing</a>
+                </div>
+
+                <ul class="orders-list" id="ordersList" hidden></ul>
+            </div>
+
+            <!-- detail view (?order=NNNN) -->
+            <div id="detailView" hidden>
+                <a class="cart-back" href="my-orders.html">&larr; All orders</a>
+                <h1 class="cart-title">Order <span id="odNum">—</span></h1>
+
+                <div class="order-chip" id="odChip"></div>
+                <p class="od-note" id="odNote"></p>
+
+                <ol class="od-timeline" id="odTimeline"></ol>
+
+                <h2 class="od-subhead">Your designs</h2>
+                <ul class="cart-lines" id="odItems"></ul>
+
+                <div class="od-meta">
+                    <dl class="cart-totals">
+                        <dt>Items</dt><dd id="odItemCount">—</dd>
+                        <dt>Total</dt><dd id="odTotal">—</dd>
+                        <dt id="odShipFeeLabel" hidden>Delivery</dt><dd id="odShipFee" hidden>—</dd>
+                    </dl>
+                    <div id="odAddress" class="od-address" hidden>
+                        <h3>Delivering to</h3>
+                        <p id="odAddressText"></p>
+                        <p id="odTracking" hidden></p>
+                    </div>
+                </div>
+            </div>
+
+            <p id="ordersError" class="cart-error" hidden role="alert"></p>
+        </main>
+
+        <footer class="kiosk-footer">
+            <p>© 2026 Kootzy · Made to make you smile 🎁</p>
+        </footer>
+    </div>
+
+    <script type="module" src="js/my-orders-page.js?v=kootzy1"></script>
+</body>
+</html>

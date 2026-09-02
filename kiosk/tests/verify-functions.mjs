@@ -12,6 +12,7 @@ import { makeStub, ENV } from './pgrest-stub.mjs';
 const cart = await import('../functions/api/cart.js');
 const checkout = await import('../functions/api/checkout.js');
 const quickOrder = await import('../functions/api/order/index.js');
+const myOrders = await import('../functions/api/my-orders.js');
 
 let stub;
 function reset() {
@@ -210,6 +211,56 @@ r = await call(quickOrder.onRequestPost, req('POST', '/api/order',
 check('kiosk order clamps a weight lie to the billable floor',
     Number(stub.tables.orders[1].final_amount) === 22,
     `stored ₹${stub.tables.orders[1].final_amount}`);
+
+/* ═══ my-orders ═══ */
+console.log('\n-- my-orders --');
+reset();
+
+r = await call(myOrders.onRequestGet, req('GET', '/api/my-orders'));
+check('my-orders without token -> 401', r.status === 401);
+
+r = await call(myOrders.onRequestGet, req('GET', '/api/my-orders', { headers: AUTH_A }));
+check('empty history -> []', r.status === 200 && r.data.orders.length === 0);
+
+/* place one pickup and one shipped order for user A */
+await seedCart();
+await call(checkout.onRequestPost, req('POST', '/api/checkout',
+    { headers: AUTH_A, body: { contactName: 'Priya', contactPhone: '9999999999' } }));
+await seedCart();
+await call(checkout.onRequestPost, req('POST', '/api/checkout',
+    { headers: AUTH_A, body: { fulfilmentMethod: 'ship', contactName: 'Priya', contactPhone: '9999999999', address: { recipientName: 'Priya P', phone: '8888888888', line1: '12 Main St', line2: '', city: 'Chennai', state: 'Tamil Nadu', pincode: '600091' } } }));
+
+r = await call(myOrders.onRequestGet, req('GET', '/api/my-orders', { headers: AUTH_A }));
+check('list shows both orders, newest first', r.status === 200 && r.data.orders.length === 2
+    && r.data.orders[0].fulfilmentMethod === 'ship');
+check('list rows carry status/total/itemCount',
+    r.data.orders.every((o) => o.status === 'Pending' && o.total === 179 && o.itemCount === 3),
+    JSON.stringify(r.data.orders.map((o) => [o.orderNum, o.total])));
+check('pickup order exposes no address', r.data.orders[1].address === undefined);
+check('shipped order exposes its frozen address',
+    r.data.orders[0].address && r.data.orders[0].address.pincode === '600091');
+
+const pickupNum = r.data.orders[1].orderNum;
+r = await call(myOrders.onRequestGet, req('GET', `/api/my-orders?order=${pickupNum}`, { headers: AUTH_A }));
+check('detail returns the order and its frozen lines',
+    r.status === 200 && r.data.order.orderNum === pickupNum && r.data.items.length === 2);
+check('detail lines carry the captured preview',
+    r.data.items.some((i) => i.preview === 'data:image/jpeg;base64,PIC1'));
+check('detail lines carry the charged prices',
+    r.data.items.find((i) => i.text === 'Priya').lineTotal === 107
+    && r.data.items.find((i) => i.text === 'Arun').lineTotal === 72);
+
+r = await call(myOrders.onRequestGet, req('GET', `/api/my-orders?order=${pickupNum}`, { headers: AUTH_B }));
+check('user B cannot read user A\'s order detail -> 404', r.status === 404);
+
+r = await call(myOrders.onRequestGet, req('GET', '/api/my-orders', { headers: AUTH_B }));
+check('user B\'s list does not contain user A\'s orders', r.data.orders.length === 0);
+
+r = await call(myOrders.onRequestGet, req('GET', '/api/my-orders?order=9999', { headers: AUTH_A }));
+check('unknown order number -> 404', r.status === 404);
+
+r = await call(myOrders.onRequestGet, req('GET', '/api/my-orders?order=abc;drop', { headers: AUTH_A }));
+check('malformed order param -> 400', r.status === 400);
 
 /* ═══ result ═══ */
 const passed = results.filter(Boolean).length;

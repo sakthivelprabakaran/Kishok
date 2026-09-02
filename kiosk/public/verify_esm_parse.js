@@ -34,6 +34,8 @@ const MODULES = [
     'js/cart-badge.js',
     'js/pricing.js',
     'js/product-labels.js',
+    'js/order-status.js',
+    'js/my-orders-page.js',
     'js/legal-details.js',
     'js/landing-reel.js',
     'admin-console.js',
