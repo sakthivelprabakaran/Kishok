@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node public/verify_studio_parity.js && node public/verify_input_perf.js && node public/verify_control_coverage.js && node --experimental-vm-modules public/verify_esm_parse.js"
+    "test": "node public/verify_studio_parity.js && node public/verify_input_perf.js && node public/verify_control_coverage.js && node --experimental-vm-modules public/verify_esm_parse.js && node tests/verify-functions.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",
