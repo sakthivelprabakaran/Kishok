@@ -606,11 +606,75 @@ function buildFontPreviewSVG(font, text) {
            '<path d="' + d + '" fill="currentColor"/></g></svg>';
 }
 
-// Debounced refresh so rapid typing doesn't thrash 30 SVG re-renders.
+// ── Font preview text, rendered lazily ──
+// Typing used to call renderFontList(), which wiped the strip and rebuilt every
+// card: ~34 × (opentype getPath + toPathData + innerHTML SVG parse) plus a full
+// strip layout, per typing burst — and it reset the strip's scroll position.
+// Now the cards are structural and only the preview glyphs are swapped, and only
+// for the cards actually scrolled into view.
+let _previewSample = 'Abc';
+const _visibleCards = new Set();
+let _previewObserver = null;
+
+function computePreviewSample() {
+    let sample = (state.name || '').split('\n')[0].trim();
+    if (!sample) sample = state.productType === 'linked_initials' ? 'SP' : 'Abc';
+    return sample.slice(0, 6);   // keep previews readable
+}
+
+function ensurePreviewObserver() {
+    if (_previewObserver || !el.fontStrip || typeof IntersectionObserver === 'undefined') return;
+    _previewObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                _visibleCards.add(entry.target);
+                renderCardPreview(entry.target);
+            } else {
+                _visibleCards.delete(entry.target);
+            }
+        });
+    }, { root: el.fontStrip, rootMargin: '0px 300px' });
+}
+
+// Draw `_previewSample` into one card. No-op when the card already shows it.
+function renderCardPreview(card) {
+    if (!card || card.dataset.sample === _previewSample) return;
+    const target = card.querySelector('.font-preview-text');
+    if (!target) return;
+
+    const sample = _previewSample;
+    const file   = card.dataset.file;
+    const name   = card.dataset.name;
+    card.dataset.sample = sample;   // claim before the async hop so we don't queue duplicates
+
+    _loadPreviewFont(file)
+        .then(f => {
+            if (card.dataset.sample !== sample) return;   // superseded by newer text
+            target.innerHTML = buildFontPreviewSVG(f, sample);
+        })
+        .catch(() => {
+            if (card.dataset.sample !== sample) return;
+            target.textContent = sample;
+            target.style.fontFamily = `"${name}", sans-serif`;
+        });
+}
+
+// Debounced: swap preview text without touching the DOM structure.
 let _fontRefreshTimer = null;
 function refreshFontPreviews() {
     clearTimeout(_fontRefreshTimer);
-    _fontRefreshTimer = setTimeout(renderFontList, 300);
+    _fontRefreshTimer = setTimeout(() => {
+        const next = computePreviewSample();
+        if (next === _previewSample) return;
+        _previewSample = next;
+
+        if (_previewObserver) {
+            // Off-screen cards keep the stale sample and re-render when scrolled in.
+            _visibleCards.forEach(renderCardPreview);
+        } else {
+            el.fontStrip.querySelectorAll('.font-card').forEach(renderCardPreview);
+        }
+    }, 400);
 }
 
 // Let a vertical mouse wheel scroll the horizontal font strip, and add
@@ -643,6 +707,10 @@ function setupFontStripNav() {
 }
 
 function renderFontList() {
+    // Structural rebuild: the set of cards or the selection changed. Detach the
+    // old cards from the observer first so _visibleCards never holds dead nodes.
+    if (_previewObserver) _previewObserver.disconnect();
+    _visibleCards.clear();
     el.fontStrip.innerHTML = '';
 
     const isLinkedInitials = state.productType === 'linked_initials';
@@ -667,9 +735,8 @@ function renderFontList() {
     }
 
     // What text to preview: the user's typed name (first line), else "Abc".
-    let sample = (state.name || '').split('\n')[0].trim();
-    if (!sample) sample = isLinkedInitials ? 'SP' : 'Abc';
-    sample = sample.slice(0, 6);   // keep previews readable
+    _previewSample = computePreviewSample();
+    ensurePreviewObserver();
 
     filtered.forEach(font => {
         const isSelected = (state.productType === 'wordart')
@@ -693,11 +760,6 @@ function renderFontList() {
         card.appendChild(pText);
         card.appendChild(cName);
 
-        // Render the SVG asynchronously; fall back to the family name on failure.
-        _loadPreviewFont(font.file)
-            .then(f => { pText.innerHTML = buildFontPreviewSVG(f, sample); })
-            .catch(() => { pText.textContent = sample; pText.style.fontFamily = `"${font.name}", sans-serif`; });
-
         card.addEventListener('click', () => {
             document.querySelectorAll('.font-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
@@ -719,6 +781,14 @@ function renderFontList() {
         });
 
         el.fontStrip.appendChild(card);
+
+        // Preview glyphs render lazily — on scroll-in via the observer, or
+        // immediately when IntersectionObserver is unavailable.
+        if (_previewObserver) {
+            _previewObserver.observe(card);
+        } else {
+            renderCardPreview(card);
+        }
     });
 }
 
@@ -1120,6 +1190,17 @@ function triggerPaymentModal() {
     el.paymentModal.classList.add('active');
 }
 
+// Rewriting .value during an `input` event snaps the caret to the end, so
+// mid-word edits are impossible. Restore the selection when we have to rewrite.
+function setInputValuePreservingCaret(input, next) {
+    if (input.value === next) return;
+    const pos = input.selectionStart;
+    input.value = next;
+    if (pos === null || pos === undefined) return;
+    const cap = Math.min(pos, next.length);
+    try { input.setSelectionRange(cap, cap); } catch (_) { /* type doesn't support selection */ }
+}
+
 // ===== EVENT BINDINGS =====
 
 function setupEvents() {
@@ -1269,8 +1350,8 @@ function setupEvents() {
         // Every other product (keychain, nameplate, etc.) keeps the user's
         // own casing so names like "Priya" aren't shouted as "PRIYA".
         if (state.productType === 'tilekey') {
-            state.name = e.target.value.toUpperCase();
-            e.target.value = state.name;
+            setInputValuePreservingCaret(e.target, e.target.value.toUpperCase());
+            state.name = e.target.value;
         } else {
             state.name = e.target.value;
         }
@@ -1286,8 +1367,8 @@ function setupEvents() {
     });
     
     el.wordartLine2.addEventListener('input', (e) => {
-        const val = e.target.value.toUpperCase();
-        e.target.value = val;
+        setInputValuePreservingCaret(e.target, e.target.value.toUpperCase());
+        const val = e.target.value;
         el.charCount2.textContent = val.length;
         update3DModel();
     });

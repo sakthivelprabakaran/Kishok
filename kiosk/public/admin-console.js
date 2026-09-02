@@ -1142,8 +1142,32 @@ function debouncedRebuild() {
 
 // ===== UPDATE VIEWER (full update with text + font + colors) =====
 
-async function updateViewer() {
+/* Typing called updateViewer() once per keystroke with no debounce and no
+ * re-entrancy guard, so several full rebuilds ran concurrently against one
+ * viewer — each calling _clearKeychain() while another was mid-build. Debounce
+ * like the storefront does, and coalesce anything that lands during a build. */
+let _updateViewerTimer   = null;
+let _updateViewerRunning = false;
+let _updateViewerDirty   = false;
+
+function updateViewer() {
+    clearTimeout(_updateViewerTimer);
+    if (_updateViewerRunning) { _updateViewerDirty = true; return; }
+    _updateViewerTimer = setTimeout(_runUpdateViewer, 180);
+}
+
+// Immediate rebuild, no debounce (init / product switch).
+function updateViewerNow() {
+    clearTimeout(_updateViewerTimer);
+    if (_updateViewerRunning) { _updateViewerDirty = true; return; }
+    _runUpdateViewer();
+}
+
+async function _runUpdateViewer() {
     if (!viewer || !state.selectedFont) return;
+    if (_updateViewerRunning) { _updateViewerDirty = true; return; }
+    _updateViewerRunning = true;
+    _updateViewerDirty   = false;
 
     showLoading();
     try {
@@ -1178,6 +1202,13 @@ async function updateViewer() {
             colors: state.colors,
         }));
     } catch(e) {}
+
+    _updateViewerRunning = false;
+    // Changes arrived mid-build → run exactly one more rebuild.
+    if (_updateViewerDirty) {
+        _updateViewerDirty = false;
+        _updateViewerTimer = setTimeout(_runUpdateViewer, 0);
+    }
 }
 
 // ===== UPDATE DIMENSIONS =====
@@ -1725,7 +1756,7 @@ function applyProductTypeUI() {
 
     ensureDefaultsForProductType();
     buildFontChips();
-    updateViewer();
+    updateViewerNow();
 }
 
 function parseURLParameters() {

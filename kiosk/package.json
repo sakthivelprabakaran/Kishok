@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node public/verify_studio_parity.js && node public/verify_input_perf.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
