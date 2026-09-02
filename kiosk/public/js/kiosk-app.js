@@ -1,5 +1,5 @@
 /* =========================================
-   YOURSGIFTS KIOSK — MAIN APP LOGIC
+   KOOTZY KIOSK — MAIN APP LOGIC
    Three.js Integration + Cost Engine + UPI
    ========================================= */
 
@@ -1142,7 +1142,7 @@ function applyProductTypeConstraints() {
 function openUPILink(app) {
     const orderAmt = state.costs.finalAmount * state.quantity;
     const note = `KSK-${state.productType.substring(0,3).toUpperCase()}-${state.name.substring(0,5).toUpperCase()}`.replace(/\s+/g, '');
-    const params = `pa=${encodeURIComponent(UPI_VPA)}&pn=${encodeURIComponent('YoursGifts')}&am=${orderAmt.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
+    const params = `pa=${encodeURIComponent(UPI_VPA)}&pn=${encodeURIComponent('Kootzy')}&am=${orderAmt.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
     
     // Detect iOS
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -1175,7 +1175,7 @@ function openUPILink(app) {
 function triggerPaymentModal() {
     const orderAmt = state.costs.finalAmount * state.quantity;
     const note = `KSK-${state.productType.substring(0,3).toUpperCase()}-${state.name.substring(0,5).toUpperCase()}`.replace(/\s+/g, '');
-    const upiUrl = `upi://pay?pa=${encodeURIComponent(UPI_VPA)}&pn=${encodeURIComponent('YoursGifts')}&am=${orderAmt.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
+    const upiUrl = `upi://pay?pa=${encodeURIComponent(UPI_VPA)}&pn=${encodeURIComponent('Kootzy')}&am=${orderAmt.toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
     
     el.modalPayAmt.textContent = `₹${orderAmt}`;
     

@@ -1,5 +1,5 @@
 /* =========================================
-   YOURSGIFTS — ADMIN CONSOLE JS (ES Module)
+   KOOTZY — ADMIN CONSOLE JS (ES Module)
    Full-screen STL Generation Console
    ========================================= */
 

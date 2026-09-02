@@ -1,5 +1,5 @@
 /* =========================================================
-   YOURSGIFTS KIOSK — ADMIN DASHBOARD
+   KOOTZY KIOSK — ADMIN DASHBOARD
    - PIN auth gate (sends x-admin-pin on mutating calls)
    - Production Queue grouped by colour combo
    - Diff-and-patch order feed (no flicker / scroll loss)
@@ -226,7 +226,7 @@ function orderCardHTML(order) {
     else if (order.status === 'Printed')
         actions = `<button class="action-btn pickup" data-id="${esc(order.orderNum)}">Mark Picked Up</button>
                    <a class="action-btn wa" target="_blank" rel="noopener"
-                      href="https://wa.me/91${encodeURIComponent((order.phone||'').replace(/\D/g,'').slice(-10))}?text=${encodeURIComponent('Hi ' + order.name + ', your YoursGifts order ' + order.orderNum + ' is printed and ready for pickup! 🎁')}">WhatsApp Ready</a>
+                      href="https://wa.me/91${encodeURIComponent((order.phone||'').replace(/\D/g,'').slice(-10))}?text=${encodeURIComponent('Hi ' + order.name + ', your Kootzy order ' + order.orderNum + ' is printed and ready for pickup! 🎁')}">WhatsApp Ready</a>
                    ${designBtn}`;
     else if (order.status === 'PickedUp')
         actions = `<div class="done-tag">✓ Picked Up</div> ${designBtn}`;

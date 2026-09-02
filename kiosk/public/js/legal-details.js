@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   YoursGifts — business details used by the legal pages.
+   Kootzy — business details used by the legal pages.
 
    FILL THIS IN BEFORE GOING LIVE. Every legal page reads from here, so this is
    the only file to edit. While any value still starts with "TODO:", the pages
@@ -12,9 +12,11 @@
 
 export const BUSINESS = {
     // Trading name shown to customers.
-    brandName: 'YoursGifts',
+    brandName: 'Kootzy',
 
-    // Legal/registered name.
+    // Legal/registered name. Deliberately NOT renamed: Kootzy is the trading
+    // brand, the registered entity is still YoursGifts. The policy pages must
+    // name the entity that actually contracts with the customer.
     legalName: 'YoursGifts',
 
     // Full address customers can reach.

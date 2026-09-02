@@ -1,5 +1,5 @@
 /* =========================================
-   YOURSGIFTS — 3D KEYCHAIN VIEWER
+   KOOTZY — 3D KEYCHAIN VIEWER
    Three.js + opentype.js
    ========================================= */
 

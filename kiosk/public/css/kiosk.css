@@ -1,40 +1,66 @@
 /* =========================================================
-   YOURSGIFTS KIOSK — GLOBAL STYLES & DESIGN SYSTEM
-   "Maker Studio" — warm riso workshop, mobile-first.
-   Token NAMES are unchanged so customize.css inherits them;
-   only the VALUES move to the new palette.
+   KOOTZY KIOSK — GLOBAL STYLES & DESIGN SYSTEM
+   Bright, rounded, friendly. Brand kit: kootzy-logo-v003-baloo2.
+   Tagline: MADE TO MAKE YOU SMILE.
+
+   Token NAMES are unchanged so customize.css / admin.css / legal.css
+   inherit them; only the VALUES move to the Kootzy palette.
+
+   Palette mapping kept the old hierarchy so nothing shifts weight:
+     vermilion  -> Nuclear Red  (primary / CTA)
+     cobalt     -> Lagoon Blue  (brand chrome, secondary accent)
+     warm ink   -> Navy
+     warm paper -> Pale neutral / Mint
+   Filament swatches in COLOR_PALETTES are NOT brand colours and are
+   deliberately left alone — they describe real PLA stock.
    ========================================================= */
 
 :root {
-    /* ---- Surfaces: warm paper, not cold slate ---- */
-    --bg-dark:   #FBF6EE;   /* page background (name kept for compat) */
-    --bg-main:   #FBF6EE;   /* alias used by customize.css */
+    /* ---- Surfaces: cool and bright, not warm paper ---- */
+    --bg-dark:   #F5FAFB;   /* page background (name kept for compat) */
+    --bg-main:   #F5FAFB;   /* alias used by customize.css */
     --bg-panel:  #FFFFFF;   /* cards / panels */
-    --paper-2:   #F3EADC;   /* recessed wells */
+    --paper-2:   #DDF7FA;   /* recessed wells (Mint) */
 
-    --border-color: #E4D8C6;
-    --border-color-hover: #D2C2A8;
+    --border-color: #D3E7EB;
+    --border-color-hover: #A9D5DE;
 
-    /* ---- Riso accents (names kept; values reskinned) ---- */
-    --primary: #FF4D2E;                 /* vermilion (was violet) */
-    --primary-ink: #D8341A;
-    --primary-glow: rgba(255, 77, 46, 0.16);
-    --primary-gradient: linear-gradient(135deg, #FF4D2E 0%, #FF7A33 100%);
-    --accent: #1F8E4D;                  /* workshop green (UPI/savings) */
+    /* ---- Brand accents ---- */
+    --primary: #FF1E36;                 /* Nuclear Red — CTA */
+    --primary-ink: #DB0B21;             /* pressed / hover */
+    --primary-glow: rgba(255, 30, 54, 0.16);
+    --primary-gradient: linear-gradient(135deg, #FF1E36 0%, #FF5A6B 100%);
+    --accent: #1F8E4D;                  /* success / savings — semantic, not brand */
     --accent-glow: rgba(31, 142, 77, 0.16);
-    --cobalt: #1F4FD8;
-    --cobalt-wash: rgba(31, 79, 216, 0.10);
+    --cobalt: #00B5C8;                  /* Lagoon Blue — brand chrome */
+    --cobalt-wash: rgba(0, 181, 200, 0.12);
+
+    /* ---- Brand extras (new; safe to use, nothing depends on them yet) ---- */
+    --lagoon: #00B5C8;
+    --lagoon-ink: #009AAB;
+    /* Lagoon is only 2.49:1 on white — it cannot carry text at any size. Use this
+       darkened shade whenever a lagoon-COLOURED label is wanted (4.76:1 on white).
+       Lagoon as a FILL is fine: navy on lagoon measures 5.89:1. */
+    --lagoon-text: #007F8C;
+    /* Nuclear Red carries white text only at large bold sizes (3.82:1). For small
+       white labels on red, use this (5.14:1). */
+    --primary-strong: #DB0B21;
+    --mint: #DDF7FA;
+    --blush: #FFE6EA;
+    --yellow: #FFC94A;
 
     /* ---- Ink ---- */
-    --text-main:  #1A1714;
-    --text-muted: #6E665B;
-    --text-dark:  #1A1714;
+    --text-main:  #172B35;              /* Navy */
+    --text-muted: #4F6874;              /* AA on --bg-dark */
+    --text-dark:  #172B35;
 
-    --font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', sans-serif;
-    --font-mono: 'Space Mono', ui-monospace, monospace;
+    /* Body copy is a neutral sans per the brand guidelines; Baloo 2 is for
+       short, joyful headlines only, never paragraphs. */
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-display: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-    --card-shadow: 0 1px 2px rgba(26,23,20,.06), 0 6px 18px rgba(26,23,20,.07);
+    --card-shadow: 0 1px 2px rgba(23,43,53,.06), 0 6px 18px rgba(23,43,53,.08);
     --transition-smooth: all 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
     --focus-ring: 0 0 0 3px var(--bg-panel), 0 0 0 5px var(--primary);
 }
@@ -105,7 +131,32 @@ body::before {
     box-shadow: 3px 3px 0 var(--text-main);
 }
 
-.logo-area { display: flex; align-items: center; gap: 0.5rem; }
+.logo-area { display: flex; align-items: center; gap: 0.6rem; }
+
+/* The approved wordmark ships as SVG with the Baloo 2 subset embedded, so it
+   renders identically everywhere and needs no webfont to be correct. */
+.logo-mark {
+    display: block;
+    height: 34px;
+    width: auto;
+}
+
+/* Tagline sits beside the mark on wide screens only — at phone widths the header
+   is tight and the wordmark alone carries the brand. */
+.logo-tagline {
+    display: none;
+    font-family: var(--font-family);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-left: 0.6rem;
+    border-left: 1.5px solid var(--border-color);
+}
+@media (min-width: 560px) {
+    .logo-tagline { display: inline-block; }
+}
 
 .logo-text {
     font-family: var(--font-display);
@@ -421,7 +472,7 @@ body::before {
     align-items: center;
     margin-left: 2px;
     padding: 1px 7px;
-    background: var(--primary);
+    background: var(--primary-strong);
     color: #fff;
     border-radius: 999px;
     font-size: 0.62rem;

@@ -1,5 +1,5 @@
 /* =========================================================
-   YOURSGIFTS — Animated product-card previews
+   KOOTZY — Animated product-card previews
    2D mirror of each product's real 3D keychain. Glyphs are the
    body (font-color fill + base-color halo), matching buildKeychain.
    Word Art / LOVE Series are 2-line; LED products glow; LED Word
@@ -117,7 +117,7 @@
         // subtle depth: a second base-color copy nudged down-right reads as thickness
         s += '<g transform="translate(2.2,2.6)"><path d="' + t.d + '" fill="' + baseColor + '"/></g>';
         // dark contour + light face
-        s += '<path d="' + t.d + '" fill="none" stroke="#1A1714" stroke-width="2" stroke-linejoin="round"/>';
+        s += '<path d="' + t.d + '" fill="none" stroke="#172B35" stroke-width="2" stroke-linejoin="round"/>';
         s += '<path d="' + t.d + '" fill="' + faceColor + '"/>';
         return s;
     }
@@ -141,7 +141,7 @@
         if (cfg.shape === 'plaque') {
             var px = boxX, py = boxY + 6, pw2 = boxW, ph2 = boxH - 12, rr = 12;
             out.push('<g filter="url(#' + uidSh + ')"><rect x="' + px + '" y="' + py + '" width="' + pw2 + '" height="' + ph2 +
-                     '" rx="' + rr + '" fill="' + combo.base + '" stroke="#1A1714" stroke-width="2.5"/></g>');
+                     '" rx="' + rr + '" fill="' + combo.base + '" stroke="#172B35" stroke-width="2.5"/></g>');
             var ip = 16;
             var probe = pathFor(perLineFont[0], cfg.lines[0], 100);
             var s2 = Math.min((pw2 - ip * 2) / probe.w, (ph2 - ip * 2) / probe.h);
@@ -158,17 +158,17 @@
             out.push('<g filter="url(#' + uidSh + ')">');
             // Outer Box Shell
             out.push('<rect x="' + ox + '" y="' + oy + '" width="' + ow + '" height="' + oh +
-                     '" rx="' + orr + '" fill="' + combo.base + '" stroke="#1A1714" stroke-width="2.5"/>');
+                     '" rx="' + orr + '" fill="' + combo.base + '" stroke="#172B35" stroke-width="2.5"/>');
             // Inner Compartments Tray (Top/Interior)
             var trayX = ox + 6, trayY = oy + 6, trayW = ow - 12, trayH = (oh * 0.46);
             out.push('<rect x="' + trayX + '" y="' + trayY + '" width="' + trayW + '" height="' + trayH +
-                     '" rx="6" fill="rgba(0,0,0,0.18)" stroke="#1A1714" stroke-width="1.5"/>');
+                     '" rx="6" fill="rgba(0,0,0,0.18)" stroke="#172B35" stroke-width="1.5"/>');
             // 2x3 Divider Grid Lines
             var colW = trayW / 3;
             var rowH = trayH / 2;
-            out.push('<line x1="' + (trayX + colW) + '" y1="' + trayY + '" x2="' + (trayX + colW) + '" y2="' + (trayY + trayH) + '" stroke="#1A1714" stroke-width="1.8"/>');
-            out.push('<line x1="' + (trayX + colW * 2) + '" y1="' + trayY + '" x2="' + (trayX + colW * 2) + '" y2="' + (trayY + trayH) + '" stroke="#1A1714" stroke-width="1.8"/>');
-            out.push('<line x1="' + trayX + '" y1="' + (trayY + rowH) + '" x2="' + (trayX + trayW) + '" y2="' + (trayY + rowH) + '" stroke="#1A1714" stroke-width="1.8"/>');
+            out.push('<line x1="' + (trayX + colW) + '" y1="' + trayY + '" x2="' + (trayX + colW) + '" y2="' + (trayY + trayH) + '" stroke="#172B35" stroke-width="1.8"/>');
+            out.push('<line x1="' + (trayX + colW * 2) + '" y1="' + trayY + '" x2="' + (trayX + colW * 2) + '" y2="' + (trayY + trayH) + '" stroke="#172B35" stroke-width="1.8"/>');
+            out.push('<line x1="' + trayX + '" y1="' + (trayY + rowH) + '" x2="' + (trayX + trayW) + '" y2="' + (trayY + rowH) + '" stroke="#172B35" stroke-width="1.8"/>');
             // Front Face Name + Heart Icon
             var frontY = trayY + trayH + 4;
             var frontH = (oy + oh) - frontY - 6;
@@ -181,7 +181,7 @@
             out.push('<path d="' + tf.d + '" transform="translate(' + ftx.toFixed(2) + ',' + fty.toFixed(2) + ')" fill="' + combo.font + '"/>');
             // Heart icon at the right
             var hx = ox + ow - 20, hy = frontY + frontH / 2;
-            out.push('<path d="' + heartPath(hx, hy, 14) + '" fill="' + combo.font + '" stroke="#1A1714" stroke-width="1"/>');
+            out.push('<path d="' + heartPath(hx, hy, 14) + '" fill="' + combo.font + '" stroke="#172B35" stroke-width="1"/>');
             out.push('</g>');
             out.push('</svg>'); return out.join('');
         }
@@ -191,13 +191,13 @@
             var n = chars.length, gap = 7, pad = 12;
             var stripX = boxX, stripY = boxY + 18, stripW = boxW, stripH = boxH - 36;
             out.push('<g filter="url(#' + uidSh + ')"><rect x="' + stripX + '" y="' + (stripY + stripH/2 - 7) +
-                     '" width="' + stripW + '" height="14" rx="5" fill="' + combo.base + '" stroke="#1A1714" stroke-width="2"/></g>');
+                     '" width="' + stripW + '" height="14" rx="5" fill="' + combo.base + '" stroke="#172B35" stroke-width="2"/></g>');
             var tileW = (stripW - pad * 2 - gap * (n - 1)) / n, tileH = stripH;
             for (var i = 0; i < n; i++) {
                 var x0 = stripX + pad + i * (tileW + gap);
                 out.push('<g filter="url(#' + uidSh + ')"><rect x="' + x0.toFixed(1) + '" y="' + stripY +
                          '" width="' + tileW.toFixed(1) + '" height="' + tileH.toFixed(1) +
-                         '" rx="5" fill="' + combo.base + '" stroke="#1A1714" stroke-width="2"/></g>');
+                         '" rx="5" fill="' + combo.base + '" stroke="#172B35" stroke-width="2"/></g>');
                 var ts = Math.min((tileW - 10) / 60, (tileH - 12) / 70) * 100;
                 var ct = pathFor(perLineFont[0], chars[i], ts);
                 var ctx = x0 + (tileW - ct.w) / 2 - ct.x1, cty = stripY + (tileH - ct.h) / 2 - ct.y1;
@@ -220,7 +220,7 @@
             var sX = boxX, sW = boxW, rr2 = 5;
             out.push('<g filter="url(#' + uidSh + ')">');
             out.push('<rect x="' + sX + '" y="' + standY + '" width="' + sW + '" height="' + standH +
-                     '" rx="' + rr2 + '" fill="' + combo.base + '" stroke="#1A1714" stroke-width="2.5"/>');
+                     '" rx="' + rr2 + '" fill="' + combo.base + '" stroke="#172B35" stroke-width="2.5"/>');
             // hint of the LED channel groove along the top of the bar
             out.push('<rect x="' + (sX + 7) + '" y="' + (standY + 4) + '" width="' + (sW - 14) +
                      '" height="3.5" rx="1.75" fill="rgba(0,0,0,.22)"/>');
@@ -232,9 +232,9 @@
             var cx = ringR + 6, cy = VB_H / 2;
             out.push('<g filter="url(#' + uidSh + ')">');
             out.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + ringR + '" fill="' + combo.base +
-                     '" stroke="#1A1714" stroke-width="2.5"/>');
+                     '" stroke="#172B35" stroke-width="2.5"/>');
             out.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + (ringR - 5) + '" fill="' + C.cream +
-                     '" stroke="#1A1714" stroke-width="1.5"/>');
+                     '" stroke="#172B35" stroke-width="1.5"/>');
             out.push('</g>');
         }
 
@@ -276,7 +276,7 @@
                 var hy = curY + lp.h / 2;
                 if (hx + hSize < VB_W - 4) {
                     out.push('<path d="' + heartPath(hx, hy, hSize) + '" fill="' + (combo.heart || C.red) +
-                             '" stroke="#1A1714" stroke-width="1.5"/>');
+                             '" stroke="#172B35" stroke-width="1.5"/>');
                 }
             }
             curY += lp.h + lineGap;
