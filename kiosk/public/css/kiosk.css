@@ -377,6 +377,7 @@ body::before {
     font-weight: 700;
     font-size: 0.82rem;
     padding: 0.6rem 0.25rem;
+    min-height: 44px;               /* touch target */
     border-radius: 10px;
     cursor: pointer;
     transition: var(--transition-smooth);

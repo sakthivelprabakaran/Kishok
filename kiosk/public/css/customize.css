@@ -353,6 +353,8 @@ body {
     border: 1px solid var(--border-color);
     color: var(--text-main);
     padding: 0.3rem 0.75rem;
+    min-height: 44px;               /* touch target */
+    min-width: 44px;
     border-radius: 8px;
     font-size: 0.75rem;
     font-weight: 700;
@@ -989,8 +991,13 @@ body {
 
 .close-modal-btn {
     position: absolute;
-    top: 1rem;
-    right: 1.25rem;
+    top: 0.5rem;
+    right: 0.6rem;
+    width: 44px;                    /* touch target */
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: transparent;
     border: none;
     color: var(--text-muted);

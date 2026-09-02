@@ -116,7 +116,7 @@
 
 .cart-qty { display: flex; align-items: center; gap: 0.5rem; }
 .cart-qty-btn {
-    width: 36px; height: 36px;              /* comfortable touch target */
+    width: 44px; height: 44px;              /* full touch target */
     border-radius: 50%;
     border: 1.5px solid var(--border-color-hover);
     background: var(--bg-panel);
@@ -142,7 +142,8 @@
 .cart-remove {
     background: none;
     border: none;
-    padding: 0.4rem 0;
+    padding: 0.75rem 0.5rem;                /* 44px touch target */
+    min-height: 44px;
     /* --primary-strong, not --primary: 5.14:1 on white at this size. */
     color: var(--primary-strong);
     font-family: var(--font-family);
@@ -183,7 +184,8 @@
     display: block;
     width: 100%;
     margin-top: 0.6rem;
-    padding: 0.6rem;
+    padding: 0.75rem;
+    min-height: 44px;               /* touch target */
     background: none;
     border: none;
     color: var(--text-muted);
