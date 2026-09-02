@@ -598,9 +598,14 @@ app.use('/api', (req, res) => {
     res.status(404).json({ error: 'API route not found' });
 });
 
-// Serve the index.html fallback for client-side routing
+// Unknown paths get the branded 404 page with a real 404 status. Returning
+// index.html with a 200 (as this used to) makes every broken link look healthy
+// to crawlers and hides typos during development.
+//
+// The kiosk has no client-side router — every page is a real .html file — so
+// there is nothing that needs an index.html rewrite fallback.
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
 const ready = loadActiveOrders();

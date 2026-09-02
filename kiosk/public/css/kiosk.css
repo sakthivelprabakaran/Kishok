@@ -133,6 +133,85 @@ body::before {
 
 .logo-area { display: flex; align-items: center; gap: 0.6rem; }
 
+/* ── Full-page state screens (404, payment failed, maintenance) ──
+   The brand kit's state illustrations bake headline, subcopy and a
+   non-functional button into the artwork. We use the -illus.svg variants
+   (artwork only) and let HTML own the copy and the real CTA, so the heading
+   structure and focus behaviour are correct. */
+.state-page {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    background: var(--bg-dark);
+}
+.state-card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--bg-panel);
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--r-lg, 20px);
+    box-shadow: var(--card-shadow);
+    padding: 2rem 1.5rem 2.25rem;
+    text-align: center;
+}
+.state-illus {
+    display: block;
+    width: 100%;
+    max-width: 340px;
+    height: auto;
+    margin: 0 auto 0.5rem;
+}
+.state-card h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(1.5rem, 6vw, 2rem);
+    line-height: 1.15;
+    color: var(--text-main);
+    margin: 0 0 0.5rem;
+}
+.state-card p {
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+    margin: 0 auto 1.5rem;
+    max-width: 34ch;
+}
+/* --primary-strong, not --primary: white on Nuclear Red is 3.82:1 and only
+   clears AA at large bold sizes, while this is 5.14:1 at any size. */
+.state-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
+.state-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 1.4rem;
+    border-radius: var(--r-pill, 999px);
+    background: var(--primary-strong);
+    color: #fff;
+    font-family: var(--font-family);
+    font-weight: 700;
+    font-size: 1rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+.state-btn:hover { filter: brightness(1.08); }
+.state-btn.secondary {
+    background: transparent;
+    color: var(--text-main);
+    border: 1.5px solid var(--border-color-hover);
+}
+.state-tagline {
+    margin-top: 1.5rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
 /* The approved wordmark ships as SVG with the Baloo 2 subset embedded, so it
    renders identically everywhere and needs no webfont to be correct. */
 .logo-mark {

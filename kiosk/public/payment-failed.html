@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment did not go through — Kootzy</title>
+    <meta name="description" content="Your Kootzy payment was not completed. No money was taken. You can try again.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="/favicon.ico?v=kootzy1" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg?v=kootzy1">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=kootzy1">
+    <meta name="theme-color" content="#00B5C8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/kiosk.css?v=kootzy1">
+</head>
+<body>
+    <main class="state-page">
+        <div class="state-card">
+            <img src="/brand/states/payment-failed-illus.svg" alt="" class="state-illus" aria-hidden="true">
+            <h1>Payment did not go through</h1>
+            <!-- Wording matters here: the customer needs to know no money left their
+                 account before they will try again. -->
+            <p>No charge was completed. Your design is safe — you can head back and pay again.</p>
+            <div class="state-actions">
+                <a class="state-btn" id="retryLink" href="/index.html">Try payment again</a>
+                <a class="state-btn secondary" href="/contact.html">Contact us</a>
+            </div>
+            <p class="state-tagline">Made to make you smile</p>
+        </div>
+    </main>
+    <script>
+      /* Return the customer to the exact product they were designing when the
+         payment dropped, rather than dumping them on the catalogue. */
+      (function () {
+          var type = new URLSearchParams(window.location.search).get('type');
+          var VALID = ['keychain', 'wordart', 'loveseries', 'tilekey', 'linked_initials',
+              'nametag', 'girly_keychain', 'supported_text', 'flower_keychain',
+              'led_word_stand', 'led_word_art', 'bordered_keychain', 'bubble_keychain',
+              'nameplate', 'desk_organizer', 'name_beads'];
+          if (type && VALID.indexOf(type) !== -1) {
+              document.getElementById('retryLink').href = '/customize.html?type=' + encodeURIComponent(type);
+          }
+      })();
+    </script>
+</body>
+</html>
