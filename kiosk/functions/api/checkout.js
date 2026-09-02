@@ -73,7 +73,7 @@ export const onRequestPost = guard(async ({ request, env }) => {
     const userClient = db(env, auth);
     const cartRows = await userClient.select(
         'cart_items',
-        'select=id,product_type,text_value,quantity,design,weight_g&order=created_at.asc'
+        'select=id,product_type,text_value,quantity,design,preview,weight_g&order=created_at.asc'
     );
     if (!Array.isArray(cartRows) || cartRows.length === 0) {
         return fail('Your cart is empty', 409);
@@ -84,6 +84,7 @@ export const onRequestPost = guard(async ({ request, env }) => {
         productType: r.product_type,
         text: r.text_value,
         design: r.design || {},
+        preview: r.preview || '',
         quantity: Number(r.quantity),
         weightG: Number(r.weight_g),
     })));
@@ -138,6 +139,9 @@ export const onRequestPost = guard(async ({ request, env }) => {
             text_value: line.text,
             quantity: line.breakdown.quantity,
             design: line.design || {},
+            // The preview the customer approved follows the order, so their
+            // account shows exactly what they built until it is delivered.
+            preview: line.preview || '',
             unit_price: line.unitPrice,
             line_total: line.lineTotal,
             weight_g: line.weightG || 0,

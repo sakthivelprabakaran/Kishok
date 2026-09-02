@@ -43,6 +43,12 @@ create table if not exists public.cart_items (
     -- organizer layout, LED options. Shape mirrors the viewer's params payload.
     design        jsonb       not null default '{}'::jsonb,
 
+    -- The exact 3D preview the customer approved, as a small JPEG data URL
+    -- (capped at ~160k chars by the API). Stored inline rather than in Supabase
+    -- Storage: a bucket would be cleaner at scale, but adds signed-URL plumbing
+    -- and a second system to secure — revisit if carts grow beyond thumbnails.
+    preview       text        not null default '',
+
     -- Display cache only. Recomputed at checkout. See note 3.
     unit_price    numeric(10,2) not null default 0,
     weight_g      numeric(10,2) not null default 0,
@@ -90,6 +96,11 @@ create table if not exists public.order_items (
     text_value    text        not null,
     quantity      integer     not null default 1,
     design        jsonb       not null default '{}'::jsonb,
+
+    -- Preview travels from the cart line so the customer sees exactly what they
+    -- built, in their account, from order until delivery. (A cleanup job may
+    -- blank these on Delivered orders later to reclaim space.)
+    preview       text        not null default '',
 
     -- Frozen at order time. These are the numbers that were charged.
     unit_price    numeric(10,2) not null default 0,

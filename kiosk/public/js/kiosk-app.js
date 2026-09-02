@@ -1213,6 +1213,43 @@ function updateCartBadge() {
     }
 }
 
+/* Capture the 3D viewer exactly as the customer sees it, as a small JPEG data
+ * URL for the cart line.
+ *
+ * Two traps this handles:
+ *  - The renderer is alpha:true (transparent canvas over a CSS background), and
+ *    JPEG has no alpha channel — capturing without compositing first produces
+ *    the model on a BLACK background. So the frame is drawn onto an offscreen
+ *    canvas filled with the brand pale (#F5FAFB) before encoding.
+ *  - preserveDrawingBuffer is already true (the PNG export needs it), so
+ *    drawImage from the WebGL canvas reads the last rendered frame reliably.
+ *
+ * Returns '' on any failure — a missing thumbnail must never block adding to
+ * the cart.
+ */
+function captureViewerPreview() {
+    try {
+        const canvas = el.viewerCanvas && el.viewerCanvas.querySelector('canvas');
+        if (!canvas || !canvas.width || !canvas.height) return '';
+
+        const MAX_EDGE = 480;    // plenty for a cart thumbnail, ~15–35 KB as JPEG
+        const scale = Math.min(1, MAX_EDGE / Math.max(canvas.width, canvas.height));
+        const w = Math.max(1, Math.round(canvas.width * scale));
+        const h = Math.max(1, Math.round(canvas.height * scale));
+
+        const off = document.createElement('canvas');
+        off.width = w;
+        off.height = h;
+        const ctx = off.getContext('2d');
+        ctx.fillStyle = '#F5FAFB';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(canvas, 0, 0, w, h);
+        return off.toDataURL('image/jpeg', 0.82);
+    } catch (_) {
+        return '';
+    }
+}
+
 /* Snapshot the current design for the cart.
  *
  * This has to be complete enough to (a) re-render a preview later and (b) tell
@@ -1269,6 +1306,10 @@ function buildCartLine() {
         text,
         quantity: state.quantity,
         design,
+        // The exact preview the customer approved, captured at this moment —
+        // colours, font, rotation and all. Follows the design through cart and
+        // order so what they see later is what they built, not a re-render.
+        preview: captureViewerPreview(),
         unitPrice: (state.costs && state.costs.finalAmount) || 0,
         weightG: (state.dims && state.dims.weightGrams) || 0,
     };

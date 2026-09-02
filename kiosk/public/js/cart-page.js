@@ -29,6 +29,20 @@ function lineNode(item) {
     li.className = 'cart-line';
     li.dataset.id = item.id;
 
+    // The exact preview captured when they hit Add to cart. Validated through
+    // the same checker that gates storage — a data URL reaching src unchecked
+    // would be an XSS vector. Falls back to colour swatches when absent.
+    const safePreview = Cart.cleanPreview(item.preview);
+    let thumb = null;
+    if (safePreview) {
+        thumb = document.createElement('img');
+        thumb.className = 'cart-thumb';
+        thumb.src = safePreview;
+        thumb.alt = '';
+        thumb.decoding = 'async';
+        thumb.loading = 'lazy';
+    }
+
     const swatches = document.createElement('div');
     swatches.className = 'cart-swatches';
     const colors = (item.design && item.design.colors) || {};
@@ -94,6 +108,7 @@ function lineNode(item) {
     del.textContent = 'Remove';
 
     controls.append(qtyWrap, price, del);
+    if (thumb) li.appendChild(thumb);
     li.append(info, controls);
 
     minus.addEventListener('click', () => mutate(() => Cart.setQuantity(item.id, item.quantity - 1)));

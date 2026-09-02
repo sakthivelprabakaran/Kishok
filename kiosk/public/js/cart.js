@@ -25,6 +25,21 @@ const KEY = 'kootzyCart.v1';
 const MAX_ITEMS = 25;
 const MAX_QTY = 20;
 
+/* Previews are JPEG data URLs rendered into <img src>. Two protections:
+   - strict shape check, because a data URL that reaches src is an XSS vector if
+     it can smuggle a different media type;
+   - size cap, because localStorage holds ~5MB for the whole origin and a cart
+     of 25 designs must fit comfortably. An oversized preview is dropped, never
+     an error — a missing thumbnail must not block the cart. */
+const PREVIEW_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const PREVIEW_MAX_CHARS = 160000;   // ~117 KB decoded
+
+function cleanPreview(value) {
+    const s = typeof value === 'string' ? value : '';
+    if (!s || s.length > PREVIEW_MAX_CHARS || !PREVIEW_RE.test(s)) return '';
+    return s;
+}
+
 /* Bumping SCHEMA discards older carts rather than trying to migrate half-known
    shapes — a stale cart is a minor annoyance, a corrupt one is a support ticket. */
 const SCHEMA = 1;
@@ -147,6 +162,7 @@ export async function add(item) {
         quantity: Math.min(MAX_QTY, Math.max(1, parseInt(item.quantity, 10) || 1)),
         design: (item.design && typeof item.design === 'object' && !Array.isArray(item.design))
             ? item.design : {},
+        preview: cleanPreview(item.preview),
         unitPrice: Number(item.unitPrice) || 0,
         weightG: Number(item.weightG) || 0,
     };
@@ -228,6 +244,7 @@ export async function mergeLocalIntoServer() {
                     text: line.text,
                     quantity: line.quantity,
                     design: line.design,
+                    preview: line.preview,
                     unitPrice: line.unitPrice,
                     weightG: line.weightG,
                 }),
@@ -243,4 +260,8 @@ export async function mergeLocalIntoServer() {
     return { merged, failed: survivors.length };
 }
 
-export const LIMITS = { MAX_ITEMS, MAX_QTY };
+export const LIMITS = { MAX_ITEMS, MAX_QTY, PREVIEW_MAX_CHARS };
+
+/** Validate a preview data URL. Pages MUST route previews through this before
+ *  assigning to img.src — the same check that guards storage guards render. */
+export { cleanPreview };

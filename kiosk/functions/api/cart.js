@@ -13,7 +13,7 @@ import { db } from '../../shared/db.js';
  * display cache and recomputed server-side at checkout.
  */
 
-const SELECT = 'select=id,product_type,text_value,quantity,design,unit_price,weight_g,created_at'
+const SELECT = 'select=id,product_type,text_value,quantity,design,preview,unit_price,weight_g,created_at'
     + '&order=created_at.desc';
 
 const VALID_PRODUCT_TYPES = [
@@ -26,6 +26,18 @@ const VALID_PRODUCT_TYPES = [
 const MAX_ITEMS = 25;
 const MAX_QTY = 20;
 
+/* Same rules as the client's cleanPreview: strict media types because this
+ * string ends up in an <img src>, and a hard size cap because it is stored
+ * inline in the row. Server-side revalidation — the client check is UX. */
+const PREVIEW_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const PREVIEW_MAX_CHARS = 160000;
+
+function cleanPreview(value) {
+    const s = typeof value === 'string' ? value : '';
+    if (!s || s.length > PREVIEW_MAX_CHARS || !PREVIEW_RE.test(s)) return '';
+    return s;
+}
+
 function rowToItem(r) {
     return {
         id: r.id,
@@ -33,6 +45,7 @@ function rowToItem(r) {
         text: r.text_value,
         quantity: Number(r.quantity),
         design: r.design || {},
+        preview: cleanPreview(r.preview),
         unitPrice: Number(r.unit_price),
         weightG: Number(r.weight_g),
         createdAt: r.created_at,
@@ -92,6 +105,7 @@ export const onRequestPost = guard(async ({ request, env }) => {
         text_value: text,
         quantity,
         design,
+        preview: cleanPreview(body.preview),
         unit_price: Number(body.unitPrice) || 0,   // display cache only
         weight_g: Number(body.weightG) || 0,
     });

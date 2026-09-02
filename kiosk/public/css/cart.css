@@ -63,6 +63,21 @@
 }
 
 .cart-info { min-width: 0; flex: 1 1 12rem; }
+
+/* The captured 3D preview — the design exactly as the customer approved it. */
+.cart-thumb {
+    width: 96px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: var(--r-sm, 10px);
+    border: 1.5px solid var(--border-color);
+    background: var(--bg-dark);
+    flex: 0 0 auto;
+}
+@media (min-width: 480px) {
+    .cart-thumb { width: 120px; height: 88px; }
+}
+
 .cart-line-name {
     font-family: var(--font-display);
     font-weight: 700;

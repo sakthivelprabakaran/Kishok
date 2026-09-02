@@ -110,7 +110,15 @@
     display: grid;
     gap: 0.4rem;
 }
-.co-line { display: flex; gap: 0.6rem; justify-content: space-between; align-items: baseline; }
+.co-line { display: flex; gap: 0.6rem; justify-content: space-between; align-items: center; }
+.co-thumb {
+    width: 48px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    flex: 0 0 auto;
+}
 .co-line-name { color: var(--text-main); font-size: 0.9rem; overflow-wrap: anywhere; }
 .co-line-qty { color: var(--text-muted); font-size: 0.85rem; font-weight: 700; flex: 0 0 auto; }
 

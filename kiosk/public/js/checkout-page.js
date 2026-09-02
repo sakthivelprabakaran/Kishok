@@ -100,6 +100,16 @@ async function render() {
         const li = document.createElement('li');
         li.className = 'co-line';
 
+        const safePreview = Cart.cleanPreview(item.preview);
+        if (safePreview) {
+            const img = document.createElement('img');
+            img.className = 'co-thumb';
+            img.src = safePreview;
+            img.alt = '';
+            img.decoding = 'async';
+            li.appendChild(img);
+        }
+
         const name = document.createElement('span');
         name.className = 'co-line-name';
         // Customer text as a text node — never innerHTML.
