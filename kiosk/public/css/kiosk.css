@@ -129,6 +129,7 @@ body::before {
     border-radius: 16px;
     margin-bottom: 1.25rem;
     box-shadow: 3px 3px 0 var(--text-main);
+    gap: 0.35rem;
 }
 
 /* ── Cart link + count badge in the header ── */
@@ -143,6 +144,28 @@ body::before {
     margin-left: auto;          /* pushes itself + cart to the right edge */
 }
 .header-orders-link:hover { background: var(--paper-2); }
+
+.header-auth-btn {
+    font-family: var(--font-family);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-main);
+    background: transparent;
+    border: 1.5px solid var(--border-color-hover);
+    border-radius: 999px;
+    padding: 0.4rem 0.75rem;
+    min-height: 36px;
+    cursor: pointer;
+    white-space: nowrap;
+    max-width: 9.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.header-auth-btn:hover { background: var(--paper-2); }
+.header-auth-btn[data-auth-state="in"] {
+    border-color: var(--text-main);
+}
+
 .cart-link {
     position: relative;
     display: inline-flex;
