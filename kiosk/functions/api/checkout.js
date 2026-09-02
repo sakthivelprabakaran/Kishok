@@ -1,6 +1,6 @@
 import { json, fail, guard, readJson, requireCustomer } from '../../shared/http.js';
-import { db, rowToOrder } from '../../shared/db.js';
-import { priceOrder } from '../../shared/pricing.js';
+import { db, authUser, rowToOrder } from '../../shared/db.js';
+import { priceOrder } from '../../public/js/pricing.js';
 
 /* POST /api/checkout — turn the signed-in customer's cart into an order.
  *
@@ -44,6 +44,13 @@ function addressProblems(a) {
 export const onRequestPost = guard(async ({ request, env }) => {
     const auth = requireCustomer(request);
     if (auth instanceof Response) return auth;
+
+    // Resolve the owner through the auth server (which validates the signature),
+    // NOT by decoding the JWT locally. Without user_id on the order, the RLS
+    // policy `auth.uid() = user_id` can never match and the customer would never
+    // see their own order again.
+    const user = await authUser(env, auth.accessToken);
+    if (!user) return fail('Your session has expired — please sign in again.', 401);
 
     const body = await readJson(request);
     const method = body.fulfilmentMethod === 'ship' ? 'ship' : 'pickup';
@@ -89,6 +96,7 @@ export const onRequestPost = guard(async ({ request, env }) => {
     // populates them so the existing operator dashboard and reports keep working
     // unchanged, while order_items carries the full basket.
     const orderRow = {
+        user_id: user.id,           // ownership: lets RLS show the customer their order
         customer_name: contactName,
         phone: contactPhone,
         product_type: first.productType,
@@ -118,9 +126,13 @@ export const onRequestPost = guard(async ({ request, env }) => {
     const saved = await admin.insert('orders', orderRow);
     const order = rowToOrder(saved);
 
-    /* ── Freeze the basket onto the order ── */
-    for (const line of quote.lines) {
-        await admin.insertQuiet('order_items', {
+    /* ── Freeze the basket onto the order, atomically ──
+       One bulk insert = one PostgREST request = one transaction. A loop of single
+       inserts could fail halfway and leave an order with a partial basket. If the
+       bulk insert fails outright, cancel the order rather than leave a header
+       with no lines. */
+    try {
+        await admin.insertMany('order_items', quote.lines.map((line) => ({
             order_num: order.orderNum,
             product_type: line.productType,
             text_value: line.text,
@@ -129,7 +141,16 @@ export const onRequestPost = guard(async ({ request, env }) => {
             unit_price: line.unitPrice,
             line_total: line.lineTotal,
             weight_g: line.weightG || 0,
-        });
+        })));
+    } catch (err) {
+        console.error('order_items insert failed, cancelling order', order.orderNum, err.message);
+        try {
+            await admin.update('orders', `order_num=eq.${encodeURIComponent(order.orderNum)}`,
+                { status: 'Cancelled' });
+        } catch (undoErr) {
+            console.error('could not cancel orphaned order', order.orderNum, undoErr.message);
+        }
+        return fail('Could not save your order — nothing was charged. Please try again.', 500);
     }
 
     /* ── Empty the cart, as the customer ── */

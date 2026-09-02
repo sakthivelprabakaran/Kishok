@@ -115,6 +115,15 @@ export function db(env, options = {}) {
             return Array.isArray(rows) ? rows[0] : rows;
         },
 
+        /** INSERT many rows in ONE request. PostgREST wraps a single request in a
+         *  single transaction, so this is all-or-nothing — unlike a loop of
+         *  single inserts, which can fail halfway and leave a partial set. */
+        insertMany: (table, rows) => request(table, {
+            method: 'POST',
+            body: rows,
+            prefer: 'return=minimal',
+        }),
+
         /** INSERT without reading anything back (cheaper for fire-and-forget writes). */
         insertQuiet: (table, row) => request(table, { method: 'POST', body: row, prefer: 'return=minimal' }),
 
@@ -138,6 +147,30 @@ export function db(env, options = {}) {
         /** DELETE rows matching `query`. */
         remove: (table, query) => request(`${table}?${query}`, { method: 'DELETE', prefer: 'return=minimal' }),
     };
+}
+
+/* ── Auth server lookup ──
+ * Resolve WHO a token belongs to by asking Supabase's auth server, which
+ * validates the signature. This is the only sanctioned way to get a user id in a
+ * Function — decoding the JWT locally would trust an unverified claim.
+ */
+export async function authUser(env, accessToken) {
+    const base = (env.SUPABASE_URL || '').replace(/\/+$/, '');
+    const anonKey = env.SUPABASE_ANON_KEY || '';
+    if (!base || !anonKey || !accessToken) return null;
+
+    let res;
+    try {
+        res = await fetch(`${base}/auth/v1/user`, {
+            headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}` },
+            signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+        });
+    } catch (_) {
+        return null;
+    }
+    if (!res.ok) return null;
+    const user = await res.json().catch(() => null);
+    return user && user.id ? { id: user.id, email: user.email || '' } : null;
 }
 
 /* ── Row <-> API shape ──

@@ -373,6 +373,18 @@ app.post('/api/order', async (req, res) => {
                 return res.status(400).json({ error: `Invalid value for ${f}` });
         }
 
+        // Price server-side from the shared module (dynamic import: this file is
+        // CommonJS, pricing.js is ESM). The browser computed the same figure for
+        // display, so honest clients agree; a tampered finalAmount is overwritten.
+        const { priceLine } = await import('./public/js/pricing.js');
+        const priced = priceLine({ weightG: orderData.weightG, batchSize: orderData.batchSize });
+        orderData.finalAmount = priced.unitPrice;
+        orderData.materialCost = priced.breakdown.materialCost;
+        orderData.machineCost = priced.breakdown.machineCost;
+        orderData.laborCost = priced.breakdown.labourCost;
+        orderData.productionCost = priced.breakdown.productionCost;
+        orderData.printTimeMins = priced.breakdown.printTimeMins;
+
         const orderNum = await getNextOrderNum();
         const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
         const status = 'Pending';

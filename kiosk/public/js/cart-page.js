@@ -16,26 +16,9 @@ const el = {
     clear:    document.getElementById('btnClearCart'),
 };
 
-/* Product labels live here rather than being derived from the slug so the cart
-   reads like the catalogue instead of exposing internal ids. */
-const LABELS = {
-    keychain: 'Classic Keychain',
-    bubble_keychain: 'Bubble Keychain',
-    nameplate: 'Nameplate',
-    wordart: 'Word Art',
-    loveseries: 'LOVE Series',
-    tilekey: 'Letter Tiles',
-    linked_initials: 'Linked Initials',
-    nametag: 'Wavy Nametag',
-    girly_keychain: 'Girly Keychain',
-    bordered_keychain: 'Bordered Keychain',
-    supported_text: 'Supported Nameplate',
-    flower_keychain: 'Flower Initial',
-    desk_organizer: 'Desk Organizer',
-    led_word_stand: 'LED Word Stand',
-    led_word_art: 'LED Word Art',
-    name_beads: 'Custom Name Beads',
-};
+/* Product labels are shared with checkout via product-labels.js so the two
+   pages cannot drift apart. */
+import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=kootzy1';
 
 const rupees = (n) => '₹' + (Math.round(Number(n) || 0)).toLocaleString('en-IN');
 

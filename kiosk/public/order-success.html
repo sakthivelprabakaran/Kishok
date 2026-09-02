@@ -224,15 +224,28 @@
         // Parse URL params to populate details
         window.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const orderNum = urlParams.get('orderNum') || 'KSK-001';
-            const name = urlParams.get('name') || 'Customer';
+            // No fabricated defaults: a missing value renders as a dash rather than
+            // inventing an order number or an amount the customer never agreed to.
+            const orderNum = urlParams.get('orderNum') || '—';
+            const name = urlParams.get('name') || 'there';
             const time = urlParams.get('time') || '20';
-            const amt = urlParams.get('amt') || '30';
+            const amt = urlParams.get('amt');
             const qty = urlParams.get('qty') || '1';
+            const shipped = urlParams.get('ship') === '1';
 
             document.getElementById('orderNumBadge').textContent = orderNum;
-            document.getElementById('custGreeting').textContent = `Thank you, ${name}! Your order has been successfully placed in the printing queue. Our kiosk operator is verifying your payment of ₹${amt} for ${qty} item(s).`;
-            document.getElementById('pickupTimeText').textContent = `Ready in approximately ${time} minutes. Please present Order #${orderNum} at the counter for collection.`;
+
+            const amountLine = amt
+                ? `Our operator is confirming your payment of ₹${amt} for ${qty} item(s).`
+                : `Our operator is confirming your payment.`;
+            document.getElementById('custGreeting').textContent =
+                `Thank you, ${name}! Your order has been placed. ${amountLine}`;
+
+            // A shipped order is not "ready in 20 minutes" — say what actually
+            // happens next instead of showing kiosk copy to a delivery customer.
+            document.getElementById('pickupTimeText').textContent = shipped
+                ? `We will confirm your payment and delivery charge, then pack and dispatch Order #${orderNum} to your address. Keep your phone reachable.`
+                : `Ready in approximately ${time} minutes. Please present Order #${orderNum} at the counter for collection.`;
         });
     </script>
 

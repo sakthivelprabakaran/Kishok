@@ -62,6 +62,12 @@ function writeLocal(items) {
 let tokenProvider = () => null;
 export function setTokenProvider(fn) {
     tokenProvider = typeof fn === 'function' ? fn : () => null;
+    // First sign-in: anything collected while signed out moves into the account
+    // automatically. Fire-and-forget — the merge is retryable by design, and the
+    // auth module should not have to remember to call it.
+    if (token() && readLocal().length > 0) {
+        mergeLocalIntoServer().catch((err) => console.error('cart auto-merge failed:', err.message));
+    }
 }
 function token() {
     try { return tokenProvider(); } catch (_) { return null; }

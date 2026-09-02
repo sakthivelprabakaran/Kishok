@@ -18,16 +18,7 @@ const el = {
     error:    document.getElementById('coError'),
 };
 
-const LABELS = {
-    keychain: 'Classic Keychain', bubble_keychain: 'Bubble Keychain',
-    nameplate: 'Nameplate', wordart: 'Word Art', loveseries: 'LOVE Series',
-    tilekey: 'Letter Tiles', linked_initials: 'Linked Initials',
-    nametag: 'Wavy Nametag', girly_keychain: 'Girly Keychain',
-    bordered_keychain: 'Bordered Keychain', supported_text: 'Supported Nameplate',
-    flower_keychain: 'Flower Initial', desk_organizer: 'Desk Organizer',
-    led_word_stand: 'LED Word Stand', led_word_art: 'LED Word Art',
-    name_beads: 'Custom Name Beads',
-};
+import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=kootzy1';
 
 const rupees = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 const digits = (s) => String(s || '').replace(/\D/g, '');
@@ -92,6 +83,17 @@ async function render() {
 
     el.empty.hidden = true;
     el.form.hidden = false;
+
+    // Placing an order requires an account (the server reads the SERVER cart,
+    // which only exists for a session). Say so up front and disable the submit —
+    // an earlier version let the form submit and dead-ended on a 401 at the last
+    // step, displaying a local cart the server could not see.
+    if (!Cart.isSignedIn()) {
+        el.submit.disabled = true;
+        el.submit.textContent = 'Sign in to place your order';
+        showError('Your designs are saved in this browser. Sign in at the final step '
+            + 'to place the order — sign-in is coming online shortly.');
+    }
 
     el.lines.textContent = '';
     for (const item of items) {
@@ -170,7 +172,17 @@ el.form.addEventListener('submit', async (e) => {
                 ? 'Please sign in to place this order.'
                 : (data && data.error) || `Could not place the order (${res.status})`);
         }
-        window.location.href = 'order-success.html?order=' + encodeURIComponent(data.orderNum);
+        // Speak order-success.html's actual parameter contract (orderNum, name,
+        // amt, qty, ship) — an earlier version sent ?order= which the page never
+        // read, so customers saw fabricated defaults.
+        const q = new URLSearchParams({
+            orderNum: data.orderNum,
+            name: payload.contactName,
+            amt: String(data.totals.total),
+            qty: String(data.totals.itemCount),
+            ship: payload.fulfilmentMethod === 'ship' ? '1' : '0',
+        });
+        window.location.href = 'order-success.html?' + q.toString();
     } catch (err) {
         showError(err.message || 'Could not place the order. Please try again.');
         el.submit.disabled = false;

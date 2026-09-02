@@ -155,7 +155,9 @@ export function corsHeaders(request, env) {
     // have been told to trust, so this never becomes an open CORS proxy.
     const allow = allowed && origin === allowed ? origin : '';
     const headers = {
-        'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
+        // DELETE is used by cart line removal; omitting it here breaks removals
+        // at CORS preflight the moment ALLOWED_ORIGIN is used cross-origin.
+        'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
         // Authorization carries the customer's Supabase JWT; without it here the
         // browser blocks every signed-in request at preflight.
         'Access-Control-Allow-Headers': 'Content-Type,Authorization,x-admin-pin',

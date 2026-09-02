@@ -5,6 +5,7 @@
 
 import { KeychainViewer } from './viewer3d.js?v=wa2';
 import * as Cart from './cart.js?v=kootzy1';
+import * as Pricing from './pricing.js?v=kootzy1';
 
 // ===== DATA & CONFIG =====
 
@@ -96,13 +97,11 @@ const COLOR_PALETTES = {
     ]
 };
 
-// Pricing Constants (Exact Achuva Model)
-const MATERIAL_RATE     = 1.50; // ₹ per gram
-const MACHINE_RATE      = 25.00; // ₹ per hour (depreciation + power + maintenance)
-const SETUP_PER_BATCH   = 30.00; // ₹ per batch setup cost
-const POST_PROCESS      = 5.00; // ₹ per item cleanup
-const FAILURE_BUFFER    = 1.10; // 10% buffer
-const DEFAULT_BATCH_SIZE = 5;
+// Pricing comes from the shared module — the same file the server imports at
+// checkout, so the number shown here is the number charged. The constants that
+// used to live here (MATERIAL_RATE etc.) moved into Pricing.RATES.
+const SETUP_PER_BATCH    = Pricing.RATES.SETUP_PER_BATCH;
+const DEFAULT_BATCH_SIZE = Pricing.RATES.DEFAULT_BATCH_SIZE;
 
 const UPI_VPA = 'sakthivelprabakaran311-1@okaxis';
 
@@ -463,26 +462,22 @@ function calculatePricing() {
         el.batchPromoAlert.style.display = 'none';
     }
     
-    // 2. Calculations based on Achuva cost formulas
-    // printTime = (weight / 9g per hour) * 60 min
-    const printTimeMins = (weight / 9.0) * 60;
-    
-    const materialCost = weight * MATERIAL_RATE;
-    const machineCost = (printTimeMins / 60) * MACHINE_RATE;
-    const laborCost = (SETUP_PER_BATCH / batchSize) + POST_PROCESS;
-    
-    const productionCost = materialCost + machineCost + laborCost;
-    const finalAmount = 10; // Fixed to 10 rupees for testing payment (to bypass bank-level ₹1 deep link limits)
-    
+    // 2. Price through the shared module — the exact code the server runs at
+    // checkout, so what this page shows is what gets charged. This replaces the
+    // `const finalAmount = 10` test hardcode that shipped every product at ₹10
+    // while the cost breakdown below it was computed and thrown away.
+    const priced = Pricing.priceLine({ weightG: weight, quantity: 1, batchSize });
+    const b = priced.breakdown;
+
     // Save to state
     state.costs = {
         weight: Math.round(weight * 10) / 10,
-        printTimeMins: Math.round(printTimeMins),
-        materialCost: Math.round(materialCost),
-        machineCost: Math.round(machineCost),
-        laborCost: Math.round(laborCost),
-        productionCost: Math.round(productionCost),
-        finalAmount: finalAmount
+        printTimeMins: b.printTimeMins,
+        materialCost: Math.round(b.materialCost),
+        machineCost: Math.round(b.machineCost),
+        laborCost: Math.round(b.labourCost),
+        productionCost: Math.round(b.productionCost),
+        finalAmount: priced.unitPrice
     };
     
     // 3. Update DOM

@@ -67,6 +67,25 @@ body {
     box-shadow: 0 0 0 var(--text-main);
 }
 
+/* Cart button mirrors the Back button, pinned to the opposite corner. */
+.floating-cart-btn {
+    left: auto;
+    right: 1rem;
+}
+.floating-cart-btn .cart-count {
+    position: absolute;
+    top: -7px; right: -7px;
+    min-width: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--primary-strong);   /* 5.14:1 with white at tiny sizes */
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
 .viewer-loading {
     position: absolute;
     top: 0;

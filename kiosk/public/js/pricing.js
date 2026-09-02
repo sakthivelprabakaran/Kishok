@@ -1,9 +1,12 @@
-/* Order pricing — the single server-side source of truth.
+/* Order pricing — the single source of truth for what a customer pays.
  * ============================================================================
- * Why this exists: /api/order accepts finalAmount straight from the browser, so
- * today a customer can name their own price. Everything that charges money must
- * price from this module instead, using only the weight and product type, both of
- * which are derived from geometry rather than supplied as a number to trust.
+ * This file lives in public/js/ so the BROWSER (kiosk-app.js) and the
+ * SERVER (functions/api/checkout.js, functions/api/order/index.js) import the
+ * same module. That is deliberate: the bug this replaces was the client showing
+ * one number while the server charged another. One file cannot drift from
+ * itself.
+ *
+ * The client uses it for display; the server's result is the one charged.
  *
  * The cost model and its constants come from kiosk-app.js, where they were
  * already computed and then discarded in favour of a hardcoded ₹10 test value:
@@ -18,6 +21,13 @@
  * failure allowance. It is the number the old code was computing, so adopting it
  * changes nothing about the business model — but it is a floor, not a selling
  * price. Set MARGIN_MULTIPLIER once the owner decides the markup.
+ *
+ * WEIGHT IS STILL CLIENT-REPORTED. The browser derives it from real geometry,
+ * but a hostile client can send any number, so billable weight is clamped to
+ * [MIN, MAX]_BILLABLE_WEIGHT_G. That bounds the damage (a lie can save at most
+ * the difference to the floor), it does not eliminate it — the operator sees the
+ * design and the weight on the order and remains the final check before
+ * print/dispatch.
  * ============================================================================ */
 
 export const RATES = {
@@ -30,6 +40,8 @@ export const RATES = {
     MARGIN_MULTIPLIER: 1.00,      // ⚠️ 1.00 = sold at cost. Owner decision.
     DEFAULT_BATCH_SIZE: 5,
     MIN_PRICE: 10.00,             // never charge less than the payment floor
+    MIN_BILLABLE_WEIGHT_G: 2.0,   // lightest printable piece; clamps hostile input
+    MAX_BILLABLE_WEIGHT_G: 400.0, // heaviest single piece the bed can take
 };
 
 /**
@@ -41,9 +53,11 @@ export function priceLine(line) {
     const r = RATES;
 
     // A deliberate 0 must not silently become a default; only a non-finite or
-    // negative weight falls back, and it falls back to the minimum charge.
+    // negative weight falls back. Billable weight is clamped so a hostile client
+    // cannot price a desk organizer as if it weighed a gram.
     const rawWeight = Number(line && line.weightG);
-    const weightG = Number.isFinite(rawWeight) && rawWeight > 0 ? rawWeight : 0;
+    const unclamped = Number.isFinite(rawWeight) && rawWeight > 0 ? rawWeight : 0;
+    const weightG = Math.min(r.MAX_BILLABLE_WEIGHT_G, Math.max(r.MIN_BILLABLE_WEIGHT_G, unclamped));
 
     const quantity = clampInt(line && line.quantity, 1, 20, 1);
     const batchSize = clampInt(line && line.batchSize, 1, 100, r.DEFAULT_BATCH_SIZE);

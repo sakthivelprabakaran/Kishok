@@ -114,6 +114,7 @@ begin
             or (length(ship_recipient_name) > 0
                 and length(ship_line1) > 0
                 and length(ship_city) > 0
+                and length(ship_state) > 0
                 and length(ship_pincode) > 0)
         );
     end if;
@@ -132,8 +133,8 @@ alter table public.orders add constraint orders_status_check check (status in (
     'ReturnRequested', 'ReturnReceived', 'Refunded'
 ));
 
-create index if not exists orders_user_idx   on public.orders (user_id);
-create index if not exists orders_status_idx2 on public.orders (status);
+create index if not exists orders_user_idx on public.orders (user_id);
+-- (schema.sql already indexes status; no second status index needed)
 
 -- ── 5. Row Level Security policies ──────────────────────────────────────────
 -- Until now RLS was enabled with no policies, which denies everything to anon
