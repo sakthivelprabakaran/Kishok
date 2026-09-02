@@ -5,9 +5,35 @@
  * the repo's "no package.json for the frontend" character, and avoids adding a
  * supply-chain surface for what amounts to a few HTTP calls.
  *
- * Requires two Pages environment variables:
+ * TWO ACCESS MODES — the distinction is the whole security model:
+ *
+ *   db(env)                     service_role. BYPASSES Row Level Security.
+ *                               Use for operator/admin work and for writes the
+ *                               customer must not control (price, status,
+ *                               dispatch). Never reachable from a customer's
+ *                               session.
+ *
+ *   db(env, { accessToken })    anon key + the signed-in user's JWT. RLS APPLIES.
+ *                               Use for everything a customer reads or writes
+ *                               about themselves: profile, addresses, cart, their
+ *                               own orders.
+ *
+ * Why it matters: RLS is enabled on every table, so before this existed each
+ * query ran as service_role and the policies were never consulted. Passing the
+ * user's token makes Postgres enforce ownership, which means a bug in a Function
+ * cannot leak one customer's orders to another.
+ *
+ * We do NOT verify the JWT here. PostgREST validates the signature against the
+ * project secret and rejects anything forged or expired, and the policies key off
+ * auth.uid() from that verified token. Re-implementing verification in the Worker
+ * would add a second thing to get wrong. The corollary: never make an
+ * authorisation decision from an unverified decode of this token — let the
+ * database decide.
+ *
+ * Requires:
  *   SUPABASE_URL              e.g. https://abcdefgh.supabase.co
  *   SUPABASE_SERVICE_ROLE_KEY service_role key — SECRET, server-side only
+ *   SUPABASE_ANON_KEY         anon/publishable key — needed for user-scoped calls
  */
 
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -19,18 +45,29 @@ export class DbError extends Error {
     }
 }
 
-export function db(env) {
+export function db(env, options = {}) {
     const base = (env.SUPABASE_URL || '').replace(/\/+$/, '');
-    const key = env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const accessToken = options.accessToken || null;
 
-    if (!base || !key) {
-        throw new DbError('Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing)', 503);
+    // User-scoped calls present the anon key as the API key and the user's JWT as
+    // the bearer; service_role calls use the same key for both.
+    const apiKey = accessToken
+        ? (env.SUPABASE_ANON_KEY || '')
+        : (env.SUPABASE_SERVICE_ROLE_KEY || '');
+
+    if (!base || !apiKey) {
+        throw new DbError(
+            accessToken
+                ? 'Supabase is not configured for user-scoped access (SUPABASE_URL / SUPABASE_ANON_KEY missing)'
+                : 'Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing)',
+            503
+        );
     }
 
     async function request(path, { method = 'GET', body, prefer, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
         const headers = {
-            apikey: key,
-            Authorization: `Bearer ${key}`,
+            apikey: apiKey,
+            Authorization: `Bearer ${accessToken || apiKey}`,
             'Content-Type': 'application/json',
         };
         if (prefer) headers.Prefer = prefer;

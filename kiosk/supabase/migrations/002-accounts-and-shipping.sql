@@ -43,7 +43,9 @@ create table if not exists public.profiles (
 -- ── 2. Address book ─────────────────────────────────────────────────────────
 create table if not exists public.addresses (
     id             bigint      generated always as identity primary key,
-    user_id        uuid        not null references auth.users(id) on delete cascade,
+    -- default auth.uid(): the owner comes from the verified JWT, never from the
+    -- request body. The RLS insert policy rejects any mismatch.
+    user_id        uuid        not null default auth.uid() references auth.users(id) on delete cascade,
     label          text        not null default 'Home',
     recipient_name text        not null,
     phone          text        not null,

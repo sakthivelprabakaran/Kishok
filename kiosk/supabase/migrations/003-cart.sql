@@ -29,7 +29,10 @@
 
 create table if not exists public.cart_items (
     id            bigint      generated always as identity primary key,
-    user_id       uuid        not null references auth.users(id) on delete cascade,
+    -- default auth.uid() so an insert never has to name the owner: Postgres takes
+    -- it from the verified JWT. The client cannot supply someone else's id, and
+    -- the RLS insert policy rejects a mismatch anyway.
+    user_id       uuid        not null default auth.uid() references auth.users(id) on delete cascade,
 
     -- First-class because they are validated, filtered or shown in every list.
     product_type  text        not null,

@@ -47,6 +47,41 @@ export async function readJson(request) {
     }
 }
 
+/* ── Customer sessions ──
+ * Supabase Auth (Google sign-in) issues the browser a JWT. The browser sends it
+ * as `Authorization: Bearer <jwt>`; we forward it to PostgREST so RLS decides
+ * what the request may touch.
+ *
+ * Note what is deliberately NOT here: signature verification, and any decoding
+ * of the token to make an authorisation decision. PostgREST validates the
+ * signature and the policies key off auth.uid() from the verified claims. A
+ * Worker-side decode would be trivially forgeable and would create a second,
+ * weaker source of truth.
+ */
+
+/** The raw bearer token, or null. Presence is not proof of validity. */
+export function bearerToken(request) {
+    const header = request.headers.get('Authorization') || '';
+    const match = /^Bearer\s+(.+)$/i.exec(header.trim());
+    if (!match) return null;
+    const token = match[1].trim();
+    // A JWT is three dot-separated segments. Cheap shape check to fail fast on
+    // obvious junk rather than paying a round trip.
+    return /^[\w-]+\.[\w-]+\.[\w-]+$/.test(token) ? token : null;
+}
+
+/**
+ * Returns { accessToken } for a signed-in customer, or a 401 Response.
+ * Use as:  const auth = requireCustomer(request); if (auth instanceof Response) return auth;
+ */
+export function requireCustomer(request) {
+    const accessToken = bearerToken(request);
+    if (!accessToken) {
+        return fail('Sign in to continue', 401);
+    }
+    return { accessToken };
+}
+
 /* ── Admin auth ── */
 
 const VALID_PIN_RE = /^\d{4}$/;
@@ -121,7 +156,9 @@ export function corsHeaders(request, env) {
     const allow = allowed && origin === allowed ? origin : '';
     const headers = {
         'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type,x-admin-pin',
+        // Authorization carries the customer's Supabase JWT; without it here the
+        // browser blocks every signed-in request at preflight.
+        'Access-Control-Allow-Headers': 'Content-Type,Authorization,x-admin-pin',
         'Access-Control-Max-Age': '86400',
         Vary: 'Origin',
     };
