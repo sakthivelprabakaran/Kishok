@@ -131,6 +131,55 @@ body::before {
     box-shadow: 3px 3px 0 var(--text-main);
 }
 
+/* ── Cart link + count badge in the header ── */
+.cart-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px; height: 44px;          /* full touch target */
+    border-radius: 50%;
+    color: var(--text-main);
+    text-decoration: none;
+    flex: 0 0 auto;
+}
+.cart-link:hover { background: var(--paper-2); }
+.cart-count {
+    position: absolute;
+    top: 2px; right: 0;
+    min-width: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    /* --primary-strong: white on Nuclear Red is 3.82:1 and this text is tiny. */
+    background: var(--primary-strong);
+    color: #fff;
+    font-family: var(--font-family);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+/* Add to cart, beside the pay button on the review step. */
+.stepper-btn-cart {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 1.2rem;
+    border-radius: var(--r-pill, 999px);
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border: 2px solid var(--text-main);
+    font-family: var(--font-family);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+.stepper-btn-cart:hover { background: var(--paper-2); }
+.stepper-btn-cart:disabled { opacity: 0.7; cursor: default; }
+
 .logo-area { display: flex; align-items: center; gap: 0.6rem; }
 
 /* ── Full-page state screens (404, payment failed, maintenance) ──

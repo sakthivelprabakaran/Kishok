@@ -1,0 +1,183 @@
+/* =========================================================
+   KOOTZY — CART PAGE
+   Inherits every colour and font from css/kiosk.css tokens.
+   ========================================================= */
+
+.cart-page { padding: 0 0 2.5rem; }
+
+.cart-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(1.6rem, 7vw, 2.2rem);
+    color: var(--text-main);
+    margin: 0.5rem 0 1.25rem;
+}
+
+.cart-back {
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--lagoon-text);          /* #007F8C — Lagoon itself is 2.49:1 on white */
+    text-decoration: none;
+}
+.cart-back:hover { text-decoration: underline; }
+
+.cart-note { color: var(--text-muted); font-size: 0.85rem; margin: 0.5rem 0 0; }
+.cart-muted { color: var(--text-muted); }
+
+.cart-error {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--r-md, 14px);
+    background: var(--blush);
+    border: 1.5px solid var(--primary);
+    color: var(--text-main);
+    font-size: 0.9rem;
+}
+
+/* ── Empty state ── */
+.cart-empty { text-align: center; padding: 1.5rem 1rem 2.5rem; }
+.cart-empty h2 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--text-main);
+    margin: 0.25rem 0 0.4rem;
+}
+.cart-empty p { color: var(--text-muted); margin: 0 auto 1.25rem; max-width: 30ch; }
+
+/* ── Lines ── */
+.cart-lines { list-style: none; margin: 0 0 1.25rem; padding: 0; display: grid; gap: 0.75rem; }
+
+.cart-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-panel);
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--r-md, 14px);
+    padding: 0.9rem 1rem;
+    box-shadow: var(--card-shadow);
+}
+
+.cart-info { min-width: 0; flex: 1 1 12rem; }
+.cart-line-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-main);
+    margin: 0;
+}
+.cart-line-text {
+    margin: 0.15rem 0 0;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;            /* customer text can be a single long run */
+}
+.cart-line-meta { margin: 0.15rem 0 0; color: var(--text-muted); font-size: 0.8rem; }
+
+.cart-swatches { display: flex; gap: 4px; margin-top: 0.45rem; }
+.cart-swatch {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-main);   /* Navy ring keeps pale swatches visible */
+    display: inline-block;
+}
+
+.cart-controls { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
+
+.cart-qty { display: flex; align-items: center; gap: 0.5rem; }
+.cart-qty-btn {
+    width: 36px; height: 36px;              /* comfortable touch target */
+    border-radius: 50%;
+    border: 1.5px solid var(--border-color-hover);
+    background: var(--bg-panel);
+    color: var(--text-main);
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+.cart-qty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.cart-qty-val { min-width: 1.5rem; text-align: center; font-weight: 700; color: var(--text-main); }
+
+.cart-line-price {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-main);
+    min-width: 4.5rem;
+    text-align: right;
+}
+
+.cart-remove {
+    background: none;
+    border: none;
+    padding: 0.4rem 0;
+    /* --primary-strong, not --primary: 5.14:1 on white at this size. */
+    color: var(--primary-strong);
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* ── Summary ── */
+.cart-summary {
+    background: var(--paper-2);             /* Mint */
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--r-lg, 20px);
+    padding: 1.25rem;
+}
+.cart-summary h2 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--text-main);
+    margin: 0 0 0.75rem;
+}
+.cart-totals {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.4rem 1rem;
+    margin: 0 0 0.5rem;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+.cart-totals dt { color: var(--text-muted); }
+.cart-totals dd { margin: 0; text-align: right; font-weight: 700; }
+
+.cart-checkout { width: 100%; margin-top: 0.85rem; }
+
+.cart-clear {
+    display: block;
+    width: 100%;
+    margin-top: 0.6rem;
+    padding: 0.6rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* Block interaction while a mutation is in flight. */
+.cart-busy .cart-line, .cart-busy .cart-summary { opacity: 0.6; pointer-events: none; }
+
+@media (min-width: 820px) {
+    #cartFilled {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 20rem;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    .cart-lines { margin-bottom: 0; }
+    .cart-summary { position: sticky; top: 1rem; }
+}

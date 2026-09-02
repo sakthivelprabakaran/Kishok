@@ -4,6 +4,7 @@
    ========================================= */
 
 import { KeychainViewer } from './viewer3d.js?v=wa2';
+import * as Cart from './cart.js?v=kootzy1';
 
 // ===== DATA & CONFIG =====
 
@@ -250,6 +251,7 @@ function cacheElements() {
     el.custName        = document.getElementById('custName');
     el.custPhone       = document.getElementById('custPhone');
     el.btnPlaceOrder   = document.getElementById('btnPlaceOrder');
+    el.btnAddToCart    = document.getElementById('btnAddToCart');
     
     // Modal elements
     el.paymentModal    = document.getElementById('paymentModal');
@@ -543,11 +545,18 @@ function renderStepper() {
     if(el.stepperText) el.stepperText.textContent = stepTitles[state.currentStep];
 
     // Update Buttons
+    // The Add to cart button tracks the Pay button: both belong to the final
+    // review step (and to every step on desktop, where all steps are visible).
+    const showCheckoutButtons = (visible) => {
+        if (el.btnPlaceOrder) el.btnPlaceOrder.style.display = visible ? 'flex' : 'none';
+        if (el.btnAddToCart)  el.btnAddToCart.style.display  = visible ? 'inline-flex' : 'none';
+    };
+
     if (desktop) {
         // All steps visible → no wizard nav, just the Pay button.
         if(el.btnPrevStep) el.btnPrevStep.style.display = 'none';
         if(el.btnNextStep) el.btnNextStep.style.display = 'none';
-        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'flex';
+        showCheckoutButtons(true);
         return;
     }
     if(el.btnPrevStep) el.btnPrevStep.style.display = '';   // restore for mobile
@@ -555,21 +564,21 @@ function renderStepper() {
         if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'hidden';
         if(el.btnNextStep) el.btnNextStep.style.display = '';
         if(el.btnNextStep) el.btnNextStep.textContent = 'Next: Font';
-        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'none';
+        showCheckoutButtons(false);
     } else if (state.currentStep === 2) {
         if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'visible';
         if(el.btnNextStep) el.btnNextStep.style.display = '';
         if(el.btnNextStep) el.btnNextStep.textContent = 'Next: Colors';
-        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'none';
+        showCheckoutButtons(false);
     } else if (state.currentStep === 3) {
         if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'visible';
         if(el.btnNextStep) el.btnNextStep.style.display = '';
         if(el.btnNextStep) el.btnNextStep.textContent = 'Next: Review & Pay';
-        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'none';
+        showCheckoutButtons(false);
     } else if (state.currentStep === 4) {
         if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'visible';
         if(el.btnNextStep) el.btnNextStep.style.display = 'none';
-        if(el.btnPlaceOrder) el.btnPlaceOrder.style.display = 'flex';
+        showCheckoutButtons(true);
     }
 }
 
@@ -1190,9 +1199,88 @@ function triggerPaymentModal() {
     el.paymentModal.classList.add('active');
 }
 
+/* Cart count in the header. Reads the local cart synchronously so the badge is
+ * correct on first paint; a signed-in cart refreshes it asynchronously after. */
+function updateCartBadge() {
+    const badges = document.querySelectorAll('[data-cart-count]');
+    if (badges.length === 0) return;
+
+    const paint = (n) => {
+        for (const b of badges) {
+            b.textContent = String(n);
+            b.hidden = n === 0;
+        }
+    };
+
+    paint(Cart.localCount());
+    if (Cart.isSignedIn()) {
+        Cart.count().then(paint).catch(() => { /* keep the local figure */ });
+    }
+}
+
+/* Snapshot the current design for the cart.
+ *
+ * This has to be complete enough to (a) re-render a preview later and (b) tell
+ * the operator exactly what to print. It mirrors the shape _runUpdate3D() feeds
+ * the viewer, so a cart line can be replayed without translation.
+ *
+ * The price and weight travel along for display only — the server recomputes them
+ * at checkout, because a browser-supplied price is not a price.
+ */
+function buildCartLine() {
+    const isWordart = state.productType === 'wordart';
+    const isLoveSeries = state.productType === 'loveseries';
+
+    let text = state.name;
+    if (isWordart) {
+        text = `${el.wordartLine1.value}\n${el.wordartLine2.value}`.trim();
+    } else if (isLoveSeries) {
+        text = `${state.name}\nLOVE`;
+    }
+
+    const design = {
+        font: state.selectedFont,
+        fontFile: state.selectedFontFile,
+        layers: state.layers,
+        colors: { ...state.colors },
+        ringPosition: state.ringPosition,
+        ringAnchor: state.ringAnchor,
+        showFDMTexture: state.showFDMTexture,
+    };
+
+    // Only carry the product-specific fields that actually apply, so the jsonb
+    // stays readable instead of every line hauling every product's options.
+    if (isWordart || isLoveSeries) {
+        design.wordartBase = state.wordartBase;
+        design.wordartFonts = {
+            top: isWordart ? state.wordartTopFontFile : state.selectedFontFile,
+            bottom: isWordart ? state.wordartBottomFontFile : 'Fonts/CANAVAR.ttf',
+        };
+    }
+    if (state.productType === 'desk_organizer') {
+        design.organizerLayout = state.organizerLayout;
+    }
+    if (state.productType === 'name_beads') {
+        design.beadShape = state.beadShape;
+        design.beadDirection = state.beadDirection;
+        design.beadSize = state.beadSize;
+        design.holeDiameter = state.holeDiameter;
+        design.beadSpacing = state.beadSpacing;
+        design.beadLetterHeight = state.beadLetterHeight;
+    }
+
+    return {
+        productType: state.productType,
+        text,
+        quantity: state.quantity,
+        design,
+        unitPrice: (state.costs && state.costs.finalAmount) || 0,
+        weightG: (state.dims && state.dims.weightGrams) || 0,
+    };
+}
+
 // Rewriting .value during an `input` event snaps the caret to the end, so
-// mid-word edits are impossible. Restore the selection when we have to rewrite.
-function setInputValuePreservingCaret(input, next) {
+// mid-word edits are impossible. Restore the selection when we have to rewrite.function setInputValuePreservingCaret(input, next) {
     if (input.value === next) return;
     const pos = input.selectionStart;
     input.value = next;
@@ -1480,6 +1568,31 @@ function setupEvents() {
         openUPILink('phonepe');
     });
 
+    if (el.btnAddToCart) {
+        el.btnAddToCart.addEventListener('click', async () => {
+            // Guard against a double tap creating two lines.
+            if (el.btnAddToCart.disabled) return;
+            const label = el.btnAddToCart.querySelector('.btn-text');
+            const original = label ? label.textContent : '';
+            el.btnAddToCart.disabled = true;
+            try {
+                await Cart.add(buildCartLine());
+                if (label) label.textContent = 'Added ✓';
+                updateCartBadge();
+                // Brief confirmation in place, rather than yanking the customer to
+                // the cart — most people add more than one design.
+                setTimeout(() => {
+                    if (label) label.textContent = original;
+                    el.btnAddToCart.disabled = false;
+                }, 1400);
+            } catch (err) {
+                alert(err.message || 'Could not add this design to the cart.');
+                if (label) label.textContent = original;
+                el.btnAddToCart.disabled = false;
+            }
+        });
+    }
+
     el.btnPlaceOrder.addEventListener('click', () => {
         // Validate form
         if (!el.custName.value.trim() || !el.custPhone.value.trim()) {
@@ -1605,6 +1718,7 @@ async function init() {
     init3DViewer();
     update3DModelNow();
     renderStepper();
+    updateCartBadge();
 
     // Re-render the stepper when crossing the desktop/mobile breakpoint so the
     // layout switches between all-steps and wizard cleanly. Debounced.

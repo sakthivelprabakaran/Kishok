@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Your cart — Kootzy</title>
+    <meta name="description" content="Review the designs in your Kootzy cart before checkout.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="icon" href="/favicon.ico?v=kootzy1" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg?v=kootzy1">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=kootzy1">
+    <link rel="manifest" href="/site.webmanifest?v=kootzy1">
+    <meta name="theme-color" content="#00B5C8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css?v=kootzy1">
+    <link rel="stylesheet" href="css/cart.css?v=kootzy1">
+</head>
+<body>
+    <div class="kiosk-container">
+        <header class="kiosk-header">
+            <div class="logo-area">
+                <a href="index.html" aria-label="Kootzy home">
+                    <img src="brand/logo-primary.svg" alt="Kootzy" class="logo-mark" width="140" height="47" decoding="async">
+                </a>
+            </div>
+            <a class="cart-back" href="index.html">Keep shopping</a>
+        </header>
+
+        <main class="cart-page">
+            <h1 class="cart-title">Your cart</h1>
+
+            <!-- Skeleton while the first read resolves. Replaced by one of the two
+                 states below, never both. -->
+            <p id="cartLoading" class="cart-note">Loading your designs…</p>
+
+            <div id="cartEmpty" class="cart-empty" hidden>
+                <img src="brand/states/empty-cart-illus.svg" alt="" class="state-illus" aria-hidden="true">
+                <h2>Nothing in the cart yet</h2>
+                <p>Pick a style, type a name, and it will show up here.</p>
+                <a class="state-btn" href="index.html">Start designing</a>
+            </div>
+
+            <div id="cartFilled" hidden>
+                <ul class="cart-lines" id="cartLines"></ul>
+
+                <aside class="cart-summary" aria-labelledby="sumHead">
+                    <h2 id="sumHead">Summary</h2>
+                    <dl class="cart-totals">
+                        <dt>Items</dt>
+                        <dd id="sumItems">0</dd>
+                        <dt>Subtotal</dt>
+                        <dd id="sumSubtotal">₹0</dd>
+                        <dt>Delivery</dt>
+                        <dd id="sumShipping" class="cart-muted">Calculated at checkout</dd>
+                    </dl>
+                    <!-- Deliberately not called a total: shipping is not priced yet,
+                         and showing a confident total we cannot honour is worse than
+                         showing none. -->
+                    <p class="cart-note">Final amount is confirmed at checkout.</p>
+                    <a class="state-btn cart-checkout" href="checkout.html">Go to checkout</a>
+                    <button class="cart-clear" type="button" id="btnClearCart">Empty cart</button>
+                </aside>
+            </div>
+
+            <p id="cartError" class="cart-error" hidden role="alert"></p>
+        </main>
+
+        <footer class="kiosk-footer">
+            <p>© 2026 Kootzy · Made to make you smile 🎁</p>
+        </footer>
+    </div>
+
+    <script type="module" src="js/cart-page.js?v=kootzy1"></script>
+</body>
+</html>
