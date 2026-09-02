@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signing in — Kootzy</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="/favicon.ico?v=kootzy1" sizes="any">
+    <meta name="theme-color" content="#00B5C8">
+    <link rel="stylesheet" href="/css/kiosk.css?v=kootzy2">
+    <style>
+        .auth-wait {
+            min-height: 70vh;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+        .auth-wait h1 {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin: 0 0 0.5rem;
+            color: var(--text-main);
+        }
+        .auth-wait p { color: var(--text-muted); margin: 0 0 1rem; }
+        .auth-err { color: var(--primary-ink); font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="kiosk-container">
+        <main class="auth-wait">
+            <div>
+                <h1 id="title">Signing you in…</h1>
+                <p id="msg">One moment while we finish Google sign-in.</p>
+                <p id="err" class="auth-err" hidden></p>
+                <a id="home" class="state-btn" href="/index.html" hidden>Back to the shop</a>
+            </div>
+        </main>
+    </div>
+    <script type="module">
+        import { initAuth, isSignedIn, friendlyAuthError } from '/js/auth.js?v=auth1';
+
+        const params = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const oauthError = params.get('error') || params.get('error_description')
+            || hashParams.get('error') || hashParams.get('error_description');
+
+        function fail(message) {
+            document.getElementById('title').textContent = 'Sign-in did not complete';
+            document.getElementById('msg').hidden = true;
+            const err = document.getElementById('err');
+            err.textContent = message;
+            err.hidden = false;
+            document.getElementById('home').hidden = false;
+        }
+
+        if (oauthError) {
+            fail(friendlyAuthError({ message: oauthError }));
+        } else {
+            try {
+                await initAuth();
+                if (isSignedIn()) {
+                    const next = params.get('next') || '/index.html';
+                    const safe = next.startsWith('/') && !next.startsWith('//') ? next : '/index.html';
+                    window.location.replace(safe);
+                } else {
+                    // PKCE code may still be exchanging — brief retry
+                    await new Promise((r) => setTimeout(r, 800));
+                    await initAuth();
+                    if (isSignedIn()) {
+                        window.location.replace('/index.html');
+                    } else {
+                        fail('We could not establish your session. Please try signing in again.');
+                    }
+                }
+            } catch (e) {
+                fail(friendlyAuthError(e));
+            }
+        }
+    </script>
+</body>
+</html>
