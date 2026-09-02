@@ -1213,6 +1213,41 @@ function updateCartBadge() {
     }
 }
 
+/* Only the colour slots this product actually uses.
+ *
+ * state.colors always carries all four slots (base/font/outline/line2) with
+ * defaults, but most products use two or three — a classic keychain is three,
+ * and the leftover line2 default was showing up as a fourth swatch in the cart.
+ * This mirrors the visibility table in applyProductTypeConstraints(), which is
+ * what the customer actually saw while designing.
+ */
+function relevantColors() {
+    const c = state.colors;
+    const t = state.productType;
+
+    if (t === 'linked_initials') return { font: c.font, line2: c.line2 };
+    if (t === 'wordart' || t === 'loveseries') {
+        const out = { font: c.font, line2: c.line2 };
+        // The back panel only exists when a backing is selected.
+        if (state.wordartBase !== 'none') out.base = c.base;
+        return out;
+    }
+    if (t === 'tilekey') return { base: c.base, font: c.font, line2: c.line2 };
+    if (t === 'nametag') return { base: c.base };
+    if (t === 'supported_text') return { font: c.font };
+    if (t === 'nameplate' || t === 'desk_organizer') {
+        return { base: c.base, font: c.font, outline: c.outline };
+    }
+    if (['girly_keychain', 'flower_keychain', 'led_word_stand', 'led_word_art',
+         'bordered_keychain', 'bubble_keychain', 'name_beads'].includes(t)) {
+        return { base: c.base, font: c.font };
+    }
+    // Classic keychain: outline exists only in 3-layer mode.
+    const out = { base: c.base, font: c.font };
+    if (state.layers === '3L') out.outline = c.outline;
+    return out;
+}
+
 /* Capture the 3D viewer exactly as the customer sees it, as a small JPEG data
  * URL for the cart line.
  *
@@ -1274,7 +1309,7 @@ function buildCartLine() {
         font: state.selectedFont,
         fontFile: state.selectedFontFile,
         layers: state.layers,
-        colors: { ...state.colors },
+        colors: relevantColors(),
         ringPosition: state.ringPosition,
         ringAnchor: state.ringAnchor,
         showFDMTexture: state.showFDMTexture,
