@@ -1275,7 +1275,8 @@ function buildCartLine() {
 }
 
 // Rewriting .value during an `input` event snaps the caret to the end, so
-// mid-word edits are impossible. Restore the selection when we have to rewrite.function setInputValuePreservingCaret(input, next) {
+// mid-word edits are impossible. Restore the selection when we have to rewrite.
+function setInputValuePreservingCaret(input, next) {
     if (input.value === next) return;
     const pos = input.selectionStart;
     input.value = next;

@@ -67,8 +67,11 @@ body {
     box-shadow: 0 0 0 var(--text-main);
 }
 
-/* Cart button mirrors the Back button, pinned to the opposite corner. */
-.floating-cart-btn {
+/* Cart button mirrors the Back button, pinned to the opposite corner.
+   Two-class selector: the desktop media query re-pins .floating-back-btn with
+   `left: 1.1rem`, which would otherwise apply here too and stretch this button
+   across the full width (left AND right set). */
+.floating-back-btn.floating-cart-btn {
     left: auto;
     right: 1rem;
 }
@@ -1223,7 +1226,9 @@ body {
     /* FIX back-button collision: keep Back top-left, move the rotate/texture
        controls to the TOP-RIGHT so they never overlap it. */
     .floating-back-btn { top: 1.1rem; left: 1.1rem; z-index: 16; }
-    .visualizer-overlay-controls { bottom: auto; top: 1.1rem; left: auto; right: 1.1rem; transform: none; }
+    .floating-back-btn.floating-cart-btn { left: auto; right: 1.1rem; }
+    /* rotate/texture controls sit BELOW the cart button on desktop */
+    .visualizer-overlay-controls { bottom: auto; top: 4.4rem; left: auto; right: 1.1rem; transform: none; }
     .drag-hint { bottom: 1.25rem; }
 
     /* a touch larger typography on the spacious desktop column */
