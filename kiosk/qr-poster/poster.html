@@ -6,14 +6,20 @@
     <title>Kootzy Kiosk — Printable QR Poster</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #7b2fff;
-            --primary-gradient: linear-gradient(135deg, #7b2fff 0%, #a855f7 100%);
-            --text-dark: #0f0e15;
-            --text-muted: #6b7280;
-            --font-family: 'Plus Jakarta Sans', sans-serif;
+            /* --primary is used BOTH as text on white and as a background behind
+               white text, so it has to clear 4.5:1 in both directions. Lagoon
+               (2.49:1) cannot; this darker Nuclear Red is 5.14:1 either way. */
+            --primary: #DB0B21;
+            /* Decorative only — carries the logo glyph, never text. */
+            --primary-gradient: linear-gradient(135deg, #00B5C8 0%, #009AAB 100%);
+            --lagoon: #00B5C8;
+            --text-dark: #172B35;
+            --text-muted: #4F6874;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-display: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
         }
 
         * {
@@ -330,15 +336,9 @@
         <!-- Logo -->
         <header class="poster-header">
             <div class="logo-wrap">
-                <div class="logo-box">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="2" y="2" width="20" height="20" rx="6" fill="#7b2fff"/>
-                        <path d="M7 12L10 15L17 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <h1 class="brand-name">Kootzy</h1>
+                <img src="../public/brand/logo-primary.svg" alt="Kootzy" style="height:64px;width:auto;display:block">
             </div>
-            <span class="slogan">Premium 3D Customizer</span>
+            <span class="slogan">Made to make you smile</span>
         </header>
 
         <!-- Banner Title -->

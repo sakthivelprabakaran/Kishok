@@ -1,36 +1,46 @@
 /* =========================================================
-   YOURSGIFTS — SHARED DESIGN TOKENS
-   "Maker Studio" — warm riso workshop aesthetic.
-   Single source of truth for both landing + customizer.
+   KOOTZY — SHARED DESIGN TOKENS
+   Imported by styles-root.css, which studio.html loads. This is a THIRD token
+   layer alongside css/kiosk.css (storefront) and admin-console.css (Studio
+   chrome) — it is NOT dead code, it drives the Studio surfaces.
+
+   Token NAMES are unchanged so every consumer keeps working; only the VALUES
+   move to the Kootzy palette, mapped along the old hierarchy:
+     vermilion -> Nuclear Red   cobalt     -> Lagoon Blue
+     warm ink  -> Navy          warm paper -> Pale / Mint
    ========================================================= */
 
 :root {
-    /* ---- Surfaces: warm paper, not cold white ---- */
-    --paper:        #FBF6EE;   /* page background */
-    --paper-2:      #F3EADC;   /* recessed wells */
+    /* ---- Surfaces: cool and bright ---- */
+    --paper:        #F5FAFB;   /* page background */
+    --paper-2:      #DDF7FA;   /* recessed wells (Mint) */
     --card:         #FFFFFF;   /* raised cards */
-    --ink:          #1A1714;   /* near-black warm */
-    --ink-soft:     #4A433B;
-    --ink-muted:    #6E665B;   /* AA on paper (~5.2:1) */
-    --line:         #E4D8C6;   /* hairline borders */
-    --line-strong:  #D2C2A8;
+    --ink:          #172B35;   /* Navy */
+    --ink-soft:     #33505E;
+    --ink-muted:    #4F6874;   /* 5.6:1 on --paper */
+    --line:         #D3E7EB;   /* hairline borders */
+    --line-strong:  #A9D5DE;
 
-    /* ---- Riso duotone accents ---- */
-    --vermilion:    #FF4D2E;   /* primary brand / CTA */
-    --vermilion-ink:#D8341A;   /* pressed / hover */
-    --vermilion-wash: rgba(255, 77, 46, 0.10);
-    --cobalt:       #1F4FD8;   /* secondary accent */
-    --cobalt-wash:  rgba(31, 79, 216, 0.10);
-    --gold:         #E8A317;   /* tertiary highlight */
+    /* ---- Brand accents ---- */
+    --vermilion:    #FF1E36;   /* Nuclear Red — primary / CTA */
+    --vermilion-ink:#DB0B21;   /* pressed / hover; 5.14:1 with white */
+    --vermilion-wash: rgba(255, 30, 54, 0.10);
+    --cobalt:       #00B5C8;   /* Lagoon Blue — secondary accent */
+    --cobalt-wash:  rgba(0, 181, 200, 0.12);
+    --gold:         #FFC94A;   /* yellow accent */
+
+    /* Lagoon measures 2.49:1 on white and cannot carry text at any size. Use
+       this when a lagoon-coloured LABEL is wanted (4.76:1 on white). */
+    --lagoon-text:  #007F8C;
 
     /* ---- Commerce greens (WhatsApp, kept recognizable) ---- */
     --wa:           #1FAE5A;
     --wa-ink:       #16823F;
 
     /* ---- Type ---- */
-    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', system-ui, sans-serif;
-    --font-body:    'Hanken Grotesk', system-ui, -apple-system, sans-serif;
-    --font-mono:    'Space Mono', 'SFMono-Regular', ui-monospace, monospace;
+    --font-display: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
+    --font-body:    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono:    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
     /* ---- Radii: tactile, slightly soft ---- */
     --r-sm: 10px;
@@ -59,22 +69,25 @@
 }
 
 /* ---- Dark mode: lamp-lit workshop at night ---- */
+/* ---- Dark mode: Navy-based, matching the brand rather than a warm workshop ---- */
 @media (prefers-color-scheme: dark) {
     :root {
-        --paper:    #14110E;
-        --paper-2:  #1C1814;
-        --card:     #211C17;
-        --ink:      #F4EEE4;
-        --ink-soft: #D8CDBC;
-        --ink-muted:#A89B86;
-        --line:     rgba(244,238,228,.10);
-        --line-strong: rgba(244,238,228,.18);
+        --paper:    #101E26;   /* Navy, darkened */
+        --paper-2:  #16272F;
+        --card:     #1B303A;
+        --ink:      #EAF7FA;   /* Mint-tinted off-white */
+        --ink-soft: #C3DFE6;
+        --ink-muted:#93B4BF;
+        --line:     rgba(234,247,250,.12);
+        --line-strong: rgba(234,247,250,.20);
 
-        --vermilion:    #FF6A4D;
-        --vermilion-ink:#FF8366;
-        --vermilion-wash: rgba(255,106,77,.16);
-        --cobalt:       #6E92FF;
-        --cobalt-wash:  rgba(110,146,255,.16);
+        /* Both accents lightened so they carry text on the dark ground. */
+        --vermilion:    #FF5A6B;
+        --vermilion-ink:#FF8391;
+        --vermilion-wash: rgba(255,90,107,.16);
+        --cobalt:       #3FD3E2;
+        --cobalt-wash:  rgba(63,211,226,.16);
+        --lagoon-text:  #6FE0EC;
 
         --sh-sm: 0 1px 2px rgba(0,0,0,.4);
         --sh-md: 0 8px 24px rgba(0,0,0,.45);
