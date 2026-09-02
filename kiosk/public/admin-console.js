@@ -3,7 +3,7 @@
    Full-screen STL Generation Console
    ========================================= */
 
-import { KeychainViewer } from './js/viewer3d.js?v=wa5';
+import { KeychainViewer } from './js/viewer3d.js?v=wa6';
 
 // ===== FONT & COLOR DATA (mirrors script.js) =====
 
@@ -140,6 +140,15 @@ const PRESETS = {
         ring_height: 4.5,
         ring_x: -1,
         ring_y: 10,
+
+        // Bubble Keychain specific (Reset restores these; the thin/thick preset
+        // buttons are hidden for this product, so only `standard` needs them)
+        bubble_text_size: 28,
+        bubble_halo_padding: 4.0,
+        bubble_base_thk: 2.4,
+        bubble_text_depth: 2.2,
+        bubble_ring_outer: 5.2,
+        bubble_ring_inner: 2.7,
     }, // Total = 6.0mm
     thick: {
         scaleFactor: 1.25,
@@ -317,6 +326,14 @@ const SLIDER_MAP = {
     bead_hole:          { range: 'adminBeadHole',         num: 'adminBeadHoleNum' },
     bead_spacing:       { range: 'adminBeadSpacing',      num: 'adminBeadSpacingNum' },
     bead_letter_height: { range: 'adminBeadLetterHeight', num: 'adminBeadLetterHeightNum' },
+
+    // Bubble Keychain Sliders
+    bubble_text_size:   { range: 'adminBubbleTextSize',   num: 'adminBubbleTextSizeNum' },
+    bubble_halo_pad:    { range: 'adminBubbleHaloPad',    num: 'adminBubbleHaloPadNum' },
+    bubble_base_thk:    { range: 'adminBubbleBaseThk',    num: 'adminBubbleBaseThkNum' },
+    bubble_text_depth:  { range: 'adminBubbleTextDepth',  num: 'adminBubbleTextDepthNum' },
+    bubble_ring_outer:  { range: 'adminBubbleRingOuter',  num: 'adminBubbleRingOuterNum' },
+    bubble_ring_inner:  { range: 'adminBubbleRingInner',  num: 'adminBubbleRingInnerNum' },
 };
 
 // Resolve DOM references
@@ -514,6 +531,8 @@ function initWordartBaseToggle() {
         if (!btn || !btn.dataset.mode) return;
         state.wordartBase = btn.dataset.mode;
         syncWordartBaseUI();
+        // The Base Layer sliders only bite once a backing exists.
+        syncStandardSectionRelevance();
         updateViewer();
     });
 }
@@ -748,6 +767,16 @@ function collectParams() {
             p.layout_direction = parseInt(v, 10);
             p.beadDirection = v === '0' ? 'horizontal' : 'vertical';
         }
+    }
+
+    // Bubble Keychain
+    if (sliders.bubble_text_size) {
+        p.bubble_text_size   = parseFloat(sliders.bubble_text_size.range.value);
+        p.bubble_halo_padding = parseFloat(sliders.bubble_halo_pad.range.value);
+        p.bubble_base_thk    = parseFloat(sliders.bubble_base_thk.range.value);
+        p.bubble_text_depth  = parseFloat(sliders.bubble_text_depth.range.value);
+        p.bubble_ring_outer  = parseFloat(sliders.bubble_ring_outer.range.value);
+        p.bubble_ring_inner  = parseFloat(sliders.bubble_ring_inner.range.value);
     }
     return p;
 }
@@ -1116,6 +1145,22 @@ function setSliders(p) {
     } else if (p.beadDirection !== undefined) {
         const el = $('adminBeadDirection');
         if (el) el.value = (p.beadDirection === 'vertical' || p.beadDirection === '1' || p.beadDirection === 1) ? '1' : '0';
+    }
+
+    // Bubble Keychain
+    const bubblePairs = [
+        ['bubble_text_size',  p.bubble_text_size],
+        ['bubble_halo_pad',   p.bubble_halo_padding],
+        ['bubble_base_thk',   p.bubble_base_thk],
+        ['bubble_text_depth', p.bubble_text_depth],
+        ['bubble_ring_outer', p.bubble_ring_outer],
+        ['bubble_ring_inner', p.bubble_ring_inner],
+    ];
+    for (const [key, val] of bubblePairs) {
+        if (val !== undefined && sliders[key]) {
+            sliders[key].range.value = val;
+            sliders[key].num.value   = val;
+        }
     }
 }
 
@@ -1595,6 +1640,42 @@ function ensureDefaultsForProductType() {
 
 // ===== APPLY PRODUCT TYPE UI =====
 
+/* Hide standard-stack sections whose params this product's builder cannot use.
+ *
+ * Two cases, both verified against viewer3d.js rather than assumed:
+ *  - Ring Attachment: buildKeychain guards the keyring with
+ *    `!isNameplate && !isWordart && p.ringPosition !== 'none'`, so for Nameplate and
+ *    Word Art the radii were visible and inert. LOVE Series DOES get a ring
+ *    (isWordart is false for it), so it keeps the section.
+ *  - Base Layer: for Word Art the base only reaches geometry through
+ *    _buildWordartBackplate, which runs when the backing is solid or hollow
+ *    (`hasWordartBackplate = isWordart && ...`). With backing 'none' the four
+ *    sliders do nothing. LOVE Series uses base.depth for real layer stacking
+ *    (baseFrontZ), so it keeps the section either way.
+ *
+ * Called on product switch and whenever the Word Art backing mode changes, so it
+ * must be authoritative in BOTH directions — an earlier version only ever hid
+ * sections, which left the Base Layer stuck hidden when the backing was switched
+ * from 'none' to solid/hollow.
+ */
+let _standardStackVisible = true;   // set by applyProductTypeUI
+
+function syncStandardSectionRelevance() {
+    const type = state.productType;
+
+    const ringRelevant = !(type === 'nameplate' || type === 'wordart');
+    const baseRelevant = !(type === 'wordart' && (state.wordartBase || 'none') === 'none');
+
+    const ringSection = $('adminRingSection');
+    if (ringSection) {
+        ringSection.style.display = (_standardStackVisible && ringRelevant) ? 'block' : 'none';
+    }
+    const baseSection = $('adminBaseSection');
+    if (baseSection) {
+        baseSection.style.display = (_standardStackVisible && baseRelevant) ? 'block' : 'none';
+    }
+}
+
 function applyProductTypeUI() {
     const isWordartLikeMultiLine = state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey';
     if (isWordartLikeMultiLine && nameInput.value.includes('/')) {
@@ -1643,6 +1724,9 @@ function applyProductTypeUI() {
     const beadsSection = $('adminBeadsSection');
     if (beadsSection) beadsSection.style.display = isBeads ? 'block' : 'none';
 
+    const bubbleSection = $('adminBubbleSection');
+    if (bubbleSection) bubbleSection.style.display = isBubble ? 'block' : 'none';
+
     const standardSections = [
         $('adminBaseSection'),
         $('adminOutlineSection'),
@@ -1650,12 +1734,18 @@ function applyProductTypeUI() {
         $('adminRingSection'),
         $('adminPresetsSection')
     ];
+    const hideStandard = isNametag || isBordered || isSupported || isFlower || isDeskOrganizer || isBeads || isLed || isBubble || isTile || isLinked;
+    _standardStackVisible = !hideStandard;
     standardSections.forEach(sec => {
         if (sec) {
-            const hideStandard = isNametag || isBordered || isSupported || isFlower || isDeskOrganizer || isBeads || isLed || isBubble || isTile || isLinked;
             sec.style.display = hideStandard ? 'none' : 'block';
         }
     });
+
+    // Per-product overrides on top of the standard stack: hide the sections whose
+    // sliders cannot reach this product's geometry, so the panel stops offering
+    // controls that silently do nothing.
+    syncStandardSectionRelevance();
 
     const fontSwatchGroup = $('adminFontSwatchGroup');
     const outlineSwatchGroup = $('adminOutlineSwatchGroup');

@@ -848,7 +848,11 @@ export class KeychainViewer {
     // constant * scaleFactor rather than the depth sliders.
     static get SCALED_PRODUCTS() {
         return ['tilekey', 'nametag', 'girly_keychain', 'bordered_keychain',
-                'supported_text', 'flower_keychain', 'led_word_stand', 'led_word_art'];
+                'supported_text', 'flower_keychain', 'led_word_stand', 'led_word_art',
+                // bubble_keychain has always called scale.setScalar() but was missing
+                // here, so its thicknesses were validated as absolute mm. Desk
+                // organizer and name beads now honour the scale slider too.
+                'bubble_keychain', 'desk_organizer', 'name_beads'];
     }
 
     static validatePrintability(params, productType) {
@@ -895,6 +899,42 @@ export class KeychainViewer {
             }
         }
 
+        // Ring geometry: the wall left between the outer edge and the hole, and
+        // whether a split ring can physically pass. Shared by the main path and by
+        // specialised builders that draw their own keyring.
+        function checkRing(outerR, innerR) {
+            if (innerR >= outerR) {
+                errors.push('Ring inner radius (' + innerR + 'mm) must be smaller than the outer radius ('
+                    + outerR + 'mm) — as set, there is no ring left to print.');
+                return;
+            }
+            var wall = outerR - innerR;
+            features.push({ label: 'Ring wall', mm: Math.round(wall * 100) / 100 });
+            if (wall < L.MIN_RING_WALL) {
+                errors.push('Ring wall is ' + wall.toFixed(2) + 'mm. Under ' + L.MIN_RING_WALL
+                    + 'mm it will not print as a loop.');
+            } else if (wall < L.SAFE_RING_WALL) {
+                warnings.push('Ring wall is ' + wall.toFixed(2) + 'mm — it will snap off a keyring. '
+                    + L.SAFE_RING_WALL + 'mm+ recommended.');
+            }
+            var holeD = innerR * 2;
+            features.push({ label: 'Ring hole ø', mm: Math.round(holeD * 100) / 100 });
+            if (holeD < L.MIN_RING_HOLE_D) {
+                errors.push('Ring hole is ø' + holeD.toFixed(1) + 'mm — a split ring cannot pass through.');
+            } else if (holeD < L.SAFE_RING_HOLE_D) {
+                warnings.push('Ring hole is ø' + holeD.toFixed(1) + 'mm — tight for a standard split ring ('
+                    + L.SAFE_RING_HOLE_D + 'mm+ is comfortable).');
+            }
+        }
+
+        // A slider that is absent has to fall back to the builder's own constant.
+        // `Number(x) || dflt` would turn a deliberate 0 into dflt — the same trap
+        // noted above for scaleFactor.
+        function num(v, dflt) {
+            var n = Number(v);
+            return Number.isFinite(n) ? n : dflt;
+        }
+
         var isWordartLike   = (type === 'wordart' || type === 'loveseries');
         var isLinkedInitial = (type === 'linked_initials');
         var isNameplate     = (type === 'nameplate');
@@ -907,6 +947,37 @@ export class KeychainViewer {
                 checkFeature('Letter relief (' + scale + '× scale)', 1.2 * scale);
                 checkFeature('Tile thickness (' + scale + '× scale)', 1.8 * scale);
                 checkFeature('Strip thickness (' + scale + '× scale)', 3 * scale);
+            } else if (type === 'bubble_keychain') {
+                // Sliders from the Bubble Keychain section; constants elsewhere in
+                // _buildBubbleKeychain (inset floor 0.8, rim 1.6).
+                var bubBase = num(p.bubble_base_thk, 2.4);
+                var bubText = num(p.bubble_text_depth, 2.2);
+                var bubOuter = num(p.bubble_ring_outer, 5.2);
+                var bubInner = num(p.bubble_ring_inner, 2.7);
+                checkFeature('Backing plaque', bubBase * scale);
+                checkFeature('Inset floor', 0.8 * scale);
+                checkFeature('Perimeter rim', 1.6 * scale);
+                checkFeature('Bubble text relief', bubText * scale);
+                checkRing(bubOuter * scale, bubInner * scale);
+                checkFeature('Total body', (bubBase + 0.8 + bubText) * scale,
+                    { min: L.MIN_FEATURE, safe: L.SAFE_KEYCHAIN_BODY });
+            } else if (type === 'desk_organizer') {
+                // Constants and sliders from _buildDeskOrganizer. No keyring.
+                checkFeature('Compartment wall', num(p.organizer_wall_thk, 3.2) * scale);
+                checkFeature('Nameplate letter relief', num(p.organizer_letter_depth, 1.2) * scale);
+            } else if (type === 'name_beads') {
+                // A bead is a cube with a cord hole through it; the thin part is the
+                // wall left between the hole and the outside face.
+                var beadSize = num(p.bead_size, 12);
+                var holeD    = num(p.hole_diameter, 4);
+                checkFeature('Bead wall around cord hole', ((beadSize - holeD) / 2) * scale);
+                checkFeature('Letter emboss', num(p.letter_height, 1.2) * scale);
+                var cordHole = holeD * scale;
+                features.push({ label: 'Cord hole', mm: Math.round(cordHole * 100) / 100 });
+                if (cordHole < 2) {
+                    warnings.push('Cord hole is ' + cordHole.toFixed(2) + 'mm — most elastic cord '
+                        + 'needs 2mm or more, and small holes close up as the layers cool.');
+                }
             } else {
                 // Every scaled builder's thinnest constant sits around 1.2mm, so
                 // anything much under 0.7x starts crossing the 0.8mm floor.
@@ -966,30 +1037,7 @@ export class KeychainViewer {
         // Keyring — skipped for nameplate/word art, and when explicitly off.
         var hasRing = !isNameplate && !isWordartLike && p.ringPosition !== 'none';
         if (hasRing) {
-            var outerR = Number(p.ring.outerRadius) || 0;
-            var innerR = Number(p.ring.innerRadius) || 0;
-            if (innerR >= outerR) {
-                errors.push('Ring inner radius (' + innerR + 'mm) must be smaller than the outer radius ('
-                    + outerR + 'mm) — as set, there is no ring left to print.');
-            } else {
-                var wall = outerR - innerR;
-                features.push({ label: 'Ring wall', mm: Math.round(wall * 100) / 100 });
-                if (wall < L.MIN_RING_WALL) {
-                    errors.push('Ring wall is ' + wall.toFixed(2) + 'mm. Under ' + L.MIN_RING_WALL
-                        + 'mm it will not print as a loop.');
-                } else if (wall < L.SAFE_RING_WALL) {
-                    warnings.push('Ring wall is ' + wall.toFixed(2) + 'mm — it will snap off a keyring. '
-                        + L.SAFE_RING_WALL + 'mm+ recommended.');
-                }
-                var holeD = innerR * 2;
-                features.push({ label: 'Ring hole ø', mm: Math.round(holeD * 100) / 100 });
-                if (holeD < L.MIN_RING_HOLE_D) {
-                    errors.push('Ring hole is ø' + holeD.toFixed(1) + 'mm — a split ring cannot pass through.');
-                } else if (holeD < L.SAFE_RING_HOLE_D) {
-                    warnings.push('Ring hole is ø' + holeD.toFixed(1) + 'mm — tight for a standard split ring ('
-                        + L.SAFE_RING_HOLE_D + 'mm+ is comfortable).');
-                }
-            }
+            checkRing(Number(p.ring.outerRadius) || 0, Number(p.ring.innerRadius) || 0);
         }
 
         return { errors: errors, warnings: warnings, features: features };
@@ -2526,7 +2574,8 @@ export class KeychainViewer {
         var displayText = (text || 'Sample').replace(/^\u00B0/, '').replace(/\r/g, '');
         if (!displayText.trim()) displayText = 'Sample';
 
-        var textSize = 28;
+        var textSize = (p.bubble_text_size !== undefined && p.bubble_text_size > 0)
+            ? p.bubble_text_size : 28;
         // Text path
         var rawPath = font.getPath(displayText, 0, 0, textSize);
         var bbox = rawPath.getBoundingBox();
@@ -2540,8 +2589,9 @@ export class KeychainViewer {
         var textShapes = this._pathDataToShapes(centeredPath.toPathData(3));
         if (!textShapes || textShapes.length === 0) return;
 
-        // Inset halo (Layer 2) = text contour expanded with generous margin (~4.0mm gap)
-        var insetPadding = 4.0;
+        // Inset halo (Layer 2) = text contour expanded by this margin
+        var insetPadding = (p.bubble_halo_padding !== undefined && p.bubble_halo_padding > 0)
+            ? p.bubble_halo_padding : 4.0;
         var rawInsetShapes = offsetShapes(textShapes, insetPadding);
         if (!rawInsetShapes || rawInsetShapes.length === 0) {
             rawInsetShapes = textShapes;
@@ -2564,8 +2614,10 @@ export class KeychainViewer {
         }
 
         var showRing = p.ringPosition !== 'none';
-        var ringOuterR = 5.2;
-        var ringHoleR = 2.7;
+        var ringOuterR = (p.bubble_ring_outer !== undefined && p.bubble_ring_outer > 0)
+            ? p.bubble_ring_outer : 5.2;
+        var ringHoleR = (p.bubble_ring_inner !== undefined && p.bubble_ring_inner > 0)
+            ? p.bubble_ring_inner : 2.7;
         // Position the tab at bottom-left ear of the silhouette as in the reference image
         var tabX = insetBBox.minX - 1.2;
         var tabY = insetBBox.minY + (insetBBox.maxY - insetBBox.minY) * 0.28;
@@ -2628,8 +2680,9 @@ export class KeychainViewer {
         });
         this._applyFDMTexture(fontMat, p);
 
-        // ── 1. Main Base Floor Plaque (Z: 0 to 2.4mm) ──
-        var baseThickness = 2.4;
+        // ── 1. Main Base Floor Plaque ──
+        var baseThickness = (p.bubble_base_thk !== undefined && p.bubble_base_thk > 0)
+            ? p.bubble_base_thk : 2.4;
         var baseGeo = new THREE.ExtrudeGeometry(finalBaseShapes, {
             depth:          baseThickness,
             bevelEnabled:   true,
@@ -2671,8 +2724,9 @@ export class KeychainViewer {
             this.keychainGroup.add(rimMesh);
         }
 
-        // ── 4. Raised Bubble 3D Text (Z: 3.2mm to 5.8mm, +2.6mm above inset with puffy rounded bevel) ──
-        var textDepth = 2.2;
+        // ── 4. Raised Bubble 3D Text (puffy rounded bevel above the inset floor) ──
+        var textDepth = (p.bubble_text_depth !== undefined && p.bubble_text_depth > 0)
+            ? p.bubble_text_depth : 2.2;
         var fontGeo = new THREE.ExtrudeGeometry(textShapes, {
             depth:          textDepth,
             bevelEnabled:   true,
@@ -3936,6 +3990,12 @@ export class KeychainViewer {
         }
         this.keychainGroup.add(nameGroup);
 
+        // Apply the global Scale Factor. The organizer is built in absolute mm, so
+        // without this the always-visible scale slider did nothing for this product.
+        var organizerScale = Number(p.scaleFactor);
+        if (!Number.isFinite(organizerScale) || organizerScale <= 0) organizerScale = 1;
+        if (organizerScale !== 1) this.keychainGroup.scale.setScalar(organizerScale);
+
         // Center model and orient nicely
         var box = new THREE.Box3().setFromObject(this.keychainGroup);
         var center = box.getCenter(new THREE.Vector3());
@@ -3954,7 +4014,7 @@ export class KeychainViewer {
         this.scene.add(this.keychainGroup);
 
         // Optimal camera framing looking down into the desk organizer compartments
-        this.camera.position.set(0, -110, 100);
+        this.camera.position.set(0, -110 * organizerScale, 100 * organizerScale);
         this.camera.near = 1;
         this.camera.far = 1000;
         this.camera.updateProjectionMatrix();
@@ -4286,6 +4346,12 @@ export class KeychainViewer {
         this.keychainGroup.add(stopper2);
         this._beadStoppers.push(stopper1, stopper2);
 
+        // Apply the global Scale Factor. The bead string is built in absolute mm, so
+        // without this the always-visible scale slider did nothing for this product.
+        var beadScale = Number(p.scaleFactor);
+        if (!Number.isFinite(beadScale) || beadScale <= 0) beadScale = 1;
+        if (beadScale !== 1) this.keychainGroup.scale.setScalar(beadScale);
+
         // Shadow plane just below beads
         var beadBox = new THREE.Box3().setFromObject(this.keychainGroup);
         var beadSizeVec = beadBox.getSize(new THREE.Vector3());
@@ -4296,7 +4362,7 @@ export class KeychainViewer {
         this.scene.add(this.keychainGroup);
 
         // Camera Framing for Name Beads String
-        var camDist = Math.max(80, totalSpan * 1.5);
+        var camDist = Math.max(80, totalSpan * 1.5) * beadScale;
         this.camera.position.set(0, -camDist * 0.75, camDist * 0.85);
         this.camera.near = 1;
         this.camera.far = 1000;

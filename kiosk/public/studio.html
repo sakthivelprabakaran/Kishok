@@ -941,6 +941,57 @@ Letters only — the word itself is the whole structure.
 </div>
 </div>
 </div>
+<div class="ctrlSection" id="adminBubbleSection" style="display: none;">
+<div class="ctrlSectionTitle">🫧 Bubble Keychain Settings</div>
+<div class="sliderRow">
+<span class="sliderLabel">Text Size</span>
+<input class="sliderRange" id="adminBubbleTextSize" max="48.0" min="14.0" step="1.0" type="range" value="28.0"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBubbleTextSizeNum" max="48.0" min="14.0" step="1.0" type="number" value="28.0"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Halo Padding</span>
+<input class="sliderRange" id="adminBubbleHaloPad" max="10.0" min="1.5" step="0.25" type="range" value="4.0"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBubbleHaloPadNum" max="10.0" min="1.5" step="0.25" type="number" value="4.0"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Backing Plaque Depth</span>
+<input class="sliderRange" id="adminBubbleBaseThk" max="6.0" min="1.0" step="0.2" type="range" value="2.4"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBubbleBaseThkNum" max="6.0" min="1.0" step="0.2" type="number" value="2.4"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Bubble Text Depth</span>
+<input class="sliderRange" id="adminBubbleTextDepth" max="6.0" min="0.8" step="0.2" type="range" value="2.2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBubbleTextDepthNum" max="6.0" min="0.8" step="0.2" type="number" value="2.2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Ring Outer Radius</span>
+<input class="sliderRange" id="adminBubbleRingOuter" max="12.0" min="3.0" step="0.2" type="range" value="5.2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBubbleRingOuterNum" max="12.0" min="3.0" step="0.2" type="number" value="5.2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Ring Inner Radius</span>
+<input class="sliderRange" id="adminBubbleRingInner" max="8.0" min="1.0" step="0.1" type="range" value="2.7"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminBubbleRingInnerNum" max="8.0" min="1.0" step="0.1" type="number" value="2.7"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+</div>
 <div class="exportSection">
 <div class="filenameRow">
 <span class="filenameLabel">Filename</span>
@@ -1023,6 +1074,6 @@ Letters only — the word itself is the whole structure.
   boot();
 })();
 </script>
-<script src="admin-console.js?v=11" type="module"></script>
+<script src="admin-console.js?v=12" type="module"></script>
 </body>
 </html>
