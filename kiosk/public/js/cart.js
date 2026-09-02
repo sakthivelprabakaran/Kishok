@@ -103,6 +103,12 @@ export function isSignedIn() {
     return Boolean(token());
 }
 
+/** Headers for an authenticated call, for pages that fetch outside this module. */
+export function authHeaders() {
+    const jwt = token();
+    return jwt ? { Authorization: 'Bearer ' + jwt } : {};
+}
+
 /* ── reads ── */
 
 export async function list() {

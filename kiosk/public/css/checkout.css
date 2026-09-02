@@ -1,0 +1,128 @@
+/* =========================================================
+   KOOTZY — CHECKOUT
+   Builds on css/cart.css; tokens only, no new colours.
+   ========================================================= */
+
+.checkout-page { padding: 0 0 2.5rem; }
+
+.checkout-grid { display: grid; gap: 1.25rem; }
+
+@media (min-width: 820px) {
+    .checkout-grid {
+        grid-template-columns: minmax(0, 1fr) 22rem;
+        align-items: start;
+    }
+    .checkout-summary { position: sticky; top: 1rem; }
+}
+
+.checkout-main { display: grid; gap: 1rem; min-width: 0; }
+
+/* ── Blocks ── */
+.co-block {
+    background: var(--bg-panel);
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--r-md, 14px);
+    padding: 1rem 1.1rem 1.15rem;
+    margin: 0;
+    box-shadow: var(--card-shadow);
+}
+.co-legend {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: var(--text-main);
+    padding: 0 0.35rem;
+    margin-left: -0.35rem;
+}
+
+/* ── Fulfilment choice ── */
+.co-choice {
+    display: flex;
+    gap: 0.7rem;
+    align-items: flex-start;
+    padding: 0.75rem;
+    margin-top: 0.6rem;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--r-sm, 10px);
+    cursor: pointer;
+}
+.co-choice:hover { background: var(--paper-2); }
+/* :has lets the whole row react to its radio without extra JS. */
+.co-choice:has(input:checked) {
+    border-color: var(--lagoon);
+    background: var(--paper-2);
+}
+.co-choice input { margin-top: 0.25rem; width: 20px; height: 20px; accent-color: var(--lagoon-ink); }
+.co-choice-body { display: block; }
+.co-choice-title {
+    display: block;
+    font-weight: 700;
+    color: var(--text-main);
+    font-size: 1rem;
+}
+.co-choice-note {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 0.15rem;
+}
+
+/* ── Fields ── */
+.co-field { margin-top: 0.75rem; }
+.co-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 0.3rem;
+}
+.co-optional { font-weight: 400; color: var(--text-muted); }
+
+.co-field input {
+    width: 100%;
+    min-height: 48px;                    /* comfortable on a phone */
+    padding: 0 0.85rem;
+    font-family: var(--font-family);
+    font-size: 1rem;                     /* 16px+ stops iOS zooming on focus */
+    color: var(--text-main);
+    background: var(--bg-panel);
+    border: 1.5px solid var(--border-color-hover);
+    border-radius: var(--r-sm, 10px);
+}
+.co-field input:focus-visible {
+    outline: none;
+    border-color: var(--lagoon-ink);
+    box-shadow: var(--focus-ring);
+}
+.co-field input:invalid:not(:placeholder-shown) { border-color: var(--primary); }
+
+.co-row { display: grid; gap: 0.75rem; }
+@media (min-width: 480px) {
+    .co-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Summary lines ── */
+.co-lines {
+    list-style: none;
+    margin: 0 0 0.9rem;
+    padding: 0 0 0.9rem;
+    border-bottom: 1.5px solid var(--border-color);
+    display: grid;
+    gap: 0.4rem;
+}
+.co-line { display: flex; gap: 0.6rem; justify-content: space-between; align-items: baseline; }
+.co-line-name { color: var(--text-main); font-size: 0.9rem; overflow-wrap: anywhere; }
+.co-line-qty { color: var(--text-muted); font-size: 0.85rem; font-weight: 700; flex: 0 0 auto; }
+
+/* ── Unpaid notice ──
+   Blush rather than red: this is information, not an error. It must be
+   impossible to miss, because no gateway is wired yet. */
+.co-unpaid {
+    margin: 0.9rem 0 0;
+    padding: 0.7rem 0.8rem;
+    background: var(--blush);
+    border-radius: var(--r-sm, 10px);
+    color: var(--text-main);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}

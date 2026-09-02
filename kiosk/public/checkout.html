@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Checkout — Kootzy</title>
+    <meta name="description" content="Confirm your Kootzy order: collect at the kiosk or have it delivered.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="/favicon.ico?v=kootzy1" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg?v=kootzy1">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=kootzy1">
+    <meta name="theme-color" content="#00B5C8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/kiosk.css?v=kootzy1">
+    <link rel="stylesheet" href="css/cart.css?v=kootzy1">
+    <link rel="stylesheet" href="css/checkout.css?v=kootzy1">
+</head>
+<body>
+    <div class="kiosk-container">
+        <header class="kiosk-header">
+            <div class="logo-area">
+                <a href="index.html" aria-label="Kootzy home">
+                    <img src="brand/logo-primary.svg" alt="Kootzy" class="logo-mark" width="140" height="47" decoding="async">
+                </a>
+            </div>
+            <a class="cart-back" href="cart.html">Back to cart</a>
+        </header>
+
+        <main class="checkout-page">
+            <h1 class="cart-title">Checkout</h1>
+
+            <p id="coLoading" class="cart-note">Loading your order…</p>
+
+            <div id="coEmpty" class="cart-empty" hidden>
+                <img src="brand/states/empty-cart-illus.svg" alt="" class="state-illus" aria-hidden="true">
+                <h2>Your cart is empty</h2>
+                <p>Add a design and it will show up here ready to order.</p>
+                <a class="state-btn" href="index.html">Start designing</a>
+            </div>
+
+            <form id="coForm" class="checkout-grid" hidden novalidate>
+                <div class="checkout-main">
+                    <!-- ── How to get it ── -->
+                    <fieldset class="co-block">
+                        <legend class="co-legend">How would you like it?</legend>
+                        <label class="co-choice">
+                            <input type="radio" name="fulfilment" value="pickup" checked>
+                            <span class="co-choice-body">
+                                <span class="co-choice-title">Collect at the kiosk</span>
+                                <span class="co-choice-note">Ready in 15–20 minutes. Nothing to pay for delivery.</span>
+                            </span>
+                        </label>
+                        <label class="co-choice">
+                            <input type="radio" name="fulfilment" value="ship">
+                            <span class="co-choice-body">
+                                <span class="co-choice-title">Deliver to my address</span>
+                                <span class="co-choice-note">We will confirm the delivery charge before dispatch.</span>
+                            </span>
+                        </label>
+                    </fieldset>
+
+                    <!-- ── Contact ── -->
+                    <fieldset class="co-block">
+                        <legend class="co-legend">Your contact</legend>
+                        <div class="co-field">
+                            <label for="coName">Name</label>
+                            <input id="coName" name="contactName" type="text" autocomplete="name"
+                                   maxlength="100" required>
+                        </div>
+                        <div class="co-field">
+                            <label for="coPhone">Phone</label>
+                            <input id="coPhone" name="contactPhone" type="tel" inputmode="numeric"
+                                   autocomplete="tel" maxlength="10" pattern="[0-9]{10}"
+                                   placeholder="10 digits" required>
+                        </div>
+                    </fieldset>
+
+                    <!-- ── Delivery address, only for shipped orders ── -->
+                    <fieldset class="co-block" id="coAddressBlock" hidden>
+                        <legend class="co-legend">Delivery address</legend>
+                        <div class="co-field">
+                            <label for="coRecipient">Recipient name</label>
+                            <input id="coRecipient" name="recipientName" type="text"
+                                   autocomplete="shipping name" maxlength="100">
+                        </div>
+                        <div class="co-field">
+                            <label for="coAddrPhone">Phone at this address</label>
+                            <input id="coAddrPhone" name="addrPhone" type="tel" inputmode="numeric"
+                                   autocomplete="shipping tel" maxlength="10" placeholder="10 digits">
+                        </div>
+                        <div class="co-field">
+                            <label for="coLine1">Flat / house / street</label>
+                            <input id="coLine1" name="line1" type="text"
+                                   autocomplete="shipping address-line1" maxlength="200">
+                        </div>
+                        <div class="co-field">
+                            <label for="coLine2">Area / landmark <span class="co-optional">(optional)</span></label>
+                            <input id="coLine2" name="line2" type="text"
+                                   autocomplete="shipping address-line2" maxlength="200">
+                        </div>
+                        <div class="co-row">
+                            <div class="co-field">
+                                <label for="coCity">City</label>
+                                <input id="coCity" name="city" type="text"
+                                       autocomplete="shipping address-level2" maxlength="100">
+                            </div>
+                            <div class="co-field">
+                                <label for="coPincode">PIN code</label>
+                                <input id="coPincode" name="pincode" type="text" inputmode="numeric"
+                                       autocomplete="shipping postal-code" maxlength="6" placeholder="600091">
+                            </div>
+                        </div>
+                        <div class="co-field">
+                            <label for="coState">State</label>
+                            <input id="coState" name="state" type="text"
+                                   autocomplete="shipping address-level1" maxlength="100" value="Tamil Nadu">
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- ── Summary ── -->
+                <aside class="cart-summary checkout-summary" aria-labelledby="coSumHead">
+                    <h2 id="coSumHead">Your order</h2>
+                    <ul class="co-lines" id="coLines"></ul>
+                    <dl class="cart-totals">
+                        <dt>Items</dt>
+                        <dd id="coItems">0</dd>
+                        <dt>Subtotal</dt>
+                        <dd id="coSubtotal">₹0</dd>
+                        <dt>Delivery</dt>
+                        <dd id="coShipping" class="cart-muted">—</dd>
+                    </dl>
+
+                    <!-- Nothing here may imply payment has happened: no gateway is
+                         wired yet, so the order is placed unpaid on purpose. -->
+                    <p class="co-unpaid">
+                        Payment is not collected on this page yet. We will confirm your
+                        order and the final amount, including any delivery charge,
+                        before anything is printed or dispatched.
+                    </p>
+
+                    <button class="state-btn cart-checkout" type="submit" id="coSubmit">Place order</button>
+                    <p class="cart-note">You can still change your mind — nothing is charged here.</p>
+                </aside>
+
+                <p id="coError" class="cart-error" hidden role="alert"></p>
+            </form>
+        </main>
+
+        <footer class="kiosk-footer">
+            <p>© 2026 Kootzy · Made to make you smile 🎁</p>
+        </footer>
+    </div>
+
+    <script type="module" src="js/checkout-page.js?v=kootzy1"></script>
+</body>
+</html>
