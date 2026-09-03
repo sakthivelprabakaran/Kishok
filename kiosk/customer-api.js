@@ -1,5 +1,9 @@
 /**
  * Customer cart + checkout routes (Supabase Auth JWT + PostgREST).
+ *
+ * Checkout claims the cart (delete+return) before creating an order so a
+ * double-tap cannot place two orders from the same lines. Cart POST will not
+ * create a second line for an identical design — it bumps quantity instead.
  */
 module.exports = function mountCustomerRoutes(app, deps) {
   const fetchWithTimeout = deps.fetchWithTimeout;
@@ -117,6 +121,26 @@ module.exports = function mountCustomerRoutes(app, deps) {
     return s;
   }
 
+  function designKey(productType, text, design) {
+    let d = '{}';
+    try { d = JSON.stringify(design || {}); } catch (_) { d = '{}'; }
+    return String(productType) + '\0' + String(text) + '\0' + d;
+  }
+
+  function dedupeCartRows(rows) {
+    const map = new Map();
+    for (const r of rows || []) {
+      const key = designKey(r.product_type, r.text_value, r.design);
+      if (map.has(key)) {
+        const prev = map.get(key);
+        prev.quantity = Math.min(20, (Number(prev.quantity) || 0) + (Number(r.quantity) || 0));
+      } else {
+        map.set(key, { ...r, quantity: Number(r.quantity) || 1 });
+      }
+    }
+    return Array.from(map.values());
+  }
+
   function cartRowToItem(r) {
     return {
       id: r.id,
@@ -164,13 +188,34 @@ module.exports = function mountCustomerRoutes(app, deps) {
         return res.status(400).json({ error: 'Quantity must be between 1 and 20' });
       }
 
+      const design = (body.design && typeof body.design === 'object' && !Array.isArray(body.design))
+        ? body.design : {};
+
+      const existingRows = await supabaseRest(
+        token,
+        'GET',
+        `cart_items?select=${CART_SELECT}&product_type=eq.${encodeURIComponent(productType)}&text_value=eq.${encodeURIComponent(text)}&order=created_at.asc`
+      );
+      if (Array.isArray(existingRows) && existingRows.length > 0) {
+        const match = existingRows.find((r) => designKey(r.product_type, r.text_value, r.design) === designKey(productType, text, design));
+        if (match) {
+          const newQty = Math.min(20, (Number(match.quantity) || 0) + quantity);
+          const updated = await supabaseRest(
+            token,
+            'PATCH',
+            `cart_items?id=eq.${match.id}`,
+            { quantity: newQty },
+            'return=representation'
+          );
+          const row = Array.isArray(updated) ? updated[0] : updated;
+          return res.status(200).json({ item: cartRowToItem(row), merged: true });
+        }
+      }
+
       const existing = await supabaseRest(token, 'GET', 'cart_items?select=id&limit=26');
       if (Array.isArray(existing) && existing.length >= 25) {
         return res.status(409).json({ error: 'A cart holds at most 25 designs' });
       }
-
-      const design = (body.design && typeof body.design === 'object' && !Array.isArray(body.design))
-        ? body.design : {};
 
       const saved = await supabaseRest(
         token,
@@ -284,13 +329,39 @@ module.exports = function mountCustomerRoutes(app, deps) {
         }
       }
 
-      const cartRows = await supabaseRest(
-        token,
-        'GET',
-        'cart_items?select=id,product_type,text_value,quantity,design,preview,weight_g,unit_price&order=created_at.asc'
+      // Claim cart first so concurrent checkout cannot place a second order.
+      const claimed = await supabaseAdmin(
+        'DELETE',
+        `cart_items?user_id=eq.${encodeURIComponent(user.id)}`,
+        undefined,
+        'return=representation'
       );
-      if (!Array.isArray(cartRows) || cartRows.length === 0) {
+      let cartRows = Array.isArray(claimed) ? claimed : [];
+      cartRows = dedupeCartRows(cartRows);
+      if (cartRows.length === 0) {
         return res.status(409).json({ error: 'Your cart is empty' });
+      }
+
+      async function restoreCart(rows) {
+        try {
+          await supabaseAdmin(
+            'POST',
+            'cart_items',
+            rows.map((r) => ({
+              user_id: user.id,
+              product_type: r.product_type,
+              text_value: r.text_value,
+              quantity: Number(r.quantity) || 1,
+              design: r.design || {},
+              preview: r.preview || '',
+              unit_price: Number(r.unit_price) || 0,
+              weight_g: Number(r.weight_g) || 0,
+            })),
+            'return=minimal'
+          );
+        } catch (restoreErr) {
+          console.error('cart restore after failed checkout:', restoreErr.message);
+        }
       }
 
       let quote;
@@ -361,9 +432,16 @@ module.exports = function mountCustomerRoutes(app, deps) {
         });
       }
 
-      const saved = await supabaseAdmin('POST', 'orders', orderRow, 'return=representation');
-      const order = Array.isArray(saved) ? saved[0] : saved;
+      let order;
+      try {
+        const saved = await supabaseAdmin('POST', 'orders', orderRow, 'return=representation');
+        order = Array.isArray(saved) ? saved[0] : saved;
+      } catch (orderErr) {
+        await restoreCart(cartRows);
+        throw orderErr;
+      }
       if (!order || !order.order_num) {
+        await restoreCart(cartRows);
         return res.status(500).json({ error: 'Could not create order' });
       }
 
@@ -389,13 +467,8 @@ module.exports = function mountCustomerRoutes(app, deps) {
         try {
           await supabaseAdmin('PATCH', `orders?order_num=eq.${encodeURIComponent(order.order_num)}`, { status: 'Cancelled' });
         } catch (_) {}
+        await restoreCart(cartRows);
         return res.status(500).json({ error: 'Could not save your order — nothing was charged. Please try again.' });
-      }
-
-      try {
-        await supabaseRest(token, 'DELETE', 'cart_items?id=gt.0');
-      } catch (clearErr) {
-        console.error('cart clear after checkout failed:', clearErr.message);
       }
 
       return res.status(201).json({
