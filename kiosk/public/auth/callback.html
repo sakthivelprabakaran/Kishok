@@ -46,6 +46,11 @@
         const oauthError = params.get('error') || params.get('error_description')
             || hashParams.get('error') || hashParams.get('error_description');
 
+        function safeNext() {
+            const next = params.get('next') || '/index.html';
+            return next.startsWith('/') && !next.startsWith('//') ? next : '/index.html';
+        }
+
         function fail(message) {
             document.getElementById('title').textContent = 'Sign-in did not complete';
             document.getElementById('msg').hidden = true;
@@ -61,15 +66,12 @@
             try {
                 await initAuth();
                 if (isSignedIn()) {
-                    const next = params.get('next') || '/index.html';
-                    const safe = next.startsWith('/') && !next.startsWith('//') ? next : '/index.html';
-                    window.location.replace(safe);
+                    window.location.replace(safeNext());
                 } else {
-                    // PKCE code may still be exchanging — brief retry
                     await new Promise((r) => setTimeout(r, 800));
                     await initAuth();
                     if (isSignedIn()) {
-                        window.location.replace('/index.html');
+                        window.location.replace(safeNext());
                     } else {
                         fail('We could not establish your session. Please try signing in again.');
                     }
