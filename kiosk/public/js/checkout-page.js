@@ -4,7 +4,14 @@
  * re-prices everything — this file's numbers are never authoritative.
  */
 import * as Cart from './cart.js?v=kootzy1';
-import { initAuth, isSignedIn, signInWithGoogle, onAuthChange, friendlyAuthError } from './auth.js?v=auth1';
+import {
+    initAuth,
+    isSignedIn,
+    signInWithGoogle,
+    onAuthChange,
+    friendlyAuthError,
+    getSession,
+} from './auth.js?v=auth2';
 
 const el = {
     loading:  document.getElementById('coLoading'),
@@ -67,12 +74,22 @@ function validate() {
     return problems;
 }
 
+function hasSession() {
+    return Boolean(isSignedIn() || Cart.isSignedIn() || getSession()?.access_token);
+}
+
+function authHeaders() {
+    const token = getSession()?.access_token || null;
+    if (token) return { Authorization: 'Bearer ' + token };
+    return Cart.authHeaders();
+}
+
 function setSignedOutUi() {
     el.submit.disabled = false;
     el.submit.type = 'button';
     el.submit.textContent = 'Continue with Google';
     el.submit.dataset.mode = 'signin';
-    showError('Your designs are saved in this browser. Sign in with Google to place the order — nothing is charged here.');
+    showError('Sign in with Google to place this order. Your designs stay saved in this browser — nothing is charged here.');
 }
 
 function setSignedInUi() {
@@ -83,16 +100,23 @@ function setSignedInUi() {
     clearError();
 }
 
+function syncAuthUi() {
+    if (hasSession()) setSignedInUi();
+    else setSignedOutUi();
+}
+
 async function startGoogleSignIn() {
     el.submit.disabled = true;
     el.submit.textContent = 'Opening Google…';
     try {
-        // Land back on checkout after OAuth so the cart and form stay in context.
-        await signInWithGoogle(`${window.location.origin}/auth/callback.html?next=${encodeURIComponent('/checkout.html')}`);
+        await signInWithGoogle(
+            `${window.location.origin}/auth/callback.html?next=${encodeURIComponent('/checkout.html')}`
+        );
     } catch (err) {
         showError(friendlyAuthError(err));
         el.submit.disabled = false;
         el.submit.textContent = 'Continue with Google';
+        el.submit.dataset.mode = 'signin';
     }
 }
 
@@ -118,11 +142,7 @@ async function render() {
     el.empty.hidden = true;
     el.form.hidden = false;
 
-    if (isSignedIn() || Cart.isSignedIn()) {
-        setSignedInUi();
-    } else {
-        setSignedOutUi();
-    }
+    syncAuthUi();
 
     el.lines.textContent = '';
     for (const item of items) {
@@ -169,17 +189,17 @@ el.submit.addEventListener('click', async (e) => {
 
 el.form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (el.submit.dataset.mode === 'signin') {
+
+    // Always refresh session before placing — avoids stale "signed in" UI.
+    await initAuth();
+
+    if (el.submit.dataset.mode === 'signin' || !hasSession()) {
+        setSignedOutUi();
         await startGoogleSignIn();
         return;
     }
 
     clearError();
-
-    if (!isSignedIn() && !Cart.isSignedIn()) {
-        setSignedOutUi();
-        return;
-    }
 
     const problems = validate();
     if (problems.length) {
@@ -188,7 +208,6 @@ el.form.addEventListener('submit', async (e) => {
     }
 
     el.submit.disabled = true;
-    const original = el.submit.textContent;
     el.submit.textContent = 'Placing your order…';
 
     const payload = {
@@ -209,19 +228,29 @@ el.form.addEventListener('submit', async (e) => {
     }
 
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+            ...authHeaders(),
+        };
+        if (!headers.Authorization) {
+            setSignedOutUi();
+            await startGoogleSignIn();
+            return;
+        }
+
         const res = await fetch('/api/checkout', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...Cart.authHeaders(),
-            },
+            headers,
             body: JSON.stringify(payload),
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-            throw new Error(res.status === 401
-                ? 'Please sign in to place this order.'
-                : (data && data.error) || `Could not place the order (${res.status})`);
+            if (res.status === 401) {
+                setSignedOutUi();
+                showError('Please sign in with Google to place this order.');
+                return;
+            }
+            throw new Error((data && data.error) || `Could not place the order (${res.status})`);
         }
         const q = new URLSearchParams({
             orderNum: data.orderNum,
@@ -234,14 +263,14 @@ el.form.addEventListener('submit', async (e) => {
     } catch (err) {
         showError(err.message || 'Could not place the order. Please try again.');
         el.submit.disabled = false;
-        el.submit.textContent = original;
+        el.submit.textContent = hasSession() ? 'Place order' : 'Continue with Google';
+        el.submit.dataset.mode = hasSession() ? 'place' : 'signin';
     }
 });
 
 onAuthChange(() => {
     if (el.form.hidden) return;
-    if (isSignedIn() || Cart.isSignedIn()) setSignedInUi();
-    else setSignedOutUi();
+    syncAuthUi();
 });
 
 render();
