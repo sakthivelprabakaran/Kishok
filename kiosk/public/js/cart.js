@@ -9,30 +9,14 @@
  *
  * mergeLocalIntoServer() moves anything collected while signed out into the
  * account on first sign-in, so the cart survives the auth redirect.
- *
- * DESIGN SNAPSHOT
- * A line stores the full design payload, not a SKU: product type, text, fonts,
- * colours and the product-specific geometry. That is what the 3D viewer needs to
- * re-render a thumbnail, and what the operator needs to print the right thing.
- *
- * PRICE
- * unitPrice is carried for display only. The server recomputes it at checkout —
- * a cart that names its own price is a cart that will be edited. Treat every
- * number here as untrusted the moment it leaves the browser.
- * ============================================================================ */
+ * ========================================================================== */
 
 const KEY = 'kootzyCart.v1';
 const MAX_ITEMS = 25;
 const MAX_QTY = 20;
 
-/* Previews are JPEG data URLs rendered into <img src>. Two protections:
-   - strict shape check, because a data URL that reaches src is an XSS vector if
-     it can smuggle a different media type;
-   - size cap, because localStorage holds ~5MB for the whole origin and a cart
-     of 25 designs must fit comfortably. An oversized preview is dropped, never
-     an error — a missing thumbnail must not block the cart. */
 const PREVIEW_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
-const PREVIEW_MAX_CHARS = 160000;   // ~117 KB decoded
+const PREVIEW_MAX_CHARS = 160000;
 
 function cleanPreview(value) {
     const s = typeof value === 'string' ? value : '';
@@ -40,11 +24,10 @@ function cleanPreview(value) {
     return s;
 }
 
-/* Bumping SCHEMA discards older carts rather than trying to migrate half-known
-   shapes — a stale cart is a minor annoyance, a corrupt one is a support ticket. */
 const SCHEMA = 1;
 
 const listeners = new Set();
+let mergeInFlight = null;
 
 function newId() {
     if (globalThis.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -59,8 +42,6 @@ function readLocal() {
         if (!parsed || parsed.schema !== SCHEMA || !Array.isArray(parsed.items)) return [];
         return parsed.items;
     } catch (_) {
-        // Private mode, quota, or hand-edited junk. An unusable cart must not take
-        // the page down with it.
         return [];
     }
 }
@@ -68,18 +49,12 @@ function readLocal() {
 function writeLocal(items) {
     try {
         localStorage.setItem(KEY, JSON.stringify({ schema: SCHEMA, items }));
-    } catch (_) { /* storage unavailable — cart is in-memory for this session */ }
+    } catch (_) { /* storage unavailable */ }
 }
 
-/* ── auth handoff ──
-   Set by the auth module once Supabase Auth has a session. Kept as a getter so
-   the cart never holds a stale token. */
 let tokenProvider = () => null;
 export function setTokenProvider(fn) {
     tokenProvider = typeof fn === 'function' ? fn : () => null;
-    // First sign-in: anything collected while signed out moves into the account
-    // automatically. Fire-and-forget — the merge is retryable by design, and the
-    // auth module should not have to remember to call it.
     if (token() && readLocal().length > 0) {
         mergeLocalIntoServer().catch((err) => console.error('cart auto-merge failed:', err.message));
     }
@@ -99,7 +74,7 @@ async function api(path, options = {}) {
         },
     });
     let payload = null;
-    try { payload = await res.json(); } catch (_) { /* non-JSON error page */ }
+    try { payload = await res.json(); } catch (_) { /* non-JSON */ }
     if (!res.ok) {
         const err = new Error((payload && payload.error) || `Cart request failed (${res.status})`);
         err.status = res.status;
@@ -114,7 +89,6 @@ function emit() {
     }
 }
 
-/** Subscribe to cart changes. Returns an unsubscribe function. */
 export function onChange(fn) {
     listeners.add(fn);
     return () => listeners.delete(fn);
@@ -124,13 +98,10 @@ export function isSignedIn() {
     return Boolean(token());
 }
 
-/** Headers for an authenticated call, for pages that fetch outside this module. */
 export function authHeaders() {
     const jwt = token();
     return jwt ? { Authorization: 'Bearer ' + jwt } : {};
 }
-
-/* ── reads ── */
 
 export async function list() {
     if (!isSignedIn()) return readLocal();
@@ -148,13 +119,6 @@ export async function count() {
     return (data && data.count) || 0;
 }
 
-/* ── writes ── */
-
-/**
- * Add a designed item.
- * @param {{productType:string,text:string,quantity?:number,design?:object,
- *          unitPrice?:number,weightG?:number}} item
- */
 export async function add(item) {
     const line = {
         productType: String(item.productType || '').trim(),
@@ -220,48 +184,58 @@ export async function clear() {
 }
 
 /**
- * Move a signed-out cart into the account. Call once, right after sign-in.
+ * Move a signed-out cart into the account. Call once after sign-in.
  *
- * Local lines are only dropped after the server accepts them, so a failure
- * halfway leaves the local cart intact and the merge can be retried. The cost of
- * that choice is a possible duplicate if the response is lost in flight, which is
- * far friendlier than silently losing a design the customer spent time on.
+ * Local is cleared *before* POSTs so cart-page + checkout cannot both merge the
+ * same lines. Failures are put back into localStorage for retry. The server
+ * also merges identical designs by quantity, so a rare double-post still does
+ * not create four identical order lines.
  */
 export async function mergeLocalIntoServer() {
     if (!isSignedIn()) return { merged: 0, failed: 0 };
+    if (mergeInFlight) return mergeInFlight;
 
-    const local = readLocal();
-    if (local.length === 0) return { merged: 0, failed: 0 };
+    mergeInFlight = (async () => {
+        const local = readLocal();
+        if (local.length === 0) return { merged: 0, failed: 0 };
 
-    let merged = 0;
-    const survivors = [];
-    for (const line of local) {
-        try {
-            await api('', {
-                method: 'POST',
-                body: JSON.stringify({
-                    productType: line.productType,
-                    text: line.text,
-                    quantity: line.quantity,
-                    design: line.design,
-                    preview: line.preview,
-                    unitPrice: line.unitPrice,
-                    weightG: line.weightG,
-                }),
-            });
-            merged++;
-        } catch (err) {
-            console.error('cart merge failed for one line:', err.message);
-            survivors.push(line);
+        // Claim local lines immediately so concurrent pages see an empty cart.
+        writeLocal([]);
+
+        let merged = 0;
+        const survivors = [];
+        for (const line of local) {
+            try {
+                await api('', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        productType: line.productType,
+                        text: line.text,
+                        quantity: line.quantity,
+                        design: line.design,
+                        preview: line.preview,
+                        unitPrice: line.unitPrice,
+                        weightG: line.weightG,
+                    }),
+                });
+                merged++;
+            } catch (err) {
+                console.error('cart merge failed for one line:', err.message);
+                survivors.push(line);
+            }
         }
+        if (survivors.length) writeLocal(survivors);
+        emit();
+        return { merged, failed: survivors.length };
+    })();
+
+    try {
+        return await mergeInFlight;
+    } finally {
+        mergeInFlight = null;
     }
-    writeLocal(survivors);
-    emit();
-    return { merged, failed: survivors.length };
 }
 
 export const LIMITS = { MAX_ITEMS, MAX_QTY, PREVIEW_MAX_CHARS };
 
-/** Validate a preview data URL. Pages MUST route previews through this before
- *  assigning to img.src — the same check that guards storage guards render. */
 export { cleanPreview };
