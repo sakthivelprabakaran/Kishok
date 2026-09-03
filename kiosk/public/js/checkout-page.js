@@ -3,7 +3,7 @@
  * Validation happens here for feedback speed, but the server re-validates and
  * re-prices everything — this file's numbers are never authoritative.
  */
-import * as Cart from './cart.js?v=kootzy1';
+import * as Cart from './cart.js?v=kootzy2';
 import {
     initAuth,
     isSignedIn,
@@ -123,6 +123,15 @@ async function startGoogleSignIn() {
 async function render() {
     await initAuth();
 
+    // Keep cart page and checkout on the same source of truth when signed in.
+    if (Cart.isSignedIn()) {
+        try {
+            await Cart.mergeLocalIntoServer();
+        } catch (err) {
+            console.error('cart merge on checkout:', err.message);
+        }
+    }
+
     let items;
     try {
         items = await Cart.list();
@@ -190,7 +199,6 @@ el.submit.addEventListener('click', async (e) => {
 el.form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // Always refresh session before placing — avoids stale "signed in" UI.
     await initAuth();
 
     if (el.submit.dataset.mode === 'signin' || !hasSession()) {
