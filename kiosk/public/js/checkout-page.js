@@ -4,6 +4,7 @@
  * re-prices everything — this file's numbers are never authoritative.
  */
 import * as Cart from './cart.js?v=kootzy1';
+import { initAuth, isSignedIn, signInWithGoogle, onAuthChange, friendlyAuthError } from './auth.js?v=auth1';
 
 const el = {
     loading:  document.getElementById('coLoading'),
@@ -28,8 +29,6 @@ function shipSelected() {
     return picked && picked.value === 'ship';
 }
 
-/* Address fields are only required when shipping, so toggle both visibility and
-   the required flags together — a hidden required input blocks submit invisibly. */
 function syncFulfilment() {
     const ship = shipSelected();
     el.addrBlock.hidden = !ship;
@@ -45,6 +44,11 @@ function showError(message) {
     el.error.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+function clearError() {
+    el.error.hidden = true;
+    el.error.textContent = '';
+}
+
 function validate() {
     const problems = [];
     if (!document.getElementById('coName').value.trim()) problems.push('your name');
@@ -56,7 +60,6 @@ function validate() {
         if (!document.getElementById('coLine1').value.trim()) problems.push('the street address');
         if (!document.getElementById('coCity').value.trim()) problems.push('the city');
         if (!document.getElementById('coState').value.trim()) problems.push('the state');
-        // Six digits, never starting with zero — matches India Post and the DB check.
         if (!/^[1-9][0-9]{5}$/.test(digits(document.getElementById('coPincode').value))) {
             problems.push('a valid 6-digit PIN code');
         }
@@ -64,7 +67,38 @@ function validate() {
     return problems;
 }
 
+function setSignedOutUi() {
+    el.submit.disabled = false;
+    el.submit.type = 'button';
+    el.submit.textContent = 'Continue with Google';
+    el.submit.dataset.mode = 'signin';
+    showError('Your designs are saved in this browser. Sign in with Google to place the order — nothing is charged here.');
+}
+
+function setSignedInUi() {
+    el.submit.disabled = false;
+    el.submit.type = 'submit';
+    el.submit.textContent = 'Place order';
+    el.submit.dataset.mode = 'place';
+    clearError();
+}
+
+async function startGoogleSignIn() {
+    el.submit.disabled = true;
+    el.submit.textContent = 'Opening Google…';
+    try {
+        // Land back on checkout after OAuth so the cart and form stay in context.
+        await signInWithGoogle(`${window.location.origin}/auth/callback.html?next=${encodeURIComponent('/checkout.html')}`);
+    } catch (err) {
+        showError(friendlyAuthError(err));
+        el.submit.disabled = false;
+        el.submit.textContent = 'Continue with Google';
+    }
+}
+
 async function render() {
+    await initAuth();
+
     let items;
     try {
         items = await Cart.list();
@@ -84,15 +118,10 @@ async function render() {
     el.empty.hidden = true;
     el.form.hidden = false;
 
-    // Placing an order requires an account (the server reads the SERVER cart,
-    // which only exists for a session). Say so up front and disable the submit —
-    // an earlier version let the form submit and dead-ended on a 401 at the last
-    // step, displaying a local cart the server could not see.
-    if (!Cart.isSignedIn()) {
-        el.submit.disabled = true;
-        el.submit.textContent = 'Sign in to place your order';
-        showError('Your designs are saved in this browser. Sign in at the final step '
-            + 'to place the order — sign-in is coming online shortly.');
+    if (isSignedIn() || Cart.isSignedIn()) {
+        setSignedInUi();
+    } else {
+        setSignedOutUi();
     }
 
     el.lines.textContent = '';
@@ -112,7 +141,6 @@ async function render() {
 
         const name = document.createElement('span');
         name.className = 'co-line-name';
-        // Customer text as a text node — never innerHTML.
         name.textContent = `${LABELS[item.productType] || item.productType} · “${item.text}”`;
 
         const qty = document.createElement('span');
@@ -132,9 +160,26 @@ el.form.addEventListener('change', (e) => {
     if (e.target.name === 'fulfilment') syncFulfilment();
 });
 
+el.submit.addEventListener('click', async (e) => {
+    if (el.submit.dataset.mode === 'signin') {
+        e.preventDefault();
+        await startGoogleSignIn();
+    }
+});
+
 el.form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    el.error.hidden = true;
+    if (el.submit.dataset.mode === 'signin') {
+        await startGoogleSignIn();
+        return;
+    }
+
+    clearError();
+
+    if (!isSignedIn() && !Cart.isSignedIn()) {
+        setSignedOutUi();
+        return;
+    }
 
     const problems = validate();
     if (problems.length) {
@@ -168,23 +213,16 @@ el.form.addEventListener('submit', async (e) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // Carries the Supabase session so the Function can read the cart
-                // user-scoped; without it the server cannot tell whose cart it is.
                 ...Cart.authHeaders(),
             },
             body: JSON.stringify(payload),
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-            // 401 means the session expired or was never established. Say so
-            // plainly rather than showing a generic failure.
             throw new Error(res.status === 401
                 ? 'Please sign in to place this order.'
                 : (data && data.error) || `Could not place the order (${res.status})`);
         }
-        // Speak order-success.html's actual parameter contract (orderNum, name,
-        // amt, qty, ship) — an earlier version sent ?order= which the page never
-        // read, so customers saw fabricated defaults.
         const q = new URLSearchParams({
             orderNum: data.orderNum,
             name: payload.contactName,
@@ -198,6 +236,12 @@ el.form.addEventListener('submit', async (e) => {
         el.submit.disabled = false;
         el.submit.textContent = original;
     }
+});
+
+onAuthChange(() => {
+    if (el.form.hidden) return;
+    if (isSignedIn() || Cart.isSignedIn()) setSignedInUi();
+    else setSignedOutUi();
 });
 
 render();
