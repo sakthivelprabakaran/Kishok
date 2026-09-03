@@ -42,7 +42,6 @@
 
             <form id="coForm" class="checkout-grid" hidden novalidate>
                 <div class="checkout-main">
-                    <!-- ── How to get it ── -->
                     <fieldset class="co-block">
                         <legend class="co-legend">How would you like it?</legend>
                         <label class="co-choice">
@@ -61,7 +60,6 @@
                         </label>
                     </fieldset>
 
-                    <!-- ── Contact ── -->
                     <fieldset class="co-block">
                         <legend class="co-legend">Your contact</legend>
                         <div class="co-field">
@@ -77,7 +75,6 @@
                         </div>
                     </fieldset>
 
-                    <!-- ── Delivery address, only for shipped orders ── -->
                     <fieldset class="co-block" id="coAddressBlock" hidden>
                         <legend class="co-legend">Delivery address</legend>
                         <div class="co-field">
@@ -120,7 +117,6 @@
                     </fieldset>
                 </div>
 
-                <!-- ── Summary ── -->
                 <aside class="cart-summary checkout-summary" aria-labelledby="coSumHead">
                     <h2 id="coSumHead">Your order</h2>
                     <ul class="co-lines" id="coLines"></ul>
@@ -133,8 +129,6 @@
                         <dd id="coShipping" class="cart-muted">—</dd>
                     </dl>
 
-                    <!-- Nothing here may imply payment has happened: no gateway is
-                         wired yet, so the order is placed unpaid on purpose. -->
                     <p class="co-unpaid">
                         Payment is not collected on this page yet. We will confirm your
                         order and the final amount, including any delivery charge,
@@ -154,6 +148,6 @@
         </footer>
     </div>
 
-    <script type="module" src="js/checkout-page.js?v=kootzy2"></script>
+    <script type="module" src="js/checkout-page.js?v=kootzy3"></script>
 </body>
 </html>
