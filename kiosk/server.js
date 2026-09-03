@@ -106,46 +106,6 @@ app.get('/api/admin/health', requireAdmin, (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const DATA_DIR = IS_VERCEL ? path.join('/tmp', 'kishok-data') : path.join(__dirname, 'data');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-const EXCEL_PATH = path.join(DATA_DIR, 'orders.xlsx');
-
-let activeBatches = [
-    { baseColor: '#FF6251', fontColor: '#FFFFFF', name: 'RED/WHITE', count: 5 },
-    { baseColor: '#000000', fontColor: '#FFFFFF', name: 'BLACK/WHITE', count: 3 }
-];
-let activeOrders = [];
-
-async function loadActiveOrders() {
-    if (!GOOGLE_SCRIPT_URL) return;
-    try {
-        const now = Date.now();
-        const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL + (GOOGLE_SCRIPT_URL.includes('?') ? '&' : '?') + 't=' + now, {}, 6000);
-        const data = await response.json();
-        if (Array.isArray(data)) activeOrders = data;
-        lastFetchTime = now;
-    } catch (err) {
-        console.error('Failed to load orders on startup:', err);
-    }
-}
-
-app.get('/api/batches', (req, res) => res.json(activeBatches));
-
-app.post('/api/batches', requireAdmin, (req, res) => {
-    const { baseColor, fontColor, count } = req.body || {};
-    if (!baseColor || !fontColor) return res.status(400).json({ error: 'Missing baseColor or fontColor' });
-    const name = `${String(baseColor).toUpperCase()}/${String(fontColor).toUpperCase()}`;
-    const existingIndex = activeBatches.findIndex(b => b.baseColor === baseColor && b.fontColor === fontColor);
-    const countVal = parseInt(count, 10) || 5;
-    if (existingIndex > -1) {
-        if (countVal <= 0) activeBatches.splice(existingIndex, 1);
-        else activeBatches[existingIndex].count = countVal;
-    } else if (countVal > 0) {
-        activeBatches.push({ baseColor, fontColor, name, count: countVal });
-    }
-    res.json({ success: true, activeBatches });
-});
-
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
@@ -258,6 +218,15 @@ try {
     console.error('Failed to mount customer API routes:', err);
 }
 
+// Operator dashboard + kiosk quick-order routes (Supabase-backed).
+// These were dropped in the server rewrite, which killed admin.html and the
+// walk-up pay flow; restored against the same store the shop writes to.
+try {
+    require('./operator-api')(app, { fetchWithTimeout, requireAdmin });
+} catch (err) {
+    console.error('Failed to mount operator API routes:', err);
+}
+
 app.use('/api', (req, res) => {
     res.status(404).json({ error: 'API route not found' });
 });
@@ -266,13 +235,9 @@ app.get('*', (req, res) => {
     res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
-const ready = loadActiveOrders();
-
 if (!IS_VERCEL) {
-    ready.then(() => {
-        app.listen(PORT, '0.0.0.0', () => {
-            console.log(`Roadside Kiosk Backend running on http://localhost:${PORT}`);
-        });
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Roadside Kiosk Backend running on http://localhost:${PORT}`);
     });
 }
 

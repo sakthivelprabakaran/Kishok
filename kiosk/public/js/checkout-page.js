@@ -3,7 +3,7 @@
  * Validation happens here for feedback speed, but the server re-validates and
  * re-prices everything — this file's numbers are never authoritative.
  */
-import * as Cart from './cart.js?v=kootzy2';
+import * as Cart from './cart.js?v=k1';
 import {
     initAuth,
     isSignedIn,
@@ -11,7 +11,7 @@ import {
     onAuthChange,
     friendlyAuthError,
     getSession,
-} from './auth.js?v=auth2';
+} from './auth.js?v=k1';
 
 const el = {
     loading:  document.getElementById('coLoading'),
@@ -26,7 +26,7 @@ const el = {
     error:    document.getElementById('coError'),
 };
 
-import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=kootzy1';
+import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=k1';
 
 const rupees = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 const digits = (s) => String(s || '').replace(/\D/g, '');

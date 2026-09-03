@@ -158,6 +158,10 @@ export function makeStub() {
         if (method === 'DELETE') {
             const targets = new Set(applyFilters(visible(), filters));
             tables[table] = tables[table].filter((r) => !targets.has(r));
+            const prefer = headers.Prefer || '';
+            // PostgREST returns the deleted rows when asked — customer-api's
+            // checkout uses this as an atomic cart claim.
+            if (prefer.includes('return=representation')) return json([...targets]);
             return new Response(null, { status: 204 });
         }
 

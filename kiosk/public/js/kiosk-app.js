@@ -4,8 +4,9 @@
    ========================================= */
 
 import { KeychainViewer } from './viewer3d.js?v=wa2';
-import * as Cart from './cart.js?v=kootzy1';
-import * as Pricing from './pricing.js?v=kootzy1';
+import * as Cart from './cart.js?v=k1';
+import * as Pricing from './pricing.js?v=k1';
+import { bootAuthIfSession } from './auth-boot.js?v=k1';
 
 // ===== DATA & CONFIG =====
 
@@ -1779,7 +1780,14 @@ async function init() {
     // Fetch active batches from server
     try {
         const response = await fetch('/api/batches');
-        state.activeBatches = await response.json();
+        // A 503 (Supabase not configured) or 500 returns an error object, and
+        // assigning that to activeBatches made calculatePricing's .find() throw
+        // — which killed the whole price display, showing ₹0. Batches are an
+        // optional promo; their failure must never take pricing down.
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data)) state.activeBatches = data;
+        }
     } catch (err) {
         console.error('Failed to load active batches from server:', err);
     }
@@ -1791,6 +1799,14 @@ async function init() {
     update3DModelNow();
     renderStepper();
     updateCartBadge();
+
+    // If this browser has a signed-in session, load auth so Add to cart writes
+    // to the SERVER cart. Without this, a signed-in customer's adds went to
+    // localStorage here while cart.html listed the server cart — badge said 1,
+    // cart page said empty. Non-blocking: anonymous walk-ups never pay the cost.
+    bootAuthIfSession().then((signedIn) => {
+        if (signedIn) updateCartBadge();
+    });
 
     // Re-render the stepper when crossing the desktop/mobile breakpoint so the
     // layout switches between all-steps and wizard cleanly. Debounced.

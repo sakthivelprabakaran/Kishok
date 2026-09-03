@@ -154,7 +154,7 @@ body::before {
     border: 1.5px solid var(--border-color-hover);
     border-radius: 999px;
     padding: 0.4rem 0.75rem;
-    min-height: 36px;
+    min-height: 44px;               /* touch target */
     cursor: pointer;
     white-space: nowrap;
     max-width: 9.5rem;

@@ -1,10 +1,10 @@
 /* Cart page: renders lines, handles quantity and removal.
  *
- * Every mutation goes through js/cart.js, so the same code path serves the
+ * Every mutation goes through js/cart.js?v=k1, so the same code path serves the
  * localStorage cart (signed out) and the RLS-scoped API cart (signed in).
  */
-import * as Cart from './cart.js?v=kootzy2';
-import { initAuth } from './auth.js?v=auth2';
+import * as Cart from './cart.js?v=k1';
+import { initAuth } from './auth.js?v=k1';
 
 const el = {
     loading:  document.getElementById('cartLoading'),
@@ -17,7 +17,7 @@ const el = {
     clear:    document.getElementById('btnClearCart'),
 };
 
-import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=kootzy1';
+import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=k1';
 
 const rupees = (n) => '₹' + (Math.round(Number(n) || 0)).toLocaleString('en-IN');
 
@@ -150,7 +150,13 @@ async function render() {
     await initAuth();
     if (Cart.isSignedIn()) {
         try {
-            await Cart.mergeLocalIntoServer();
+            const { failed } = await Cart.mergeLocalIntoServer();
+            if (failed > 0) {
+                // Never silent: the customer needs to know some designs are still
+                // only in this browser and a retry (reload) will pick them up.
+                showError(`${failed} design${failed === 1 ? '' : 's'} could not be moved to your `
+                    + 'account yet — they are safe in this browser. Reload to retry.');
+            }
         } catch (err) {
             console.error('cart merge on cart page:', err.message);
         }
@@ -192,6 +198,16 @@ async function render() {
 el.clear.addEventListener('click', () => {
     if (!window.confirm('Remove every design from your cart?')) return;
     mutate(() => Cart.clear());
+});
+
+/* Re-render whenever the cart changes underneath us — most importantly when the
+ * signed-in auto-merge finishes AFTER the first paint. Without this the page
+ * showed the pre-merge (empty) server cart until a manual refresh. */
+let renderQueued = false;
+Cart.onChange(() => {
+    if (busy || renderQueued) return;   // mutate() already re-renders its own change
+    renderQueued = true;
+    setTimeout(() => { renderQueued = false; render(); }, 150);
 });
 
 render();

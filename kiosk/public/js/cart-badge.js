@@ -4,7 +4,8 @@
  * designer), so the badge logic cannot live there — an earlier version did
  * exactly that and the badge never painted anywhere.
  */
-import * as Cart from './cart.js?v=kootzy1';
+import * as Cart from './cart.js?v=k1';
+import { bootAuthIfSession } from './auth-boot.js?v=k1';
 
 function paint(n) {
     for (const b of document.querySelectorAll('[data-cart-count]')) {
@@ -22,3 +23,9 @@ function refresh() {
 
 Cart.onChange(refresh);
 refresh();
+
+// Signed-in browsers count the SERVER cart, not localStorage — same session
+// boot as the designer, so the badge and the cart page agree.
+bootAuthIfSession().then((signedIn) => {
+    if (signedIn) refresh();
+});

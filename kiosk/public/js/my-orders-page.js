@@ -6,9 +6,9 @@
  * touching img.src, same as the cart page.
  */
 import { bootAuthUi } from './auth-ui.js?v=auth1';
-import * as Cart from './cart.js?v=kootzy1';
-import { PRODUCT_LABELS } from './product-labels.js?v=kootzy1';
-import { metaFor, flowFor } from './order-status.js?v=kootzy1';
+import * as Cart from './cart.js?v=k1';
+import { PRODUCT_LABELS } from './product-labels.js?v=k1';
+import { metaFor, flowFor } from './order-status.js?v=k1';
 
 const $ = (id) => document.getElementById(id);
 const rupees = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');

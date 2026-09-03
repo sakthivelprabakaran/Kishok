@@ -10,7 +10,7 @@ import {
     getUser,
     onAuthChange,
     friendlyAuthError,
-} from './auth.js?v=auth1';
+} from './auth.js?v=k1';
 
 function googleIconSvg() {
     return `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">

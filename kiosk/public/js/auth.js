@@ -4,8 +4,8 @@
  * keep working with a single session source. No second auth system.
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { setTokenProvider } from './cart.js?v=kootzy1';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js?v=auth1';
+import { setTokenProvider } from './cart.js?v=k1';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js?v=k1';
 
 const CONFIGURED =
     SUPABASE_URL &&

@@ -376,29 +376,13 @@ module.exports = function mountCustomerRoutes(app, deps) {
           weightG: Number(r.weight_g),
         })));
       } catch (priceErr) {
-        console.warn('pricing module unavailable, using cart unit prices:', priceErr.message);
-        const lines = cartRows.map((r) => {
-          const quantity = Number(r.quantity) || 1;
-          const unitPrice = Math.max(10, Math.ceil(Number(r.unit_price) || 10));
-          return {
-            productType: r.product_type,
-            text: r.text_value,
-            design: r.design || {},
-            preview: r.preview || '',
-            unitPrice,
-            lineTotal: unitPrice * quantity,
-            weightG: Number(r.weight_g) || 0,
-            breakdown: { quantity },
-          };
-        });
-        const subtotal = lines.reduce((n, l) => n + l.lineTotal, 0);
-        quote = {
-          lines,
-          subtotal,
-          shippingFee: 0,
-          total: subtotal,
-          itemCount: lines.reduce((n, l) => n + l.breakdown.quantity, 0),
-        };
+        // Pricing must NEVER silently degrade: the old fallback used the cart's
+        // cached unit_price, which is a client-supplied number — a deploy
+        // misconfiguration would have quietly become customer-named prices.
+        // Put the designs back and fail loudly instead.
+        console.error('pricing module unavailable — refusing to checkout:', priceErr.message);
+        await restoreCart(cartRows);
+        return res.status(500).json({ error: 'Could not price your order — nothing was charged. Please try again.' });
       }
 
       const first = quote.lines[0];
