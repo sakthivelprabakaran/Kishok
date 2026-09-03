@@ -3,7 +3,8 @@
  * Every mutation goes through js/cart.js, so the same code path serves the
  * localStorage cart (signed out) and the RLS-scoped API cart (signed in).
  */
-import * as Cart from './cart.js?v=kootzy1';
+import * as Cart from './cart.js?v=kootzy2';
+import { initAuth } from './auth.js?v=auth2';
 
 const el = {
     loading:  document.getElementById('cartLoading'),
@@ -16,22 +17,15 @@ const el = {
     clear:    document.getElementById('btnClearCart'),
 };
 
-/* Product labels are shared with checkout via product-labels.js so the two
-   pages cannot drift apart. */
 import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=kootzy1';
 
 const rupees = (n) => '₹' + (Math.round(Number(n) || 0)).toLocaleString('en-IN');
 
-/* Customer text goes into the DOM as a text node, never as HTML. It is the one
-   field on this page an attacker fully controls. */
 function lineNode(item) {
     const li = document.createElement('li');
     li.className = 'cart-line';
     li.dataset.id = item.id;
 
-    // The exact preview captured when they hit Add to cart. Validated through
-    // the same checker that gates storage — a data URL reaching src unchecked
-    // would be an XSS vector. Falls back to colour swatches when absent.
     const safePreview = Cart.cleanPreview(item.preview);
     let thumb = null;
     if (safePreview) {
@@ -42,8 +36,6 @@ function lineNode(item) {
         thumb.decoding = 'async';
         thumb.loading = 'lazy';
     } else {
-        // Capture missing (failed at add time, or an older line): brand mark on
-        // the mint well rather than an empty hole.
         thumb = document.createElement('div');
         thumb.className = 'cart-thumb cart-thumb-placeholder';
         const mark = document.createElement('img');
@@ -59,7 +51,7 @@ function lineNode(item) {
     const colors = (item.design && item.design.colors) || {};
     for (const key of ['base', 'font', 'outline', 'line2']) {
         const hex = colors[key];
-        if (!/^#[0-9a-fA-F]{6}$/.test(String(hex || ''))) continue;   // validate before styling
+        if (!/^#[0-9a-fA-F]{6}$/.test(String(hex || ''))) continue;
         const dot = document.createElement('span');
         dot.className = 'cart-swatch';
         dot.style.background = hex;
@@ -134,8 +126,6 @@ function showError(message) {
     el.error.hidden = false;
 }
 
-/* Disable the page while a mutation is in flight so a double tap cannot fire two
-   quantity changes against the same line. */
 let busy = false;
 async function mutate(fn) {
     if (busy) return;
@@ -154,6 +144,18 @@ async function mutate(fn) {
 }
 
 async function render() {
+    // Must restore session before Cart.list(), otherwise signed-in users only
+    // see leftover localStorage while checkout (which does initAuth) shows the
+    // real server cart — the mismatch the customer reported.
+    await initAuth();
+    if (Cart.isSignedIn()) {
+        try {
+            await Cart.mergeLocalIntoServer();
+        } catch (err) {
+            console.error('cart merge on cart page:', err.message);
+        }
+    }
+
     let items;
     try {
         items = await Cart.list();
