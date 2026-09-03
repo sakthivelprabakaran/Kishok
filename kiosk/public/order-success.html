@@ -11,7 +11,6 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="manifest" href="/site.webmanifest">
     <meta name="theme-color" content="#00B5C8">
-    <!-- Link preview (WhatsApp / Instagram / Facebook / X) -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Kootzy">
     <meta property="og:title" content="Order Placed — Kootzy">
@@ -133,6 +132,13 @@
             line-height: 1.35;
         }
 
+        .success-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
         .kiosk-btn {
             display: block;
             width: 100%;
@@ -146,13 +152,33 @@
             border-radius: 16px;
             box-shadow: 0 4px 15px var(--primary-glow);
             transition: var(--transition-smooth);
+            box-sizing: border-box;
         }
 
         .kiosk-btn:active {
             transform: translateY(2px);
         }
 
-        /* Animations */
+        .kiosk-btn-secondary {
+            display: block;
+            width: 100%;
+            text-decoration: none;
+            text-align: center;
+            background: transparent;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 800;
+            padding: 1rem;
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
+            box-sizing: border-box;
+            transition: var(--transition-smooth);
+        }
+
+        .kiosk-btn-secondary:active {
+            transform: translateY(2px);
+        }
+
         @keyframes bounceIn {
             0% {
                 transform: scale(0.3);
@@ -175,7 +201,6 @@
 </head>
 <body>
     <div class="kiosk-container">
-        <!-- Header -->
         <header class="kiosk-header">
             <div class="logo-area">
                 <img src="brand/logo-primary.svg" alt="Kootzy" class="logo-mark" width="140" height="47" decoding="async">
@@ -183,7 +208,6 @@
             <div class="kiosk-badge">⚡ Roadside Kiosk</div>
         </header>
 
-        <!-- Success Message Area -->
         <div class="success-container">
             <div class="check-icon-wrap">
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -192,28 +216,27 @@
             </div>
 
             <h1 class="success-title">Order Submitted!</h1>
-            <p class="success-subtitle" id="custGreeting">Thank you, Priya! Your order has been placed in the printing queue. Our kiosk operator is verifying your UPI payment.</p>
+            <p class="success-subtitle" id="custGreeting">Thank you! Your order has been placed.</p>
 
-            <!-- Order Number Badge -->
             <div class="order-badge-card">
                 <span class="badge-label">Your Order Number</span>
-                <span class="order-number" id="orderNumBadge">KSK-000</span>
+                <span class="order-number" id="orderNumBadge">—</span>
             </div>
 
-            <!-- Print/Pickup info -->
             <div class="pickup-box">
                 <div class="pickup-icon">🖨️</div>
                 <div class="pickup-details">
                     <span class="pickup-title">Estimated Pickup Time</span>
-                    <span class="pickup-desc" id="pickupTimeText">Ready in approximately 25 minutes. Please show this screen at the printer counter to collect your keychain.</span>
+                    <span class="pickup-desc" id="pickupTimeText">We will confirm your order shortly.</span>
                 </div>
             </div>
 
-            <!-- CTA -->
-            <a href="index.html" class="kiosk-btn">Design Another Keychain</a>
+            <div class="success-actions">
+                <a href="my-orders.html" class="kiosk-btn" id="viewOrderBtn">View my order</a>
+                <a href="index.html" class="kiosk-btn-secondary">Design another keychain</a>
+            </div>
         </div>
 
-        <!-- Footer -->
         <footer class="kiosk-footer">
             <p>© 2026 Kootzy. All rights reserved.</p>
             <p>Write down your Order Number if you need to close this page.</p>
@@ -221,11 +244,8 @@
     </div>
 
     <script>
-        // Parse URL params to populate details
         window.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            // No fabricated defaults: a missing value renders as a dash rather than
-            // inventing an order number or an amount the customer never agreed to.
             const orderNum = urlParams.get('orderNum') || '—';
             const name = urlParams.get('name') || 'there';
             const time = urlParams.get('time') || '20';
@@ -241,22 +261,28 @@
             document.getElementById('custGreeting').textContent =
                 `Thank you, ${name}! Your order has been placed. ${amountLine}`;
 
-            // A shipped order is not "ready in 20 minutes" — say what actually
-            // happens next instead of showing kiosk copy to a delivery customer.
             document.getElementById('pickupTimeText').textContent = shipped
                 ? `We will confirm your payment and delivery charge, then pack and dispatch Order #${orderNum} to your address. Keep your phone reachable.`
                 : `Ready in approximately ${time} minutes. Please present Order #${orderNum} at the counter for collection.`;
+
+            // Deep-link into My orders detail when we have a real order number.
+            const viewBtn = document.getElementById('viewOrderBtn');
+            if (orderNum && orderNum !== '—' && /^\d+$/.test(String(orderNum).replace(/^0+/, '') || '0')) {
+                viewBtn.href = 'my-orders.html?order=' + encodeURIComponent(orderNum);
+            } else if (orderNum && orderNum !== '—') {
+                viewBtn.href = 'my-orders.html?order=' + encodeURIComponent(orderNum);
+            } else {
+                viewBtn.href = 'my-orders.html';
+            }
         });
     </script>
 
-
-    <!-- Legal footer: seller identity + policies (Consumer Protection e-Commerce Rules 2020) -->
     <footer class="legal-footer">
       <nav>
         <a href="privacy.html">Privacy Policy</a>
         <a href="terms.html">Terms of Service</a>
-        <a href="refund.html">Cancellation &amp; Refunds</a>
-        <a href="contact.html">Contact &amp; Grievances</a>
+        <a href="refund.html">Cancellation & Refunds</a>
+        <a href="contact.html">Contact & Grievances</a>
       </nav>
       <div>&copy; 2026 Kootzy &middot; Madippakkam, Chennai 600091 &middot; Made to make you smile.</div>
     </footer>
