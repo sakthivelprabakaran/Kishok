@@ -40,6 +40,11 @@
     font: 750 .76rem var(--font-family);
     cursor: pointer;
 }
+.admin-tab-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+}
 .admin-tab.active {
     border-color: var(--text-main);
     background: var(--text-main);

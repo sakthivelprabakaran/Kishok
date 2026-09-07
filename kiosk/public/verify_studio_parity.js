@@ -19,6 +19,7 @@ const files = {
   frontApp:     'js/kiosk-app.js',
   studioApp:    'admin-console.js',
   studioHtml:   'studio.html',
+  adminHtml:    'admin.html',
   frontIndex:   'index.html',
   customizeHtml:'customize.html',
 };
@@ -97,6 +98,7 @@ function extractStudioProductTypes(htmlSrc) {
 const frontApp   = read(files.frontApp);
 const studioApp  = read(files.studioApp);
 const studioHtml = read(files.studioHtml);
+const adminHtml  = read(files.adminHtml);
 const frontIdx   = read(files.frontIndex);
 
 /* ================= CHECK 1: option parity ================= */
@@ -191,6 +193,12 @@ check('2c. Resize coverage spans ALL front-end models (no front-end-only orphan)
   feOnly.length === 0,
   feOnly.length ? `These front-end types cannot even be opened/resized in Studio: ${feOnly.join(', ')}` :
   'No front-end-only types; resize coverage is complete.');
+
+/* ================= CHECK 3: admin navigation ================= */
+
+check('3a. Admin Design navigation opens the Studio',
+  /<a\b[^>]*class="[^"]*\badmin-tab\b[^"]*"[^>]*href="studio\.html"[^>]*>\s*Design\s*<\/a>/i.test(adminHtml),
+  'The admin tab bar must keep a direct Design link to studio.html.');
 
 /* ---------- summary ---------- */
 const failed = reports.filter(r => !r.pass);
