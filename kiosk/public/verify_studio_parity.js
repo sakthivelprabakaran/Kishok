@@ -20,6 +20,7 @@ const files = {
   studioApp:    'admin-console.js',
   studioHtml:   'studio.html',
   adminHtml:    'admin.html',
+  adminDashboard:'js/admin-dashboard.js',
   frontIndex:   'index.html',
   customizeHtml:'customize.html',
 };
@@ -99,6 +100,7 @@ const frontApp   = read(files.frontApp);
 const studioApp  = read(files.studioApp);
 const studioHtml = read(files.studioHtml);
 const adminHtml  = read(files.adminHtml);
+const adminDashboard = read(files.adminDashboard);
 const frontIdx   = read(files.frontIndex);
 
 /* ================= CHECK 1: option parity ================= */
@@ -197,8 +199,13 @@ check('2c. Resize coverage spans ALL front-end models (no front-end-only orphan)
 /* ================= CHECK 3: admin navigation ================= */
 
 check('3a. Admin Design navigation opens the Studio',
-  /<a\b[^>]*class="[^"]*\badmin-tab\b[^"]*"[^>]*href="studio\.html"[^>]*>\s*Design\s*<\/a>/i.test(adminHtml),
-  'The admin tab bar must keep a direct Design link to studio.html.');
+  /<a\b[^>]*class="[^"]*\badmin-tab\b[^"]*"[^>]*href="\/studio\.html"[^>]*>\s*Design\s*<\/a>/i.test(adminHtml),
+  'The admin tab bar must keep a direct Design link to /studio.html.');
+
+check('3b. Order Design action redirects in the same tab',
+  /return `\/studio\.html\?\$\{params\.toString\(\)\}`;/.test(adminDashboard)
+    && /class="action-btn design" href="\$\{itemDesignLink\(order, item\)\}">DESIGN<\/a>/.test(adminDashboard),
+  'Order Design links must use a same-tab redirect so mobile browsers do not suppress or hide the navigation.');
 
 /* ---------- summary ---------- */
 const failed = reports.filter(r => !r.pass);

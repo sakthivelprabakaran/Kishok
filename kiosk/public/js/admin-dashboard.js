@@ -443,7 +443,7 @@ function itemDesignLink(order, item) {
             outlineColor: colors.outline || '',
         })))));
     } catch (_) { /* explicit parameters still restore the design */ }
-    return `studio.html?${params.toString()}`;
+    return `/studio.html?${params.toString()}`;
 }
 
 function orderItemHTML(order, item, index) {
@@ -471,7 +471,7 @@ function orderItemHTML(order, item, index) {
                     <label>Production
                         <select class="item-production-status">${productionOptions(item.productionStatus)}</select>
                     </label>` : `<span class="production-chip ${esc(item.productionStatus)}">${esc(PRODUCTION_LABELS[item.productionStatus] || item.productionStatus)}</span>`}
-                <a class="action-btn design" href="${itemDesignLink(order, item)}" target="_blank" rel="noopener">DESIGN</a>
+                <a class="action-btn design" href="${itemDesignLink(order, item)}">DESIGN</a>
             </div>
         </div>`;
 }
