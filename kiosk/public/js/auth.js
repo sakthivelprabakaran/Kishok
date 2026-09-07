@@ -66,21 +66,33 @@ export function getUser() {
 }
 
 /** Call once per page (early). Safe to call multiple times. */
+let initPromise = null;
+
+/**
+ * Initialise auth. Safe to call from several places on one page: the work is
+ * memoised, so the onAuthStateChange listener is only ever registered once.
+ * Without this, two callers (say a page bootstrap and the header profile chip)
+ * would each add a listener and every subscriber would fire twice per change.
+ */
 export async function initAuth() {
-    if (!supabase) {
-        applySession(null);
-        return null;
-    }
+    if (initPromise) return initPromise;
+    initPromise = (async () => {
+        if (!supabase) {
+            applySession(null);
+            return null;
+        }
 
-    const { data, error } = await supabase.auth.getSession();
-    if (error) console.error('auth getSession:', error.message);
-    applySession(data?.session ?? null);
+        const { data, error } = await supabase.auth.getSession();
+        if (error) console.error('auth getSession:', error.message);
+        applySession(data?.session ?? null);
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-        applySession(session);
-    });
+        supabase.auth.onAuthStateChange((_event, session) => {
+            applySession(session);
+        });
 
-    return currentSession;
+        return currentSession;
+    })();
+    return initPromise;
 }
 
 /**

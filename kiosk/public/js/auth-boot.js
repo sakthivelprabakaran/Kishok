@@ -11,19 +11,28 @@
  * supabase-js persists its session under `sb-<ref>-auth-token` in localStorage,
  * so the presence of such a key is a reliable "worth loading auth" hint.
  */
-export async function bootAuthIfSession() {
-    let hasHint = false;
+export function hasSessionHint() {
     try {
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i) || '';
-            if (key.startsWith('sb-') && key.includes('auth-token')) { hasHint = true; break; }
+            if (key.startsWith('sb-') && key.includes('auth-token')) return true;
         }
     } catch (_) { /* storage unavailable */ }
-    if (!hasHint) return false;
+    return false;
+}
+
+/** Load auth on demand (for a click path, where the CDN cost is justified). */
+export async function loadAuth() {
+    const auth = await import('./auth.js?v=k1');
+    await auth.initAuth();
+    return auth;
+}
+
+export async function bootAuthIfSession() {
+    if (!hasSessionHint()) return false;
 
     try {
-        const auth = await import('./auth.js?v=k1');
-        await auth.initAuth();
+        const auth = await loadAuth();
         return auth.isSignedIn();
     } catch (err) {
         console.error('auth boot failed:', err.message);

@@ -82,7 +82,7 @@
     <!-- Baloo 2 is the Kootzy display face. Body copy uses the system sans per the
          brand guidelines, so this is one family instead of the previous three. -->
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/kiosk.css?v=kootzy2">
+    <link rel="stylesheet" href="css/kiosk.css?v=k4">
     <link rel="stylesheet" href="css/legal.css?v=wa1">
 </head>
 <body>
@@ -103,7 +103,7 @@
                 </svg>
                 <span class="cart-count" data-cart-count hidden>0</span>
             </a>
-            <div class="kiosk-badge">⚡ 3D Print Studio</div>
+            <div class="header-profile" id="headerProfile"></div>
         </header>
 
         <!-- Hero zone: copy + reel sit side-by-side on desktop, stacked on mobile -->
@@ -453,7 +453,11 @@
     }
     </script>
     <script type="module" src="js/landing-reel.js?v=reel1"></script>
-    <script type="module" src="js/cart-badge.js?v=k2"></script>
+    <script type="module" src="js/cart-badge.js?v=k4"></script>
+    <script type="module">
+        import { mountProfileChip } from './js/profile-chip.js?v=k1';
+        mountProfileChip('#headerProfile');
+    </script>
 
 
     <!-- Legal footer: seller identity + policies (Consumer Protection e-Commerce Rules 2020) -->
