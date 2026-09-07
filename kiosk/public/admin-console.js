@@ -106,7 +106,7 @@ const PRESETS = {
         ring_y: 8,
     }, // Total = 5mm (thin < standard < thick)
     standard: {
-        scaleFactor: 1.0,
+        scaleFactor: 0.5,
         base:    { depth: 3,   bevelThickness: 0,   bevelSize: 3,   bevelSegments: 8 },     // 3 + 2*0 = 3mm
         outline: { depth: 1.5, bevelThickness: 0,   bevelSize: 2,   bevelSegments: 3 },     // 1.5 + 2*0 = 1.5mm
         font:    { depth: 1.5, bevelThickness: 0,   bevelSize: 0.2, bevelSegments: 3 },     // 1.5 + 2*0 = 1.5mm
@@ -1489,8 +1489,19 @@ function restoreState() {
     try {
         const savedParams = JSON.parse(localStorage.getItem('adminConsoleParams'));
         if (savedParams && savedParams.base && savedParams.font) {
+            // Standard was accidentally changed from the storefront's 0.5×
+            // baseline to 1.0×, doubling a Classic sample to roughly 149mm.
+            // Repair that persisted regression without touching deliberate
+            // custom scales or specialised products.
+            const settingsVersion = localStorage.getItem('adminConsoleParamsVersion');
+            if (settingsVersion !== 'classic-scale-v2'
+                && state.productType === 'keychain'
+                && Number(savedParams.scaleFactor) === 1) {
+                savedParams.scaleFactor = 0.5;
+            }
             setSliders(savedParams);
         }
+        localStorage.setItem('adminConsoleParamsVersion', 'classic-scale-v2');
     } catch(e) {}
 }
 
@@ -1867,6 +1878,14 @@ function parseURLParameters() {
         if (productTypeSelect) {
             productTypeSelect.value = state.productType;
         }
+    }
+
+    // Admin order links carry the storefront's actual Classic baseline. This
+    // overrides any unrelated scale left behind in Studio localStorage.
+    const scaleFactorParam = Number(params.get('scaleFactor'));
+    if (Number.isFinite(scaleFactorParam) && scaleFactorParam >= 0.5 && scaleFactorParam <= 3) {
+        sliders.scaleFactor.range.value = String(scaleFactorParam);
+        sliders.scaleFactor.num.value = String(scaleFactorParam);
     }
     
     // 2. Parse Text

@@ -435,6 +435,7 @@ function itemDesignLink(order, item) {
     const params = new URLSearchParams({
         text: item.text || '',
         productType,
+        scaleFactor: Number.isFinite(Number(design.scaleFactor)) ? String(design.scaleFactor) : '0.5',
         font: design.font || order.font || '',
         baseColor: colors.base || order.baseColor || '',
         fontColor,

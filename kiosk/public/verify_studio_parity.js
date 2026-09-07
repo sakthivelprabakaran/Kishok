@@ -217,6 +217,17 @@ check('3c. Order Design URL excludes previews and full order payloads',
     && !/\bbtoa\s*\(/.test(designLinkSource),
   'Safari rejects oversized addresses; the Studio URL must contain only compact design parameters.');
 
+check('4a. Classic Studio default scale matches the storefront baseline',
+  /standard:\s*\{\s*scaleFactor:\s*0\.5,/.test(studioApp)
+    && /id="adminScaleFactor"[^>]*value="0\.5"/.test(studioHtml)
+    && /id="adminScaleNum"[^>]*value="0\.5"/.test(studioHtml),
+  'Classic Standard must remain 0.5×; 1.0× doubles the sample length from about 75mm to 149mm.');
+
+check('4b. Admin order links explicitly restore the Classic baseline scale',
+  /scaleFactor:\s*Number\.isFinite\(Number\(design\.scaleFactor\)\)\s*\?\s*String\(design\.scaleFactor\)\s*:\s*'0\.5'/.test(adminDashboard)
+    && /const scaleFactorParam = Number\(params\.get\('scaleFactor'\)\)/.test(studioApp),
+  'Order links must override unrelated Studio localStorage with the storefront scale.');
+
 /* ---------- summary ---------- */
 const failed = reports.filter(r => !r.pass);
 console.log('\n========================================');
