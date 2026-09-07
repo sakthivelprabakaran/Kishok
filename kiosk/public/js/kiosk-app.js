@@ -499,6 +499,31 @@ function calculatePricing() {
 // the step-by-step wizard. Single source of truth for the breakpoint.
 function isDesktop() { return window.matchMedia('(min-width: 880px)').matches; }
 
+/* Conditional step-cards: sections that depend on the PRODUCT, not just on
+ * which wizard step you are on, and so must stay hidden even when their step
+ * is reached.
+ *
+ * renderStepper() used to inline these rules — twice, once per layout branch —
+ * and #thicknessSection was missing from both. Since the stepper reveals a card
+ * with `style.display = ''`, which CLEARS the inline `display:none` in the
+ * markup rather than re-asserting it, Thickness reappeared for every product.
+ * Clicking an option then ran applyProductTypeConstraints() and it vanished
+ * again: exactly how the bug was reported ("click it and it's gone").
+ *
+ * One predicate, one place to add the next conditional section.
+ */
+function isSectionUnavailable(elem) {
+    switch (elem.id) {
+        case 'thicknessSection':        // layer thickness: Classic Keychain only
+        case 'ringPositionSection':     // only the Classic Keychain has a ring
+            return state.productType !== 'keychain';
+        case 'batchPromoAlert':
+            return !state.matchedBatchSize;
+        default:
+            return false;
+    }
+}
+
 function renderStepper() {
     const desktop = isDesktop();
     document.body.classList.toggle('all-steps', desktop);
@@ -506,16 +531,13 @@ function renderStepper() {
     if (desktop) {
         // Show ALL steps in the sidebar (respecting the conditional sections).
         document.querySelectorAll('[data-step]').forEach(elem => {
-            if (elem.id === 'ringPositionSection' && !state.hasRing) { elem.style.display = 'none'; return; }
-            if (elem.id === 'batchPromoAlert' && !state.matchedBatchSize) { elem.style.display = 'none'; return; }
-            elem.style.display = '';
+            elem.style.display = isSectionUnavailable(elem) ? 'none' : '';
         });
     } else {
         // Mobile wizard: hide all, show only the current step.
         document.querySelectorAll('[data-step]').forEach(elem => { elem.style.display = 'none'; });
         document.querySelectorAll(`[data-step="${state.currentStep}"]`).forEach(elem => {
-            if (elem.id === 'ringPositionSection' && !state.hasRing) return;
-            if (elem.id === 'batchPromoAlert' && !state.matchedBatchSize) return;
+            if (isSectionUnavailable(elem)) return;
             elem.style.display = '';
         });
     }
@@ -927,15 +949,11 @@ function applyProductTypeConstraints() {
     // Show/Hide keyring position selector (only relevant and adjustable for standard keychain)
     const hasRing = state.productType === 'keychain';
     state.hasRing = hasRing;
-    if (el.ringPositionSection) {
-        el.ringPositionSection.style.display = (state.currentStep === 3 && hasRing) ? 'block' : 'none';
-    }
 
-    // Toggle Thickness toggle (only relevant for standard keychain)
-    if (el.thicknessToggle && el.thicknessToggle.parentElement) {
-        const isStandardKeychain = state.productType === 'keychain';
-        el.thicknessToggle.parentElement.style.display = isStandardKeychain ? 'block' : 'none';
-    }
+    // NOTE: visibility of #ringPositionSection and #thicknessSection is owned
+    // solely by renderStepper() via isSectionUnavailable(). Writing display
+    // here as well is what created the Thickness bug: the two systems disagreed
+    // and whichever ran last won. This function only records the flags.
 
     // ── Dynamic Color Rows Configuration & Contextual Labels ──
     if (isLinkedInitials) {

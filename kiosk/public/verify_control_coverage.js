@@ -28,6 +28,7 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const studioApp  = read('admin-console.js');
 const studioHtml = read('studio.html');
 const viewerSrc  = read('js/viewer3d.js');
+const kioskApp   = read('js/kiosk-app.js');
 
 const reports = [];
 function check(name, pass, detail) {
@@ -47,6 +48,22 @@ function methodBody(src, name) {
   for (; i < src.length; i++) {
     if (src[i] === '{') depth++;
     else if (src[i] === '}') { depth--; if (depth === 0) return src.slice(start, i + 1); }
+  }
+  return null;
+}
+
+function functionSource(src, name) {
+  const re = new RegExp(`function\\s+${name}\\s*\\(`);
+  const m = re.exec(src);
+  if (!m) return null;
+  const open = src.indexOf('{', m.index);
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    if (src[i] === '{') depth++;
+    else if (src[i] === '}') {
+      depth--;
+      if (depth === 0) return src.slice(m.index, i + 1);
+    }
   }
   return null;
 }
@@ -200,6 +217,88 @@ check(
   /_standardStackVisible\s*=\s*!hideStandard/.test(studioApp)
     && relevance !== null && /_standardStackVisible/.test(relevance),
   'relevance rules must respect products that hide the whole standard stack'
+);
+
+/* ---------- 6. storefront conditional sections stay product-scoped ---------- */
+
+const conditionalSource = functionSource(kioskApp, 'isSectionUnavailable');
+const desktopSource = functionSource(kioskApp, 'isDesktop');
+const stepperSource = functionSource(kioskApp, 'renderStepper');
+
+function storefrontVisibility(productType, desktop) {
+  const vm = require('vm');
+  const elements = [
+    { id: 'ordinaryStep3', dataset: { step: '3' }, style: {} },
+    { id: 'thicknessSection', dataset: { step: '3' }, style: {} },
+    { id: 'ringPositionSection', dataset: { step: '3' }, style: {} },
+    { id: 'batchPromoAlert', dataset: { step: '3' }, style: {} },
+    { id: 'stepOne', dataset: { step: '1' }, style: {} },
+  ];
+  const noopClassList = { toggle() {} };
+  const button = () => ({ style: {} });
+  const state = { productType, currentStep: 3, matchedBatchSize: false };
+  const context = {
+    state,
+    window: { matchMedia: () => ({ matches: desktop }) },
+    document: {
+      body: { classList: noopClassList },
+      querySelectorAll(selector) {
+        if (selector === '[data-step]') return elements;
+        if (selector === `[data-step="${state.currentStep}"]`) {
+          return elements.filter((e) => Number(e.dataset.step) === state.currentStep);
+        }
+        return [];
+      },
+      querySelector: () => ({ classList: noopClassList }),
+    },
+    el: {
+      stepDots: [],
+      stepLines: [],
+      stepperText: null,
+      btnPlaceOrder: button(),
+      btnAddToCart: button(),
+      btnPrevStep: button(),
+      btnNextStep: button(),
+    },
+  };
+  vm.runInNewContext(
+    `${desktopSource || ''}\n${conditionalSource || ''}\n${stepperSource || ''}\nrenderStepper();`,
+    context
+  );
+  return Object.fromEntries(elements.map((e) => [e.id, e.style.display]));
+}
+
+const classicDesktop = desktopSource && conditionalSource && stepperSource
+  ? storefrontVisibility('keychain', true) : {};
+const otherDesktop = desktopSource && conditionalSource && stepperSource
+  ? storefrontVisibility('bubble_keychain', true) : {};
+const classicMobile = desktopSource && conditionalSource && stepperSource
+  ? storefrontVisibility('keychain', false) : {};
+const otherMobile = desktopSource && conditionalSource && stepperSource
+  ? storefrontVisibility('bubble_keychain', false) : {};
+
+check(
+  '6a. Classic Keychain shows Thickness and Ring on desktop and mobile step 3',
+  classicDesktop.thicknessSection === ''
+    && classicDesktop.ringPositionSection === ''
+    && classicMobile.thicknessSection === ''
+    && classicMobile.ringPositionSection === '',
+  'both controls belong exclusively to the Classic Keychain'
+);
+
+check(
+  '6b. non-Classic products hide Thickness and Ring on desktop and mobile step 3',
+  otherDesktop.thicknessSection === 'none'
+    && otherDesktop.ringPositionSection === 'none'
+    && otherMobile.thicknessSection === 'none'
+    && otherMobile.ringPositionSection === 'none',
+  'the stepper must not reveal product-inapplicable controls'
+);
+
+check(
+  '6c. mobile still hides cards from steps other than the active step',
+  classicMobile.stepOne === 'none' && classicMobile.ordinaryStep3 === '',
+  'conditional visibility must not bypass the step-by-step wizard'
 );
 
 /* ---------- result ---------- */
