@@ -945,6 +945,68 @@ body {
     opacity: 0.8;
 }
 
+/* ── Review step hierarchy ───────────────────────────────────────────────
+   "Add to cart" is the main action on the website: it keeps the basket,
+   supports multiple items and shipping. "Pay now via UPI" is the walk-up
+   kiosk path (pay instantly, collect in 15-20 min) and must read as the
+   SECONDARY option.
+
+   Before this, the pay button was width:100% + filled gradient + glow +
+   two lines at 1.15rem/800 while Add to cart was a small outlined chip —
+   the hierarchy was backwards, and all three buttons shared one flex row,
+   so on a 390px iPhone the full-width pay button squashed the rest.
+   The nav now wraps into two rows: cart on top, Back + pay beneath. */
+.stepper-nav.is-review {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+}
+
+/* PRIMARY: add to cart */
+.stepper-nav.is-review #btnAddToCart {
+    order: 1;
+    flex: 1 1 100%;
+    min-height: 52px;
+    font-size: 1.02rem;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    color: #ffffff;
+    background: var(--primary-gradient);
+    border-color: transparent;
+    box-shadow: 0 4px 18px var(--primary-glow);
+}
+.stepper-nav.is-review #btnAddToCart:hover { background: var(--primary-gradient); }
+.stepper-nav.is-review #btnAddToCart:active { transform: translateY(1px); }
+
+/* SECONDARY: walk-up pay-now */
+.stepper-nav.is-review .stepper-btn-back { order: 2; flex: 0 0 auto; min-height: 44px; }
+.stepper-nav.is-review #btnPlaceOrder {
+    order: 3;
+    flex: 1 1 auto;
+    width: auto;                 /* was 100% — the cause of the oversize */
+    flex-direction: row;         /* single line instead of stacked */
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 44px;            /* still a comfortable touch target */
+    padding: 0.5rem 0.9rem;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-main);
+    border: 1.5px solid var(--border-color-hover);
+    box-shadow: none;
+}
+.stepper-nav.is-review #btnPlaceOrder .btn-text {
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+/* No room for the second line beside Back on a phone. */
+.stepper-nav.is-review #btnPlaceOrder .btn-subtext { display: none; }
+.stepper-nav.is-review #btnPlaceOrder:active {
+    transform: translateY(1px);
+    background: var(--paper-2);
+    box-shadow: none;
+}
+
 /* UPI Payment Modal Overlay */
 .payment-modal-overlay {
     position: fixed;
@@ -1229,6 +1291,23 @@ body {
         background: transparent;
     }
     body.all-steps .primary-pay-btn { width: 100%; }
+
+    /* Desktop has room for both actions stacked full-width. Same hierarchy:
+       cart first and filled, pay-now beneath and outlined — and here the
+       explanatory subtext fits, so keep it. */
+    body.all-steps .stepper-nav.is-review { flex-direction: column; align-items: stretch; }
+    body.all-steps .stepper-nav.is-review #btnAddToCart { flex: 0 0 auto; min-height: 54px; }
+    body.all-steps .stepper-nav.is-review #btnPlaceOrder {
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 0.1rem;
+        padding: 0.6rem 1rem;
+    }
+    body.all-steps .stepper-nav.is-review #btnPlaceOrder .btn-subtext {
+        display: block;
+        font-size: 0.68rem;
+        opacity: 0.75;
+    }
 
     /* FIX back-button collision: keep Back top-left, move the rotate/texture
        controls to the TOP-RIGHT so they never overlap it. */

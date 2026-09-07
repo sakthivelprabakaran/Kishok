@@ -543,9 +543,13 @@ function renderStepper() {
     // Update Buttons
     // The Add to cart button tracks the Pay button: both belong to the final
     // review step (and to every step on desktop, where all steps are visible).
+    // `is-review` on the nav flips the visual hierarchy so Add to cart reads as
+    // the primary action and the walk-up "pay now" path reads as secondary.
     const showCheckoutButtons = (visible) => {
         if (el.btnPlaceOrder) el.btnPlaceOrder.style.display = visible ? 'flex' : 'none';
         if (el.btnAddToCart)  el.btnAddToCart.style.display  = visible ? 'inline-flex' : 'none';
+        const nav = document.querySelector('.stepper-nav');
+        if (nav) nav.classList.toggle('is-review', visible);
     };
 
     if (desktop) {
