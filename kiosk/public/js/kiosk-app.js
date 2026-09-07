@@ -6,7 +6,13 @@
 import { KeychainViewer } from './viewer3d.js?v=wa2';
 import * as Cart from './cart.js?v=k1';
 import * as Pricing from './pricing.js?v=k1';
+import * as BatchOffers from './batch-offers.js?v=k1';
 import { bootAuthIfSession } from './auth-boot.js?v=k1';
+import {
+    FALLBACK_FILAMENT_COLOURS,
+    MADE_TO_ORDER_NOTICE,
+    loadFilamentColours,
+} from './filament-catalog.js?v=k1';
 
 // ===== DATA & CONFIG =====
 
@@ -52,56 +58,26 @@ const FONTS = [
 ];
 ;
 
+function toPalette(colours) {
+    return colours.map((colour) => ({
+        hex: colour.hex,
+        label: colour.name,
+        state: colour.state,
+        notice: colour.notice || '',
+    }));
+}
+
+const fallbackPalette = toPalette(FALLBACK_FILAMENT_COLOURS);
 const COLOR_PALETTES = {
-    base: [
-        { hex: '#ff9933', label: 'Orange' },
-        { hex: '#7b2fff', label: 'Purple' },
-        { hex: '#3A88FE', label: 'Blue' },
-        { hex: '#FF6251', label: 'Red' },
-        { hex: '#7ed957', label: 'Green' },
-        { hex: '#ff61a6', label: 'Pink' },
-        { hex: '#FFD700', label: 'Gold' },
-        { hex: '#000000', label: 'Black' },
-        { hex: '#FFFFFF', label: 'White' }
-    ],
-    font: [
-        { hex: '#FFFFFF', label: 'White' },
-        { hex: '#000000', label: 'Black' },
-        { hex: '#FFD700', label: 'Gold' },
-        { hex: '#ff9933', label: 'Orange' },
-        { hex: '#7b2fff', label: 'Purple' },
-        { hex: '#3A88FE', label: 'Blue' },
-        { hex: '#FF6251', label: 'Red' },
-        { hex: '#7ed957', label: 'Green' },
-        { hex: '#ff61a6', label: 'Pink' }
-    ],
-    outline: [
-        { hex: '#000000', label: 'Black' },
-        { hex: '#FFFFFF', label: 'White' },
-        { hex: '#7b2fff', label: 'Purple' },
-        { hex: '#ff9933', label: 'Orange' },
-        { hex: '#FFD700', label: 'Gold' },
-        { hex: '#3A88FE', label: 'Blue' },
-        { hex: '#FF6251', label: 'Red' },
-        { hex: '#7ed957', label: 'Green' }
-    ],
-    line2: [
-        { hex: '#FFD700', label: 'Gold' },
-        { hex: '#FFFFFF', label: 'White' },
-        { hex: '#000000', label: 'Black' },
-        { hex: '#ff9933', label: 'Orange' },
-        { hex: '#7b2fff', label: 'Purple' },
-        { hex: '#3A88FE', label: 'Blue' },
-        { hex: '#FF6251', label: 'Red' },
-        { hex: '#7ed957', label: 'Green' },
-        { hex: '#ff61a6', label: 'Pink' }
-    ]
+    base: [...fallbackPalette],
+    font: [...fallbackPalette],
+    outline: [...fallbackPalette],
+    line2: [...fallbackPalette],
 };
 
 // Pricing comes from the shared module — the same file the server imports at
 // checkout, so the number shown here is the number charged. The constants that
 // used to live here (MATERIAL_RATE etc.) moved into Pricing.RATES.
-const SETUP_PER_BATCH    = Pricing.RATES.SETUP_PER_BATCH;
 const DEFAULT_BATCH_SIZE = Pricing.RATES.DEFAULT_BATCH_SIZE;
 
 const UPI_VPA = 'sakthivelprabakaran311-1@okaxis';
@@ -228,6 +204,16 @@ function cacheElements() {
     el.fontSwatches    = document.getElementById('fontSwatches');
     el.outlineSwatches = document.getElementById('outlineSwatches');
     el.line2Swatches   = document.getElementById('line2Swatches');
+
+    const colorWrap = document.querySelector('.color-options-wrap');
+    if (colorWrap && !document.getElementById('filamentAvailabilityNotice')) {
+        const notice = document.createElement('div');
+        notice.id = 'filamentAvailabilityNotice';
+        notice.className = 'filament-availability-notice';
+        notice.hidden = true;
+        colorWrap.appendChild(notice);
+    }
+    el.filamentAvailabilityNotice = document.getElementById('filamentAvailabilityNotice');
     
     el.ringPositionSection = document.getElementById('ringPositionSection');
     el.ringPosToggle   = document.getElementById('ringPosToggle');
@@ -410,54 +396,29 @@ function calculatePricing() {
     
     const weight = state.dims.weightGrams || 2.0; // fallback if zero
     
-    // 1. Check if user's color combo matches any active printing batches
-    const matchedBatch = state.activeBatches.find(b => {
-        const bBase = b.baseColor.toLowerCase();
-        const bFont = b.fontColor.toLowerCase();
-        const sBase = state.colors.base.toLowerCase();
-        const sFont = state.colors.font.toLowerCase();
-        const sOutline = state.colors.outline ? state.colors.outline.toLowerCase() : '';
+    // 1. Only a Classic Keychain whose actual printable colour roles match a
+    // sufficiently large live batch can receive a discount. Word Art and the
+    // other multi-colour products are deliberately excluded until batches have
+    // a product-specific schema.
+    const matchedOffer = BatchOffers.findBatchDiscount({
+        productType: state.productType,
+        design: {
+            layers: state.layers,
+            colors: relevantColors(),
+        },
+        weightG: weight,
+    }, state.activeBatches, Pricing.priceLine, DEFAULT_BATCH_SIZE);
 
-        // If standard 3-layer keychain
-        if (state.productType === 'keychain' && state.layers === '3L') {
-            if (bFont.includes('/')) {
-                return bBase === sBase && bFont === `${sOutline}/${sFont}`;
-            }
-            return bBase === sBase && bFont === sFont;
-        }
-
-        // Wordart or Loveseries
-        if (state.productType === 'wordart' || state.productType === 'loveseries') {
-            const sLine2 = state.colors.line2 ? state.colors.line2.toLowerCase() : '';
-            if (bFont.includes('/')) {
-                return bBase === sOutline && bFont === `${sFont}/${sLine2}`;
-            }
-            return bBase === sOutline && (bFont === sFont || bFont === sLine2);
-        }
-
-        // Tilekey
-        if (state.productType === 'tilekey') {
-            const sLine2 = state.colors.line2 ? state.colors.line2.toLowerCase() : '';
-            if (bFont.includes('/')) {
-                return bBase === sBase && bFont === `${sFont}/${sLine2}`;
-            }
-            return bBase === sBase && (bFont === sFont || bFont === sLine2);
-        }
-
-        // Default 2-layer match
-        return bBase === sBase && bFont === sFont;
-    });
-    
     let batchSize = DEFAULT_BATCH_SIZE;
-    if (matchedBatch) {
-        batchSize = matchedBatch.count >= 5 ? matchedBatch.count : 5;
+    if (matchedOffer) {
+        batchSize = matchedOffer.batchSize;
         state.matchedBatchSize = batchSize;
         
         // Show success alert
-        if (state.currentStep === 3) {
+        if (isDesktop() || state.currentStep === 3) {
             el.batchPromoAlert.style.display = 'flex';
         }
-        el.batchPromoAlertMsg.textContent = `Excellent! A batch of ${matchedBatch.name} is printing. Per-item setup fee drops from ₹30 to ₹${(SETUP_PER_BATCH / batchSize).toFixed(0)}!`;
+        el.batchPromoAlertMsg.textContent = `${matchedOffer.name} matches this Classic Keychain. You save ₹${matchedOffer.savings} per item.`;
     } else {
         state.matchedBatchSize = null;
         el.batchPromoAlert.style.display = 'none';
@@ -823,6 +784,41 @@ function renderFontList() {
     });
 }
 
+function applyFilamentCatalogue(colours) {
+    const palette = toPalette(colours && colours.length ? colours : FALLBACK_FILAMENT_COLOURS);
+    for (const key of Object.keys(COLOR_PALETTES)) COLOR_PALETTES[key] = [...palette];
+
+    // A colour switched to Unavailable must disappear from new customer
+    // designs. Keep every still-valid selection; only replace removed colours.
+    for (const key of Object.keys(state.colors)) {
+        const current = String(state.colors[key] || '').toUpperCase();
+        if (!palette.some((colour) => colour.hex.toUpperCase() === current)) {
+            state.colors[key] = palette[0] ? palette[0].hex : '#FFFFFF';
+        }
+    }
+}
+
+function updateFilamentAvailabilityNotice() {
+    if (!el.filamentAvailabilityNotice) return;
+    const rows = {
+        base: el.baseColorRow,
+        font: el.fontColorRow,
+        outline: el.outlineColorRow,
+        line2: el.line2ColorRow,
+    };
+    const selected = Object.keys(rows).find((key) => {
+        const row = rows[key];
+        if (!row || row.style.display === 'none') return false;
+        const current = String(state.colors[key] || '').toUpperCase();
+        const colour = COLOR_PALETTES[key].find((item) => item.hex.toUpperCase() === current);
+        return colour && colour.state === 'made_to_order';
+    });
+    el.filamentAvailabilityNotice.hidden = !selected;
+    el.filamentAvailabilityNotice.textContent = selected
+        ? `Made to order · ${MADE_TO_ORDER_NOTICE}`
+        : '';
+}
+
 function renderColorSwatches() {
     const swatchesConfigs = [
         { container: el.baseSwatches, badge: el.baseColorVal, palette: COLOR_PALETTES.base, key: 'base' },
@@ -844,10 +840,11 @@ function renderColorSwatches() {
         conf.palette.forEach(color => {
             const isSelected = (state.colors[conf.key] || '').toLowerCase() === color.hex.toLowerCase();
             const swatch = document.createElement('div');
-            swatch.className = `swatch ${isSelected ? 'selected' : ''}`;
+            swatch.className = `swatch ${color.state === 'made_to_order' ? 'made-to-order' : ''} ${isSelected ? 'selected' : ''}`;
             swatch.style.backgroundColor = color.hex;
-            swatch.title = color.label;
-            swatch.setAttribute('aria-label', color.label);
+            const availability = color.state === 'made_to_order' ? ` — ${MADE_TO_ORDER_NOTICE}` : '';
+            swatch.title = color.label + availability;
+            swatch.setAttribute('aria-label', color.label + availability);
             
             swatch.addEventListener('click', () => {
                 conf.container.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
@@ -859,12 +856,14 @@ function renderColorSwatches() {
                 if (conf.badge) {
                     conf.badge.textContent = color.label;
                 }
+                updateFilamentAvailabilityNotice();
                 update3DModel();
             });
             
             conf.container.appendChild(swatch);
         });
     });
+    updateFilamentAvailabilityNotice();
 }
 
 function applyProductTypeConstraints() {
@@ -1462,6 +1461,25 @@ function setupEvents() {
     if (typeParam) {
         state.productType = typeParam;
     }
+    const layersParam = urlParams.get('layers');
+    if (layersParam === '2L' || layersParam === '3L') {
+        state.layers = layersParam;
+        if (el.thicknessToggle) {
+            el.thicknessToggle.querySelectorAll('.pos-opt').forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.val === layersParam);
+            });
+        }
+    }
+    const queryColor = (key) => {
+        const value = String(urlParams.get(key) || '').trim();
+        return /^#[0-9a-fA-F]{6}$/.test(value) ? value : '';
+    };
+    const baseParam = queryColor('base');
+    const fontParam = queryColor('font');
+    const outlineParam = queryColor('outline');
+    if (baseParam) state.colors.base = baseParam;
+    if (fontParam) state.colors.font = fontParam;
+    if (outlineParam) state.colors.outline = outlineParam;
     
     // Hide drag-hint on first user interaction with viewer
     function hideDragHint() {
@@ -1763,7 +1781,7 @@ function setupEvents() {
             laborCost: state.costs.laborCost,
             productionCost: state.costs.productionCost,
             finalAmount: state.costs.finalAmount * state.quantity,
-            batchSize: state.matchedBatchSize || DEFAULT_BATCH_SIZE,
+            layers: state.layers,
             upiTxnId: txnId
         };
 
@@ -1778,7 +1796,8 @@ function setupEvents() {
             if (resData.success) {
                 // Redirect to success page
                 const pickupMins = Math.ceil(state.costs.printTimeMins * state.quantity + 10); // +10min post process buffer
-                window.location.href = `order-success.html?orderNum=${resData.orderNum}&name=${encodeURIComponent(payload.name)}&time=${pickupMins}&amt=${payload.finalAmount}&qty=${state.quantity}`;
+                const chargedAmount = (resData.order && resData.order.finalAmount) || payload.finalAmount;
+                window.location.href = `order-success.html?orderNum=${resData.orderNum}&name=${encodeURIComponent(payload.name)}&time=${pickupMins}&amt=${chargedAmount}&qty=${state.quantity}`;
             } else {
                 alert('Error submitting order: ' + (resData.error || 'Unknown error'));
             }
@@ -1797,7 +1816,8 @@ function setupEvents() {
 async function init() {
     cacheElements();
     setupEvents();
-    applyProductTypeConstraints();
+
+    const filamentPromise = loadFilamentColours();
     
     // Fetch active batches from server
     try {
@@ -1813,7 +1833,9 @@ async function init() {
     } catch (err) {
         console.error('Failed to load active batches from server:', err);
     }
-    
+
+    applyFilamentCatalogue(await filamentPromise);
+    applyProductTypeConstraints();
     renderFontList();
     renderColorSwatches();
     setupFontStripNav();

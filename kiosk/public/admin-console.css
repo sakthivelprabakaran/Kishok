@@ -477,6 +477,7 @@ body:has(.studio) {
 }
 
 .ctrl-swatch {
+  position: relative;
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -484,6 +485,24 @@ body:has(.studio) {
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
   padding: 0;
+}
+
+.ctrl-swatch.made-to-order::after {
+    content: "2–3d";
+    position: absolute;
+    right: -7px;
+    top: -7px;
+    padding: 1px 3px;
+    border-radius: 99px;
+    background: #f59e0b;
+    color: #111827;
+    font-size: 8px;
+    font-weight: 800;
+}
+
+.ctrl-swatch.historical-colour {
+    outline: 2px dashed #f59e0b;
+    outline-offset: 2px;
 }
 
 .ctrl-swatch:hover {

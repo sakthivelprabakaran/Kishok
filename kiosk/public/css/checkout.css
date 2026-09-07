@@ -121,6 +121,7 @@
 }
 .co-line-name { color: var(--text-main); font-size: 0.9rem; overflow-wrap: anywhere; }
 .co-line-qty { color: var(--text-muted); font-size: 0.85rem; font-weight: 700; flex: 0 0 auto; }
+.co-line-qty.batch-saving-note { color: #087f5b; }
 
 /* ── Unpaid notice ──
    Blush rather than red: this is information, not an error. It must be

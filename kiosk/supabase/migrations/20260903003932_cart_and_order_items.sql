@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Kootzy — shopping cart
 --
--- Run AFTER 002-accounts-and-shipping.sql. Idempotent, additive.
+-- Run AFTER 20260903003457_accounts_and_shipping.sql. Idempotent, additive.
 --
 -- WHY THESE SHAPES
 --

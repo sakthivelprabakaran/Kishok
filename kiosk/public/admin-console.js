@@ -4,6 +4,11 @@
    ========================================= */
 
 import { KeychainViewer } from './js/viewer3d.js?v=wa6';
+import {
+    FALLBACK_FILAMENT_COLOURS,
+    MADE_TO_ORDER_NOTICE,
+    loadFilamentColours,
+} from './js/filament-catalog.js?v=k1';
 
 // ===== FONT & COLOR DATA (mirrors script.js) =====
 
@@ -61,39 +66,19 @@ const LOVESERIES_TOP_FONT_ALLOWLIST = ['OleoScript', 'Brandy', 'Sunday Chillin']
 const TILEKEY_FONT_ALLOWLIST = ['BagelFatOne', 'Super Bubble', 'Rock Boys', 'CANAVAR'];
 const TILEKEY_DEFAULT_FONT = 'BagelFatOne';
 
+function studioPalette(colours) {
+    return colours.map((colour) => ({
+        hex: colour.hex,
+        label: colour.name,
+        state: colour.state,
+    }));
+}
+
+const studioFallbackPalette = studioPalette(FALLBACK_FILAMENT_COLOURS);
 const COLOR_PALETTES = {
-    base: [
-        { hex: '#ff9933', label: 'Orange' },
-        { hex: '#7b2fff', label: 'Purple' },
-        { hex: '#3A88FE', label: 'Blue' },
-        { hex: '#FF6251', label: 'Red' },
-        { hex: '#7ed957', label: 'Green' },
-        { hex: '#ff61a6', label: 'Pink' },
-        { hex: '#FFD700', label: 'Gold' },
-        { hex: '#000000', label: 'Black' },
-        { hex: '#FFFFFF', label: 'White' },
-    ],
-    font: [
-        { hex: '#FFFFFF', label: 'White' },
-        { hex: '#000000', label: 'Black' },
-        { hex: '#FFD700', label: 'Gold' },
-        { hex: '#ff9933', label: 'Orange' },
-        { hex: '#7b2fff', label: 'Purple' },
-        { hex: '#3A88FE', label: 'Blue' },
-        { hex: '#FF6251', label: 'Red' },
-        { hex: '#7ed957', label: 'Green' },
-        { hex: '#ff61a6', label: 'Pink' },
-    ],
-    outline: [
-        { hex: '#000000', label: 'Black' },
-        { hex: '#FFFFFF', label: 'White' },
-        { hex: '#7b2fff', label: 'Purple' },
-        { hex: '#ff9933', label: 'Orange' },
-        { hex: '#FFD700', label: 'Gold' },
-        { hex: '#3A88FE', label: 'Blue' },
-        { hex: '#FF6251', label: 'Red' },
-        { hex: '#7ed957', label: 'Green' },
-    ],
+    base: [...studioFallbackPalette],
+    font: [...studioFallbackPalette],
+    outline: [...studioFallbackPalette],
 };
 
 // ===== PRESETS =====
@@ -448,6 +433,23 @@ function selectFont(index, skipRender = false, isBottom = false) {
 
 // ===== BUILD COLOR SWATCHES =====
 
+function applyStudioFilamentCatalogue(colours) {
+    const palette = studioPalette(colours && colours.length ? colours : FALLBACK_FILAMENT_COLOURS);
+    for (const type of Object.keys(COLOR_PALETTES)) {
+        COLOR_PALETTES[type] = [...palette];
+        const selectedHex = String(state.colors[type] || '').toUpperCase();
+        if (selectedHex && !COLOR_PALETTES[type].some((item) => item.hex.toUpperCase() === selectedHex)) {
+            // Existing orders must remain reproducible even after an operator
+            // hides that colour from new storefront designs.
+            COLOR_PALETTES[type].push({
+                hex: state.colors[type],
+                label: 'Historical order colour',
+                state: 'unavailable',
+            });
+        }
+    }
+}
+
 function buildSwatches() {
     const targets = {
         base:    $('adminBaseSwatches'),
@@ -463,9 +465,14 @@ function buildSwatches() {
         COLOR_PALETTES[type].forEach(item => {
             const swatch = document.createElement('div');
             const currentColor = (state.colors[type] || '').toUpperCase();
-            swatch.className = 'ctrl-swatch' + (currentColor === item.hex.toUpperCase() ? ' active' : '');
+            swatch.className = 'ctrl-swatch'
+                + (item.state === 'made_to_order' ? ' made-to-order' : '')
+                + (item.state === 'unavailable' ? ' historical-colour' : '')
+                + (currentColor === item.hex.toUpperCase() ? ' active' : '');
             swatch.style.backgroundColor = item.hex;
-            swatch.title = item.label;
+            swatch.title = item.label
+                + (item.state === 'made_to_order' ? ` — ${MADE_TO_ORDER_NOTICE}` : '')
+                + (item.state === 'unavailable' ? ' — hidden from new storefront designs' : '');
 
             // White swatch needs inner border
             if (item.hex === '#FFFFFF' || item.hex === '#fff' || item.hex.toUpperCase() === '#FFFFFF') {
@@ -1984,7 +1991,7 @@ function parseURLParameters() {
 
 // ===== INIT =====
 
-function init() {
+async function init() {
     // Initialize viewer
     initViewer();
 
@@ -1993,6 +2000,8 @@ function init() {
 
     // Parse URL parameters to override saved state
     parseURLParameters();
+
+    applyStudioFilamentCatalogue(await loadFilamentColours());
 
     // Build UI
     buildFontChips();

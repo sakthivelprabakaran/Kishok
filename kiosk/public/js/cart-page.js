@@ -82,6 +82,12 @@ function lineNode(item) {
 
     info.append(name, text);
     if (fontName) info.appendChild(font);
+    if (item.batchOffer && Number(item.batchOffer.savings) > 0) {
+        const saving = document.createElement('p');
+        saving.className = 'cart-line-meta batch-saving-note';
+        saving.textContent = `${item.batchOffer.name}: saving ${rupees(item.batchOffer.savings)} each`;
+        info.appendChild(saving);
+    }
     info.appendChild(swatches);
 
     const controls = document.createElement('div');

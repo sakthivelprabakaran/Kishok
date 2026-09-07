@@ -33,11 +33,14 @@ const MODULES = [
     'js/checkout-page.js',
     'js/cart-badge.js',
     'js/pricing.js',
+    'js/batch-offers.js',
+    'js/filament-catalog.js',
     'js/product-labels.js',
     'js/order-status.js',
     'js/my-orders-page.js',
     'js/legal-details.js',
     'js/landing-reel.js',
+    'js/admin-dashboard.js',
     'admin-console.js',
 ];
 
@@ -66,8 +69,8 @@ for (const rel of MODULES) {
  * says 1, cart page empty". Every shared module must be imported with exactly
  * one version token everywhere.
  */
-const SHARED = ['cart', 'auth', 'supabase-config', 'auth-boot', 'pricing',
-    'product-labels', 'order-status'];
+const SHARED = ['cart', 'auth', 'supabase-config', 'auth-boot', 'pricing', 'batch-offers',
+    'filament-catalog', 'product-labels', 'order-status'];
 const seen = {};
 const scanFiles = [
     ...fs.readdirSync(path.join(ROOT, 'js')).filter((f) => f.endsWith('.js')).map((f) => 'js/' + f),

@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/kiosk.css?v=kootzy1">
-    <link rel="stylesheet" href="css/admin.css?v=admin2">
+    <link rel="stylesheet" href="css/admin.css?v=admin3">
 </head>
 <body>
     <!-- PIN LOGIN GATE -->
@@ -41,14 +41,23 @@
             </div>
         </header>
 
+        <nav class="admin-tabs" aria-label="Admin sections">
+            <button class="admin-tab active" data-admin-tab="overview">Overview</button>
+            <button class="admin-tab" data-admin-tab="orders">Orders</button>
+            <button class="admin-tab" data-admin-tab="production">Production</button>
+            <button class="admin-tab" data-admin-tab="filament">Filament</button>
+            <button class="admin-tab" data-admin-tab="batches">Batch Offers</button>
+            <button class="admin-tab" data-admin-tab="customers">Customers</button>
+        </nav>
+
         <!-- Stats Grid -->
-        <section class="stats-grid">
+        <section class="stats-grid" data-admin-panel="overview">
             <div class="stat-card">
-                <span class="stat-label">Total Orders</span>
+                <span class="stat-label">Orders in range</span>
                 <span class="stat-value" id="statOrders">0</span>
             </div>
             <div class="stat-card">
-                <span class="stat-label">Total Revenue</span>
+                <span class="stat-label">Revenue in range</span>
                 <span class="stat-value" id="statRevenue">₹0</span>
             </div>
             <div class="stat-card accent-card">
@@ -58,7 +67,7 @@
         </section>
 
         <!-- Production Queue grouped by colour combo -->
-        <section class="queue-section">
+        <section class="queue-section" data-admin-panel="production" hidden>
             <div class="panel-header-row">
                 <h3>🖨️ Production Queue — by Colour</h3>
                 <button class="refresh-btn" id="btnSummary">📊 Day Summary</button>
@@ -69,12 +78,73 @@
             </div>
         </section>
 
+        <section class="filament-section" data-admin-panel="filament" hidden>
+            <div class="panel-header-row">
+                <div>
+                    <h3>Filament Inventory</h3>
+                    <p class="panel-desc">Control storefront colours and manually track each spool lot.</p>
+                </div>
+                <button class="refresh-btn" id="btnFilamentsRefresh">Refresh stock</button>
+            </div>
+            <div class="filament-fixed-note">
+                Made-to-order colours remain selectable and always show “Ships in 2–3 days”. Unavailable colours are hidden from new designs.
+            </div>
+            <div class="filament-message" id="filamentMessage" hidden></div>
+            <form class="filament-add-colour" id="filamentColourForm">
+                <label>
+                    Colour name
+                    <input id="newFilamentName" maxlength="50" required placeholder="e.g. Teal">
+                </label>
+                <label>
+                    HEX
+                    <input id="newFilamentHex" type="color" value="#00B5C8" required>
+                </label>
+                <label>
+                    Storefront
+                    <select id="newFilamentState">
+                        <option value="available">Available</option>
+                        <option value="made_to_order">Made to order</option>
+                        <option value="unavailable">Unavailable</option>
+                    </select>
+                </label>
+                <label>
+                    Sort
+                    <input id="newFilamentSort" type="number" min="0" max="100000" value="100">
+                </label>
+                <button class="add-batch-btn" type="submit">Add colour</button>
+            </form>
+            <div class="filament-list" id="filamentList">
+                <div class="empty-state">Loading filament inventory…</div>
+            </div>
+        </section>
+
         <div class="admin-content-layout">
             <!-- Left: Orders List -->
-            <section class="orders-section">
+            <section class="orders-section" data-admin-panel="orders" hidden>
                 <div class="panel-header-row">
                     <h3>Incoming Order Feed</h3>
                     <button class="refresh-btn" id="btnRefresh">🔄 Refresh</button>
+                </div>
+                <div class="order-range-controls">
+                    <label>
+                        Date range
+                        <select id="dateRangeFilter">
+                            <option value="today">Today</option>
+                            <option value="7d">Last 7 days</option>
+                            <option value="30d" selected>Last 30 days</option>
+                            <option value="all">All time</option>
+                            <option value="custom">Custom dates</option>
+                        </select>
+                    </label>
+                    <label class="custom-date-filter" id="customFromField" hidden>
+                        From
+                        <input id="dateFrom" type="date">
+                    </label>
+                    <label class="custom-date-filter" id="customToField" hidden>
+                        To
+                        <input id="dateTo" type="date">
+                    </label>
+                    <button class="refresh-btn custom-date-filter" id="btnApplyDateRange" type="button" hidden>Apply dates</button>
                 </div>
                 <div class="order-filters">
                     <input type="text" id="searchInput" placeholder="🔍 Search name / phone / order # / text">
@@ -82,18 +152,42 @@
                         <option value="all">All statuses</option>
                         <option value="Pending">Pending</option>
                         <option value="Verified">Verified (to print)</option>
+                        <option value="Processing">In production</option>
+                        <option value="QCHold">QC hold</option>
+                        <option value="QCPassed">QC passed</option>
+                        <option value="Packed">Packed</option>
                         <option value="Printed">Printed</option>
                         <option value="PickedUp">Picked Up</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
                     </select>
+                    <select id="fulfilmentFilter">
+                        <option value="all">All fulfilment</option>
+                        <option value="pickup">Pickup</option>
+                        <option value="ship">Shipping</option>
+                    </select>
+                    <select id="productFilter">
+                        <option value="all">All products</option>
+                    </select>
+                    <select id="sortOrder">
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                        <option value="amount_desc">Amount: high to low</option>
+                        <option value="amount_asc">Amount: low to high</option>
+                        <option value="items_desc">Most items first</option>
+                    </select>
+                    <button class="filter-reset-btn" id="btnClearOrderFilters" type="button">Clear filters</button>
                 </div>
 
+                <div class="order-results-meta" id="orderResultsMeta">Loading order history...</div>
                 <div class="order-list" id="orderList">
                     <div class="empty-state">Loading orders...</div>
                 </div>
             </section>
 
             <!-- Right: Active Batches Panel -->
-            <section class="batches-section">
+            <section class="batches-section" data-admin-panel="batches" hidden>
                 <div class="panel-header-row">
                     <h3>Active Printing Batches</h3>
                 </div>
@@ -125,11 +219,23 @@
                 </div>
             </section>
         </div>
+
+        <section class="customers-section" data-admin-panel="customers" hidden>
+            <div class="panel-header-row">
+                <div>
+                    <h3>Customers in selected orders</h3>
+                    <p class="panel-desc" id="customersRangeLabel">Repeated purchases are grouped by phone number for the selected date range.</p>
+                </div>
+            </div>
+            <div class="customers-list" id="customersList">
+                <div class="empty-state">Loading customers…</div>
+            </div>
+        </section>
     </div>
 
     <!-- Hidden Audio element for chime -->
     <audio id="orderChime" src="https://assets.mixkit.co/active_storage/sfx/911/911-200.wav" preload="auto"></audio>
 
-    <script type="module" src="js/admin-dashboard.js?v=admin3"></script>
+    <script type="module" src="js/admin-dashboard.js?v=admin5"></script>
 </body>
 </html>

@@ -175,6 +175,10 @@ async function render() {
         const qty = document.createElement('span');
         qty.className = 'co-line-qty';
         qty.textContent = '×' + item.quantity;
+        if (item.batchOffer && Number(item.batchOffer.savings) > 0) {
+            qty.textContent += ` · save ${rupees(item.batchOffer.savings * item.quantity)}`;
+            qty.classList.add('batch-saving-note');
+        }
 
         li.append(name, qty);
         el.lines.appendChild(li);

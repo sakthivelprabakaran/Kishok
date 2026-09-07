@@ -1,6 +1,7 @@
 import { json, fail, guard, readJson, requireCustomer } from '../../shared/http.js';
-import { db, authUser, rowToOrder } from '../../shared/db.js';
-import { priceOrder } from '../../public/js/pricing.js';
+import { db, authUser, rowToBatch, rowToOrder } from '../../shared/db.js';
+import { priceLine, priceOrder, RATES } from '../../public/js/pricing.js';
+import { findBatchDiscount } from '../../public/js/batch-offers.js';
 
 /* POST /api/checkout — turn the signed-in customer's cart into an order.
  *
@@ -80,17 +81,43 @@ export const onRequestPost = guard(async ({ request, env }) => {
     }
 
     /* ── Price server-side. The client's numbers are never consulted. ── */
-    const quote = priceOrder(cartRows.map((r) => ({
-        productType: r.product_type,
-        text: r.text_value,
-        design: r.design || {},
-        preview: r.preview || '',
-        quantity: Number(r.quantity),
-        weightG: Number(r.weight_g),
-    })));
+    const admin = db(env);
+    let batches = [];
+    try {
+        const rows = await admin.select('batches', 'select=*&order=updated_at.desc');
+        batches = (rows || []).map(rowToBatch);
+    } catch (err) {
+        console.error('checkout batch lookup failed:', err.message);
+    }
+
+    const pricedInputs = cartRows.map((r) => {
+        const design = {
+            ...((r.design && typeof r.design === 'object') ? r.design : {}),
+        };
+        delete design.batchOffer;
+
+        const line = {
+            productType: r.product_type,
+            text: r.text_value,
+            design,
+            preview: r.preview || '',
+            quantity: Number(r.quantity),
+            weightG: Number(r.weight_g),
+        };
+        const offer = findBatchDiscount(line, batches, priceLine, RATES.DEFAULT_BATCH_SIZE);
+        if (offer) design.batchOffer = offer;
+        return {
+            ...line,
+            batchSize: offer ? offer.batchSize : RATES.DEFAULT_BATCH_SIZE,
+        };
+    });
+    const quote = priceOrder(pricedInputs);
+    const batchSavings = pricedInputs.reduce((sum, line) => {
+        const offer = line.design && line.design.batchOffer;
+        return sum + (offer ? offer.savings * line.quantity : 0);
+    }, 0);
 
     /* ── Write the order with service_role: these columns are server-owned ── */
-    const admin = db(env);
     const first = quote.lines[0];
 
     // public.orders keeps the kiosk's single-design columns; the first line
@@ -177,6 +204,7 @@ export const onRequestPost = guard(async ({ request, env }) => {
             shippingFee: quote.shippingFee,
             total: quote.total,
             itemCount: quote.itemCount,
+            batchSavings,
         },
     }, 201);
 });

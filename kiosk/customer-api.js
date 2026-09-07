@@ -155,11 +155,49 @@ module.exports = function mountCustomerRoutes(app, deps) {
     };
   }
 
+  async function serverPricedCartItems(rows) {
+    const items = (rows || []).map(cartRowToItem);
+    try {
+      const [{ priceLine, RATES }, { findBatchDiscount }] = await Promise.all([
+        import('./public/js/pricing.js'),
+        import('./public/js/batch-offers.js'),
+      ]);
+      let batches = [];
+      try {
+        const batchRows = await supabaseAdmin('GET', 'batches?select=*&order=updated_at.desc');
+        batches = (Array.isArray(batchRows) ? batchRows : []).map((r) => ({
+          id: r.id,
+          baseColor: r.base_color,
+          fontColor: r.font_color,
+          name: r.name,
+          count: Number(r.count),
+        }));
+      } catch (batchErr) {
+        console.error('cart batch lookup failed:', batchErr.message);
+      }
+
+      return items.map((item) => {
+        const offer = findBatchDiscount(item, batches, priceLine, RATES.DEFAULT_BATCH_SIZE);
+        const priced = priceLine({
+          weightG: item.weightG,
+          quantity: 1,
+          batchSize: offer ? offer.batchSize : RATES.DEFAULT_BATCH_SIZE,
+        });
+        return { ...item, unitPrice: priced.unitPrice, batchOffer: offer || null };
+      });
+    } catch (err) {
+      // The checkout path still prices authoritatively. Keep the cart readable
+      // if a display-only pricing import ever fails.
+      console.error('cart display pricing failed:', err.message);
+      return items;
+    }
+  }
+
   app.get('/api/cart', async (req, res) => {
     try {
       const token = requireCustomerToken(req);
       const rows = await supabaseRest(token, 'GET', `cart_items?select=${CART_SELECT}&order=created_at.desc`);
-      const items = Array.isArray(rows) ? rows.map(cartRowToItem) : [];
+      const items = await serverPricedCartItems(Array.isArray(rows) ? rows : []);
       return res.json({
         items,
         count: items.reduce((n, i) => n + i.quantity, 0),
@@ -365,16 +403,51 @@ module.exports = function mountCustomerRoutes(app, deps) {
       }
 
       let quote;
+      let batchSavings = 0;
       try {
-        const { priceOrder } = await import('./public/js/pricing.js');
-        quote = priceOrder(cartRows.map((r) => ({
-          productType: r.product_type,
-          text: r.text_value,
-          design: r.design || {},
-          preview: r.preview || '',
-          quantity: Number(r.quantity),
-          weightG: Number(r.weight_g),
-        })));
+        const [{ priceLine, priceOrder, RATES }, { findBatchDiscount }] = await Promise.all([
+          import('./public/js/pricing.js'),
+          import('./public/js/batch-offers.js'),
+        ]);
+        let batches = [];
+        try {
+          const batchRows = await supabaseAdmin('GET', 'batches?select=*&order=updated_at.desc');
+          batches = (Array.isArray(batchRows) ? batchRows : []).map((r) => ({
+            id: r.id,
+            baseColor: r.base_color,
+            fontColor: r.font_color,
+            name: r.name,
+            count: Number(r.count),
+          }));
+        } catch (batchErr) {
+          console.error('checkout batch lookup failed:', batchErr.message);
+        }
+
+        const pricedInputs = cartRows.map((r) => {
+          const design = {
+            ...((r.design && typeof r.design === 'object') ? r.design : {}),
+          };
+          delete design.batchOffer;
+          const line = {
+            productType: r.product_type,
+            text: r.text_value,
+            design,
+            preview: r.preview || '',
+            quantity: Number(r.quantity),
+            weightG: Number(r.weight_g),
+          };
+          const offer = findBatchDiscount(line, batches, priceLine, RATES.DEFAULT_BATCH_SIZE);
+          if (offer) design.batchOffer = offer;
+          return {
+            ...line,
+            batchSize: offer ? offer.batchSize : RATES.DEFAULT_BATCH_SIZE,
+          };
+        });
+        quote = priceOrder(pricedInputs);
+        batchSavings = pricedInputs.reduce((sum, line) => {
+          const offer = line.design && line.design.batchOffer;
+          return sum + (offer ? offer.savings * line.quantity : 0);
+        }, 0);
       } catch (priceErr) {
         // Pricing must NEVER silently degrade: the old fallback used the cart's
         // cached unit_price, which is a client-supplied number — a deploy
@@ -465,6 +538,7 @@ module.exports = function mountCustomerRoutes(app, deps) {
           shippingFee: quote.shippingFee,
           total: quote.total,
           itemCount: quote.itemCount,
+          batchSavings,
         },
       });
     } catch (err) {

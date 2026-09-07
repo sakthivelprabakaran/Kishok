@@ -103,6 +103,7 @@
     overflow-wrap: anywhere;            /* customer text can be a single long run */
 }
 .cart-line-meta { margin: 0.15rem 0 0; color: var(--text-muted); font-size: 0.8rem; }
+.batch-saving-note { color: #087f5b; font-weight: 800; }
 
 .cart-swatches { display: flex; gap: 4px; margin-top: 0.45rem; }
 .cart-swatch {

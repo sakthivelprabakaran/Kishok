@@ -1,5 +1,7 @@
 import { json, fail, guard, readJson, requireCustomer } from '../../shared/http.js';
-import { db } from '../../shared/db.js';
+import { db, rowToBatch } from '../../shared/db.js';
+import { priceLine, RATES } from '../../public/js/pricing.js';
+import { findBatchDiscount } from '../../public/js/batch-offers.js';
 
 /* Cart, owned by the signed-in customer.
  *
@@ -53,12 +55,37 @@ function rowToItem(r) {
 }
 
 /* GET /api/cart — the signed-in customer's cart. */
+async function serverPricedItems(env, rows) {
+    let batches = [];
+    try {
+        const batchRows = await db(env).select('batches', 'select=*&order=updated_at.desc');
+        batches = (batchRows || []).map(rowToBatch);
+    } catch (err) {
+        console.error('cart batch lookup failed:', err.message);
+    }
+
+    return (rows || []).map((row) => {
+        const item = rowToItem(row);
+        const offer = findBatchDiscount(item, batches, priceLine, RATES.DEFAULT_BATCH_SIZE);
+        const priced = priceLine({
+            weightG: item.weightG,
+            quantity: 1,
+            batchSize: offer ? offer.batchSize : RATES.DEFAULT_BATCH_SIZE,
+        });
+        return {
+            ...item,
+            unitPrice: priced.unitPrice,
+            batchOffer: offer || null,
+        };
+    });
+}
+
 export const onRequestGet = guard(async ({ request, env }) => {
     const auth = requireCustomer(request);
     if (auth instanceof Response) return auth;
 
     const rows = await db(env, auth).select('cart_items', SELECT);
-    const items = Array.isArray(rows) ? rows.map(rowToItem) : [];
+    const items = await serverPricedItems(env, Array.isArray(rows) ? rows : []);
     return json({
         items,
         count: items.reduce((n, i) => n + i.quantity, 0),

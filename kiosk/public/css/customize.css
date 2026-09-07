@@ -637,6 +637,32 @@ body {
     box-shadow: 0 0 0 2px var(--bg-panel), 0 0 0 4px var(--text-main);
 }
 
+.swatch.made-to-order::before {
+    content: "2–3d";
+    position: absolute;
+    right: -7px;
+    top: -8px;
+    z-index: 2;
+    padding: 1px 4px;
+    border: 1px solid var(--text-main);
+    border-radius: 99px;
+    background: var(--bg-panel);
+    color: var(--text-main);
+    font-size: 0.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.filament-availability-notice {
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #d97706;
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+    font-size: 0.75rem;
+    font-weight: 750;
+}
+
 .swatch.selected::after {
     content: "✓";
     position: absolute;

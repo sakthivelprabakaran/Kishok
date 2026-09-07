@@ -204,6 +204,23 @@ export function rowToOrder(r) {
     };
 }
 
+export function rowToOrderItem(r) {
+    return {
+        id: Number(r.id),
+        orderNum: r.order_num,
+        productType: r.product_type,
+        text: r.text_value,
+        quantity: Number(r.quantity) || 1,
+        design: r.design || {},
+        preview: r.preview || '',
+        unitPrice: Number(r.unit_price) || 0,
+        lineTotal: Number(r.line_total) || 0,
+        weightG: Number(r.weight_g) || 0,
+        productionStatus: r.production_status || 'queued',
+        productionUpdatedAt: r.production_updated_at || '',
+    };
+}
+
 const ALLOWED_BACKINGS = ['none', 'solid', 'hollow'];
 
 export function orderToRow(o) {
@@ -232,6 +249,7 @@ export function orderToRow(o) {
 
 export function rowToBatch(r) {
     return {
+        id:        r.id,
         baseColor: r.base_color,
         fontColor: r.font_color,
         name:      r.name,

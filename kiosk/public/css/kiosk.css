@@ -470,9 +470,35 @@ body::before {
     margin-bottom: 1.5rem;
 }
 .banner-icon { font-size: 1.25rem; }
-.banner-text { display: flex; flex-direction: column; gap: 0.15rem; }
+.banner-text { display: flex; flex: 1; flex-direction: column; gap: 0.3rem; }
 .banner-title { font-weight: 800; font-size: 0.9rem; color: var(--accent); }
 .banner-desc { font-size: 0.82rem; color: var(--text-main); line-height: 1.35; }
+.batch-offer-links { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.25rem; }
+.batch-offer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: fit-content;
+    min-height: 38px;
+    padding: 0.4rem 0.65rem;
+    border: 1.5px solid var(--text-main);
+    border-radius: 10px;
+    background: var(--bg-panel);
+    color: var(--text-main);
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+.batch-offer-swatches { display: inline-flex; }
+.batch-offer-swatch {
+    display: block;
+    width: 17px;
+    height: 17px;
+    margin-left: -3px;
+    border: 1px solid var(--text-main);
+    border-radius: 50%;
+}
+.batch-offer-swatch:first-child { margin-left: 0; }
 
 /* Category Tabs */
 .category-tabs {

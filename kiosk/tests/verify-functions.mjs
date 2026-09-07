@@ -13,6 +13,11 @@ const cart = await import('../functions/api/cart.js');
 const checkout = await import('../functions/api/checkout.js');
 const quickOrder = await import('../functions/api/order/index.js');
 const myOrders = await import('../functions/api/my-orders.js');
+const filamentColours = await import('../functions/api/filament-colours.js');
+const adminFilaments = await import('../functions/api/admin/filaments.js');
+const orderHistory = await import('../functions/api/orders/index.js');
+const ordersToday = await import('../functions/api/orders/today.js');
+const orderItem = await import('../functions/api/order-item/[id].js');
 
 let stub;
 function reset() {
@@ -33,8 +38,8 @@ function req(method, path, { headers = {}, body } = {}) {
     });
 }
 
-async function call(handler, request) {
-    const res = await handler({ request, env: ENV });
+async function call(handler, request, params) {
+    const res = await handler({ request, env: ENV, params });
     let data = null;
     try { data = await res.json(); } catch (_) { /* empty body */ }
     return { status: res.status, data };
@@ -198,10 +203,44 @@ check('order_items failure -> 500 and the order is cancelled, not orphaned',
 check('cart is preserved when checkout fails', stub.tables.cart_items.length === 2);
 
 /* ═══ quick order (kiosk path) ═══ */
+reset();
+stub.tables.batches.push({
+    id: 900,
+    base_color: '#FF6251',
+    font_color: '#FFFFFF',
+    name: 'RED/WHITE',
+    count: 10,
+    updated_at: '2026-01-01',
+});
+await call(cart.onRequestPost, req('POST', '/api/cart', {
+    headers: AUTH_A,
+    body: {
+        ...VALID_ITEM,
+        weightG: 20,
+        design: {
+            layers: '2L',
+            colors: { base: '#FF6251', font: '#FFFFFF' },
+        },
+    },
+}));
+r = await call(cart.onRequestGet, req('GET', '/api/cart', { headers: AUTH_A }));
+check('cart exposes only a server-verified Classic batch saving',
+    r.status === 200
+    && r.data.items[0].unitPrice === 103
+    && r.data.items[0].batchOffer.savings === 4,
+    JSON.stringify(r.data.items[0] && [r.data.items[0].unitPrice, r.data.items[0].batchOffer]));
+r = await call(checkout.onRequestPost, req('POST', '/api/checkout', {
+    headers: AUTH_A,
+    body: { contactName: 'Priya', contactPhone: '9999999999' },
+}));
+check('checkout revalidates and applies the same batch saving',
+    r.status === 201 && r.data.totals.total === 103 && r.data.totals.batchSavings === 4,
+    JSON.stringify(r.data.totals));
+
 console.log('\n-- quick order --');
 reset();
 r = await call(quickOrder.onRequestPost, req('POST', '/api/order',
-    { body: { name: 'Walkup', phone: '9999999999', productType: 'keychain', text: 'Hi', weightG: 20, finalAmount: 1 } }));
+    { body: { name: 'Walkup', phone: '9999999999', productType: 'keychain', text: 'Hi', weightG: 20, finalAmount: 1, batchSize: 100 } }));
 check('kiosk order overwrites the client price', r.status === 201
     && Number(stub.tables.orders[0].final_amount) === 107,
     `stored ₹${stub.tables.orders[0].final_amount}`);
@@ -213,6 +252,179 @@ check('kiosk order clamps a weight lie to the billable floor',
     `stored ₹${stub.tables.orders[1].final_amount}`);
 
 /* ═══ my-orders ═══ */
+stub.tables.batches.push({
+    id: 901,
+    base_color: '#FF6251',
+    font_color: '#FFFFFF',
+    name: 'RED/WHITE',
+    count: 10,
+    updated_at: '2026-01-01',
+});
+r = await call(quickOrder.onRequestPost, req('POST', '/api/order', {
+    body: {
+        name: 'Batch',
+        phone: '9999999999',
+        productType: 'keychain',
+        text: 'Hi',
+        layers: '2L',
+        baseColor: '#FF6251',
+        fontColor: '#FFFFFF',
+        weightG: 20,
+        batchSize: 1,
+    },
+}));
+check('kiosk server derives an eligible batch instead of trusting batchSize',
+    r.status === 201
+    && Number(stub.tables.orders[2].final_amount) === 103
+    && Number(stub.tables.orders[2].batch_size) === 10,
+    JSON.stringify([stub.tables.orders[2].final_amount, stub.tables.orders[2].batch_size]));
+r = await call(quickOrder.onRequestPost, req('POST', '/api/order', {
+    body: {
+        name: 'Word Art',
+        phone: '9999999999',
+        productType: 'wordart',
+        text: 'Hi/LOVE',
+        layers: '2L',
+        baseColor: '#FF6251',
+        fontColor: '#FFFFFF',
+        weightG: 20,
+        batchSize: 100,
+    },
+}));
+check('Word Art cannot claim a Classic Keychain batch',
+    r.status === 201 && Number(stub.tables.orders[3].final_amount) === 107,
+    `stored ${stub.tables.orders[3].final_amount}`);
+
+stub.tables.order_items.push(
+    {
+        id: 501, order_num: stub.tables.orders[0].order_num, product_type: 'keychain',
+        text_value: 'First', quantity: 1, design: { colors: { base: '#FF9933', font: '#FFFFFF' } },
+        unit_price: 107, line_total: 107, weight_g: 20, production_status: 'queued',
+    },
+    {
+        id: 502, order_num: stub.tables.orders[0].order_num, product_type: 'wordart',
+        text_value: 'Second/Line', quantity: 1, design: { colors: { base: '#000000', font: '#FFD700' } },
+        unit_price: 150, line_total: 150, weight_g: 30, production_status: 'printing',
+    },
+);
+stub.tables.orders.push({
+    ...stub.tables.orders[0],
+    id: 999,
+    order_num: '0999',
+    created_at: '2020-01-01T05:00:00.000Z',
+    customer_name: 'Historical Customer',
+});
+r = await call(ordersToday.onRequestGet,
+    req('GET', '/api/orders/today', { headers: { 'x-admin-pin': ENV.ADMIN_PIN } }));
+const groupedOrder = r.data.find((order) => order.orderNum === stub.tables.orders[0].order_num);
+check('today endpoint groups multiple products under one order',
+    r.status === 200 && groupedOrder && groupedOrder.items.length === 2
+    && groupedOrder.items.map((item) => item.text).join('|') === 'First|Second/Line');
+
+r = await call(orderHistory.onRequestGet, req('GET', '/api/orders?range=all'));
+check('order history requires PIN', r.status === 401);
+
+r = await call(orderHistory.onRequestGet,
+    req('GET', '/api/orders', { headers: { 'x-admin-pin': ENV.ADMIN_PIN } }));
+check('order history defaults to 30 days and excludes old orders',
+    r.status === 200 && r.data.range.range === '30d'
+    && !r.data.orders.some((order) => order.orderNum === '0999'));
+
+r = await call(orderHistory.onRequestGet,
+    req('GET', '/api/orders?range=all', { headers: { 'x-admin-pin': ENV.ADMIN_PIN } }));
+check('all-time order history includes earlier orders',
+    r.status === 200 && r.data.orders.some((order) => order.orderNum === '0999'));
+
+r = await call(orderHistory.onRequestGet,
+    req('GET', '/api/orders?range=custom&from=2020-01-02&to=2020-01-01',
+        { headers: { 'x-admin-pin': ENV.ADMIN_PIN } }));
+check('invalid custom order range returns 400', r.status === 400);
+
+r = await call(orderItem.onRequestPatch,
+    req('PATCH', '/api/order-item/501', {
+        headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+        body: { productionStatus: 'printed' },
+    }), { id: '501' });
+check('admin updates one product production status independently',
+    r.status === 200 && stub.tables.order_items.find((item) => item.id === 501).production_status === 'printed');
+
+r = await call(orderItem.onRequestPatch,
+    req('PATCH', '/api/order-item/501', {
+        body: { productionStatus: 'packed' },
+    }), { id: '501' });
+check('order item production update requires PIN', r.status === 401);
+
+/* ═══ filament catalogue + inventory ═══ */
+console.log('\n-- filament inventory --');
+reset();
+stub.tables.filament_colours.push(
+    { id: 101, name: 'Orange', hex_color: '#FF9933', storefront_state: 'available', sort_order: 10 },
+    { id: 102, name: 'Teal', hex_color: '#00B5C8', storefront_state: 'made_to_order', sort_order: 20 },
+    { id: 103, name: 'Old Blue', hex_color: '#123456', storefront_state: 'unavailable', sort_order: 30 },
+);
+stub.tables.filament_spools.push(
+    { id: 201, colour_id: 101, material: 'PLA', brand: 'A', lot_code: 'L1', initial_weight_g: 1000, remaining_weight_g: 650, cost: 900, status: 'open', notes: '' },
+    { id: 202, colour_id: 101, material: 'PLA', brand: 'A', lot_code: 'L0', initial_weight_g: 1000, remaining_weight_g: 50, cost: 900, status: 'retired', notes: '' },
+);
+
+r = await call(filamentColours.onRequestGet, req('GET', '/api/filament-colours'));
+check('public colours hide unavailable records',
+    r.status === 200 && r.data.colors.length === 2
+    && !r.data.colors.some((colour) => colour.state === 'unavailable'));
+check('made-to-order colour carries the fixed promise',
+    r.data.colors.find((colour) => colour.state === 'made_to_order').notice === 'Ships in 2–3 days');
+
+r = await call(adminFilaments.onRequestGet, req('GET', '/api/admin/filaments'));
+check('filament admin requires PIN', r.status === 401);
+
+r = await call(adminFilaments.onRequestGet,
+    req('GET', '/api/admin/filaments', { headers: { 'x-admin-pin': ENV.ADMIN_PIN } }));
+check('admin sees unavailable colours and active stock total',
+    r.status === 200 && r.data.colours.length === 3
+    && r.data.colours.find((colour) => colour.id === 101).remainingWeightG === 650);
+
+r = await call(adminFilaments.onRequestPost,
+    req('POST', '/api/admin/filaments', {
+        headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+        body: { resource: 'colour', name: 'Bad', hex: 'orange', state: 'available', sortOrder: 40 },
+    }));
+check('invalid filament HEX -> 400', r.status === 400);
+
+r = await call(adminFilaments.onRequestPost,
+    req('POST', '/api/admin/filaments', {
+        headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+        body: { resource: 'colour', name: 'Pink', hex: '#ff61a6', state: 'available', sortOrder: 40 },
+    }));
+check('admin adds a normalized colour',
+    r.status === 201 && stub.tables.filament_colours.some((colour) => colour.hex_color === '#FF61A6'));
+
+r = await call(adminFilaments.onRequestPatch,
+    req('PATCH', '/api/admin/filaments', {
+        headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+        body: { resource: 'colour', id: 102, state: 'unavailable' },
+    }));
+check('admin can hide a colour without deleting it',
+    r.status === 200 && stub.tables.filament_colours.find((colour) => colour.id === 102).storefront_state === 'unavailable');
+
+r = await call(adminFilaments.onRequestPost,
+    req('POST', '/api/admin/filaments', {
+        headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+        body: {
+            resource: 'spool', colourId: 103, material: 'PLA', brand: 'New',
+            initialWeightG: 1000, remainingWeightG: 1000, status: 'sealed', cost: 850,
+        },
+    }));
+const newSpool = stub.tables.filament_spools.find((spool) => spool.colour_id === 103);
+check('admin adds a full spool lot', r.status === 201 && newSpool && newSpool.remaining_weight_g === 1000);
+
+r = await call(adminFilaments.onRequestPatch,
+    req('PATCH', '/api/admin/filaments', {
+        headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+        body: { resource: 'spool', id: newSpool.id, remainingWeightG: 725, status: 'open' },
+    }));
+check('manual spool adjustment updates grams and status',
+    r.status === 200 && newSpool.remaining_weight_g === 725 && newSpool.status === 'open');
+
 console.log('\n-- my-orders --');
 reset();
 

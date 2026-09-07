@@ -22,7 +22,15 @@ export const ENV = {
 };
 
 export function makeStub() {
-    const tables = { cart_items: [], orders: [], order_items: [], login_attempts: [], batches: [] };
+    const tables = {
+        cart_items: [],
+        orders: [],
+        order_items: [],
+        login_attempts: [],
+        batches: [],
+        filament_colours: [],
+        filament_spools: [],
+    };
     const tokens = new Map();     // jwt -> { id, email }
     let nextId = 1;
     let nextOrderNum = 1;
@@ -43,7 +51,7 @@ export function makeStub() {
         const filters = [];
         for (const [key, raw] of params.entries()) {
             if (reserved.has(key)) continue;
-            const m = /^(eq|gt|gte|lt|lte)\.(.*)$/.exec(raw);
+            const m = /^(eq|gt|gte|lt|lte|in)\.(.*)$/.exec(raw);
             if (!m) throw new Error(`stub: unsupported filter ${key}=${raw}`);
             filters.push({ column: key, op: m[1], value: m[2] });
         }
@@ -59,6 +67,10 @@ export function makeStub() {
                 case 'gte': return String(v) >= f.value;
                 case 'lt': return String(v) < f.value;
                 case 'lte': return String(v) <= f.value;
+                case 'in': {
+                    const values = f.value.replace(/^\(/, '').replace(/\)$/, '').split(',');
+                    return values.includes(String(v));
+                }
                 default: return false;
             }
         }));

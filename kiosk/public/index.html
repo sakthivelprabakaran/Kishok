@@ -147,12 +147,14 @@
         </div>
         </div><!-- /hero-zone -->
 
-        <!-- Active Batch Savings Banner -->
-        <div class="batch-savings-banner" id="batchBanner">
-            <div class="banner-icon">💡</div>
+        <!-- Verified Classic Keychain batch offers; hidden until live data proves
+             that a batch is large enough to reduce the normal unit price. -->
+        <div class="batch-savings-banner" id="batchBanner" style="display: none;">
+            <div class="banner-icon">🎨</div>
             <div class="banner-text">
-                <span class="banner-title">Batch Savings Active!</span>
-                <span class="banner-desc" id="batchPromoText">We are currently printing RED/WHITE and BLACK/WHITE. Choose these combos to save setup fees!</span>
+                <span class="banner-title">Classic Keychain batch savings</span>
+                <span class="banner-desc">Choose one of today’s verified colour combinations. Your exact saving is shown in the customizer.</span>
+                <div class="batch-offer-links" id="batchOfferLinks"></div>
             </div>
         </div>
 
@@ -382,18 +384,55 @@
         </footer>
     </div>
 
-    <script>
-        // Fetch active printing batches to display live savings notice
+    <script type="module">
+        import { isDiscountBatch } from './js/batch-offers.js?v=k1';
+
+        function batchOfferLink(batch) {
+            const link = document.createElement('a');
+            const params = new URLSearchParams({
+                type: 'keychain',
+                layers: batch.fontColor.includes('/') ? '3L' : '2L',
+                base: batch.baseColor,
+            });
+
+            const fontParts = batch.fontColor.split('/');
+            if (fontParts.length === 2) {
+                params.set('outline', fontParts[0]);
+                params.set('font', fontParts[1]);
+            } else {
+                params.set('font', fontParts[0]);
+            }
+
+            link.className = 'batch-offer-link';
+            link.href = `customize.html?${params.toString()}`;
+
+            const swatches = document.createElement('span');
+            swatches.className = 'batch-offer-swatches';
+            [batch.baseColor, ...fontParts].forEach((hex) => {
+                const dot = document.createElement('span');
+                dot.className = 'batch-offer-swatch';
+                dot.style.backgroundColor = hex;
+                swatches.appendChild(dot);
+            });
+
+            const label = document.createElement('span');
+            label.textContent = `${batch.name} · Design Classic →`;
+            link.append(swatches, label);
+            return link;
+        }
+
+        // A batch is advertised only when it can produce a real price reduction.
         async function loadActiveBatches() {
             try {
                 const response = await fetch('/api/batches');
+                if (!response.ok) throw new Error(`Batch request failed (${response.status})`);
                 const batches = await response.json();
                 const banner = document.getElementById('batchBanner');
-                const promoText = document.getElementById('batchPromoText');
+                const links = document.getElementById('batchOfferLinks');
+                const offers = Array.isArray(batches) ? batches.filter(isDiscountBatch) : [];
                 
-                if (batches && batches.length > 0) {
-                    const batchNames = batches.map(b => b.name).join(' and ');
-                    promoText.textContent = `We are currently printing ${batchNames}. Order these color combinations to save setup fees (₹15 off per item)!`;
+                if (offers.length > 0) {
+                    links.replaceChildren(...offers.map(batchOfferLink));
                     banner.style.display = 'flex';
                 } else {
                     banner.style.display = 'none';

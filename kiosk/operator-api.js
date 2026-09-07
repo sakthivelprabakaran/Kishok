@@ -70,6 +70,56 @@ module.exports = function mountOperatorRoutes(app, deps) {
         return { start: start.toISOString(), end: end.toISOString() };
     }
 
+    function adminOrderRangeIso(query = {}, defaultRange = '30d') {
+        const ranges = new Set(['today', '7d', '30d', 'all', 'custom']);
+        const requested = String(query.range || defaultRange).trim().toLowerCase();
+        const range = ranges.has(requested) ? requested : defaultRange;
+        if (range === 'all') return { range, start: '', end: '' };
+
+        const localMidnight = (year, month, day) =>
+            new Date(Date.UTC(year, month, day) - UTC_OFFSET_MIN * 60000);
+        const parseDate = (value) => {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+            if (!match) return null;
+            const year = Number(match[1]);
+            const month = Number(match[2]) - 1;
+            const day = Number(match[3]);
+            const date = new Date(Date.UTC(year, month, day));
+            if (
+                date.getUTCFullYear() !== year
+                || date.getUTCMonth() !== month
+                || date.getUTCDate() !== day
+            ) return null;
+            return { year, month, day, value: match[0] };
+        };
+
+        if (range === 'custom') {
+            const from = parseDate(query.from);
+            const to = parseDate(query.to);
+            if (!from || !to) return { error: 'Choose valid From and To dates in YYYY-MM-DD format.' };
+            if (Date.UTC(from.year, from.month, from.day) > Date.UTC(to.year, to.month, to.day)) {
+                return { error: 'From date cannot be after To date.' };
+            }
+            return {
+                range,
+                from: from.value,
+                to: to.value,
+                start: localMidnight(from.year, from.month, from.day).toISOString(),
+                end: localMidnight(to.year, to.month, to.day + 1).toISOString(),
+            };
+        }
+
+        const nowLocal = new Date(Date.now() + UTC_OFFSET_MIN * 60000);
+        const end = localMidnight(
+            nowLocal.getUTCFullYear(),
+            nowLocal.getUTCMonth(),
+            nowLocal.getUTCDate() + 1
+        );
+        const days = range === 'today' ? 1 : range === '7d' ? 7 : 30;
+        const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+        return { range, start: start.toISOString(), end: end.toISOString() };
+    }
+
     /* Same camelCase shape the old Express API returned — admin-dashboard.js
        depends on it. Extended (not changed) with fulfilment fields so the
        dashboard can grow into shipping. */
@@ -116,6 +166,56 @@ module.exports = function mountOperatorRoutes(app, deps) {
         'Shipped', 'OutForDelivery', 'Delivered',
         'ReturnRequested', 'ReturnReceived', 'Refunded',
     ];
+    const PRODUCTION_STATUSES = ['queued', 'printing', 'printed', 'qc_hold', 'qc_passed', 'packed'];
+
+    async function filamentHelpers() {
+        return import('./shared/filaments.js');
+    }
+
+    async function filamentPayload() {
+        const helpers = await filamentHelpers();
+        const [colours, spools] = await Promise.all([
+            rest('GET', 'filament_colours?select=*&order=sort_order.asc'),
+            rest('GET', 'filament_spools?select=*&order=updated_at.desc'),
+        ]);
+        return helpers.buildFilamentAdminPayload(colours, spools);
+    }
+
+    async function loadAdminOrders(query = {}, defaultRange = '30d') {
+        const range = adminOrderRangeIso(query, defaultRange);
+        if (range.error) return range;
+
+        const statuses = [...new Set(String(query.status || '')
+            .split(',')
+            .map((status) => status.trim())
+            .filter((status) => ALLOWED_STATUS.includes(status)))];
+        const params = ['orders?select=*'];
+        if (range.start) params.push(`created_at=gte.${encodeURIComponent(range.start)}`);
+        if (range.end) params.push(`created_at=lt.${encodeURIComponent(range.end)}`);
+        if (statuses.length === 1) params.push(`status=eq.${encodeURIComponent(statuses[0])}`);
+        if (statuses.length > 1) params.push(`status=in.(${statuses.map(encodeURIComponent).join(',')})`);
+        params.push('order=created_at.desc');
+
+        const rows = await rest('GET', params.join('&'));
+        const orders = Array.isArray(rows) ? rows.map(rowToOrder) : [];
+        if (!orders.length) return { orders, range };
+
+        const helpers = await import('./shared/db.js');
+        const orderNums = orders
+            .map((order) => order.orderNum)
+            .filter((value) => /^\d{1,10}$/.test(value));
+        const itemRows = orderNums.length
+            ? await rest('GET', `order_items?select=*&order_num=in.(${orderNums.join(',')})&order=id.asc`)
+            : [];
+        const byOrder = new Map();
+        for (const row of Array.isArray(itemRows) ? itemRows : []) {
+            const item = helpers.rowToOrderItem(row);
+            if (!byOrder.has(item.orderNum)) byOrder.set(item.orderNum, []);
+            byOrder.get(item.orderNum).push(item);
+        }
+        for (const order of orders) order.items = byOrder.get(order.orderNum) || [];
+        return { orders, range };
+    }
 
     /* ── kiosk quick order (public, anonymous) ─────────────────────────────── */
     app.post('/api/order', async (req, res) => {
@@ -139,8 +239,40 @@ module.exports = function mountOperatorRoutes(app, deps) {
 
             // Server-side price. The browser computed the same figure from the
             // same shared module for display; a tampered amount is overwritten.
-            const { priceLine } = await import('./public/js/pricing.js');
-            const priced = priceLine({ weightG: b.weightG, batchSize: b.batchSize });
+            const [{ priceLine, RATES }, { findBatchDiscount }] = await Promise.all([
+                import('./public/js/pricing.js'),
+                import('./public/js/batch-offers.js'),
+            ]);
+            let batches = [];
+            try {
+                const batchRows = await rest('GET', 'batches?select=*&order=updated_at.desc');
+                batches = (Array.isArray(batchRows) ? batchRows : []).map((r) => ({
+                    id: r.id,
+                    baseColor: r.base_color,
+                    fontColor: r.font_color,
+                    name: r.name,
+                    count: Number(r.count),
+                }));
+            } catch (batchErr) {
+                console.error('quick-order batch lookup failed:', batchErr.message);
+            }
+            const fontParts = String(b.fontColor || '').split('/');
+            const offer = findBatchDiscount({
+                productType,
+                design: {
+                    layers: b.layers === '2L' ? '2L' : '3L',
+                    colors: {
+                        base: b.baseColor,
+                        outline: fontParts.length === 2 ? fontParts[0] : '',
+                        font: fontParts.length === 2 ? fontParts[1] : b.fontColor,
+                    },
+                },
+                weightG: b.weightG,
+            }, batches, priceLine, RATES.DEFAULT_BATCH_SIZE);
+            const priced = priceLine({
+                weightG: b.weightG,
+                batchSize: offer ? offer.batchSize : RATES.DEFAULT_BATCH_SIZE,
+            });
 
             const wordartBase = ['none', 'solid', 'hollow'].includes(b.wordartBase) ? b.wordartBase : 'none';
             const quantity = Math.min(20, Math.max(1, parseInt(b.quantity, 10) || 1));
@@ -177,14 +309,22 @@ module.exports = function mountOperatorRoutes(app, deps) {
     });
 
     /* ── operator: today's orders ──────────────────────────────────────────── */
+    app.get('/api/orders', requireAdmin, async (req, res) => {
+        try {
+            if (!configured(res)) return;
+            const result = await loadAdminOrders(req.query || {}, '30d');
+            if (result.error) return res.status(400).json({ error: result.error });
+            res.json(result);
+        } catch (err) {
+            sendError(res, err, 'Failed to load order history');
+        }
+    });
+
     app.get('/api/orders/today', requireAdmin, async (req, res) => {
         try {
             if (!configured(res)) return;
-            const { start, end } = todayRangeIso();
-            const rows = await rest('GET',
-                `orders?select=*&created_at=gte.${encodeURIComponent(start)}`
-                + `&created_at=lt.${encodeURIComponent(end)}&order=created_at.desc`);
-            res.json(Array.isArray(rows) ? rows.map(rowToOrder) : []);
+            const result = await loadAdminOrders({ range: 'today' }, 'today');
+            res.json(result.orders);
         } catch (err) {
             sendError(res, err, 'Failed to load orders');
         }
@@ -259,12 +399,38 @@ module.exports = function mountOperatorRoutes(app, deps) {
         }
     });
 
+    app.patch('/api/order-item/:id', requireAdmin, async (req, res) => {
+        try {
+            if (!configured(res)) return;
+            const id = Number(req.params.id);
+            if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: 'Invalid order item id' });
+            const productionStatus = String((req.body || {}).productionStatus || '');
+            if (!PRODUCTION_STATUSES.includes(productionStatus)) {
+                return res.status(400).json({
+                    error: `Invalid production status. Allowed: ${PRODUCTION_STATUSES.join(', ')}`,
+                });
+            }
+            const rows = await rest('PATCH', `order_items?id=eq.${id}`, {
+                production_status: productionStatus,
+                production_updated_at: new Date().toISOString(),
+            }, 'return=representation');
+            if (!Array.isArray(rows) || rows.length === 0) {
+                return res.status(404).json({ error: 'Order item not found' });
+            }
+            const helpers = await import('./shared/db.js');
+            res.json({ success: true, item: helpers.rowToOrderItem(rows[0]) });
+        } catch (err) {
+            sendError(res, err, 'Failed to update order item');
+        }
+    });
+
     /* ── batches, persisted (in-memory arrays reset on every cold start) ───── */
     app.get('/api/batches', async (req, res) => {
         try {
             if (!configured(res)) return;
             const rows = await rest('GET', 'batches?select=*&order=updated_at.desc');
             res.json((Array.isArray(rows) ? rows : []).map((r) => ({
+                id: r.id,
                 baseColor: r.base_color,
                 fontColor: r.font_color,
                 name: r.name,
@@ -300,11 +466,89 @@ module.exports = function mountOperatorRoutes(app, deps) {
             res.json({
                 success: true,
                 activeBatches: (Array.isArray(rows) ? rows : []).map((r) => ({
-                    baseColor: r.base_color, fontColor: r.font_color, name: r.name, count: Number(r.count),
+                    id: r.id, baseColor: r.base_color, fontColor: r.font_color, name: r.name, count: Number(r.count),
                 })),
             });
         } catch (err) {
             sendError(res, err, 'Failed to update batches');
+        }
+    });
+
+    /* ── filament colour catalogue + manually managed spool lots ─────────── */
+    app.get('/api/filament-colours', async (req, res) => {
+        try {
+            if (!configured(res)) return;
+            const helpers = await filamentHelpers();
+            const rows = await rest('GET',
+                'filament_colours?select=id,name,hex_color,storefront_state,sort_order,updated_at&order=sort_order.asc');
+            const colors = (Array.isArray(rows) ? rows : [])
+                .filter((row) => row.storefront_state !== 'unavailable')
+                .map(helpers.colourToApi);
+            res.json({ colors, madeToOrderNotice: helpers.MADE_TO_ORDER_NOTICE });
+        } catch (err) {
+            sendError(res, err, 'Failed to load filament colours');
+        }
+    });
+
+    app.get('/api/admin/filaments', requireAdmin, async (req, res) => {
+        try {
+            if (!configured(res)) return;
+            res.json(await filamentPayload());
+        } catch (err) {
+            sendError(res, err, 'Failed to load filament inventory');
+        }
+    });
+
+    app.post('/api/admin/filaments', requireAdmin, async (req, res) => {
+        try {
+            if (!configured(res)) return;
+            const body = req.body || {};
+            const helpers = await filamentHelpers();
+            let checked;
+            let table;
+            if (body.resource === 'colour') {
+                checked = helpers.validateColourInput(body);
+                table = 'filament_colours';
+            } else if (body.resource === 'spool') {
+                checked = helpers.validateSpoolInput(body);
+                table = 'filament_spools';
+            } else {
+                return res.status(400).json({ error: 'Resource must be colour or spool' });
+            }
+            if (checked.error) return res.status(400).json({ error: checked.error });
+            await rest('POST', table, checked.row, 'return=representation');
+            res.status(201).json({ success: true, ...await filamentPayload() });
+        } catch (err) {
+            sendError(res, err, 'Failed to add filament inventory');
+        }
+    });
+
+    app.patch('/api/admin/filaments', requireAdmin, async (req, res) => {
+        try {
+            if (!configured(res)) return;
+            const body = req.body || {};
+            const id = Number(body.id);
+            if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: 'A valid id is required' });
+            const helpers = await filamentHelpers();
+            let checked;
+            let table;
+            if (body.resource === 'colour') {
+                checked = helpers.validateColourInput(body, { partial: true });
+                table = 'filament_colours';
+            } else if (body.resource === 'spool') {
+                checked = helpers.validateSpoolInput(body, { partial: true });
+                table = 'filament_spools';
+            } else {
+                return res.status(400).json({ error: 'Resource must be colour or spool' });
+            }
+            if (checked.error) return res.status(400).json({ error: checked.error });
+            const rows = await rest('PATCH', `${table}?id=eq.${id}`, checked.row, 'return=representation');
+            if (!Array.isArray(rows) || rows.length === 0) {
+                return res.status(404).json({ error: 'Inventory record not found' });
+            }
+            res.json({ success: true, ...await filamentPayload() });
+        } catch (err) {
+            sendError(res, err, 'Failed to update filament inventory');
         }
     });
 };

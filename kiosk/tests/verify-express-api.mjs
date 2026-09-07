@@ -67,7 +67,7 @@ const PIN = ENV.ADMIN_PIN;
 console.log('\n-- quick order (walk-up pay flow) --');
 reset();
 
-let r = await call('POST', '/api/order', { body: { name: 'Walkup', phone: '9999999999', productType: 'keychain', text: 'Priya', weightG: 20, finalAmount: 1 } });
+let r = await call('POST', '/api/order', { body: { name: 'Walkup', phone: '9999999999', productType: 'keychain', text: 'Priya', weightG: 20, finalAmount: 1, batchSize: 100 } });
 check('order accepted -> 201 with orderNum', r.status === 201 && Boolean(r.data.orderNum), JSON.stringify(r.data && r.data.orderNum));
 check('client-claimed ₹1 overwritten with server price ₹107', r.data.order.finalAmount === 107, `₹${r.data.order.finalAmount}`);
 
@@ -80,6 +80,26 @@ check('unknown product -> 400', r.status === 400);
 /* ═══ operator: today / summary / patch ═══ */
 console.log('\n-- operator dashboard --');
 
+stub.tables.order_items.push(
+    {
+        id: 501, order_num: '0001', product_type: 'keychain', text_value: 'Priya',
+        quantity: 1, design: { font: 'Brandy', colors: { base: '#FF9933', font: '#FFFFFF' } },
+        preview: '', unit_price: 107, line_total: 107, weight_g: 20, production_status: 'queued',
+    },
+    {
+        id: 502, order_num: '0001', product_type: 'wordart', text_value: 'Priya/LOVE',
+        quantity: 1, design: { font: 'Brandy', colors: { base: '#000000', font: '#FFD700' } },
+        preview: '', unit_price: 150, line_total: 150, weight_g: 30, production_status: 'printing',
+    },
+);
+stub.tables.orders.push({
+    ...stub.tables.orders[0],
+    id: 999,
+    order_num: '0999',
+    created_at: '2020-01-01T05:00:00.000Z',
+    customer_name: 'Historical Customer',
+});
+
 r = await call('GET', '/api/orders/today');
 check('orders/today without PIN -> 401', r.status === 401);
 
@@ -88,8 +108,25 @@ check('orders/today lists the quick order in camelCase',
     r.status === 200 && r.data.length === 1 && r.data[0].name === 'Walkup'
     && r.data[0].finalAmount === 107 && typeof r.data[0].orderNum === 'string',
     JSON.stringify(r.data && r.data[0] && [r.data[0].orderNum, r.data[0].status]));
+check('orders/today groups both frozen products under the checkout',
+    r.data[0].items.length === 2 && r.data[0].items[1].productionStatus === 'printing');
 
 const orderNum = r.data[0].orderNum;
+
+r = await call('GET', '/api/orders?range=all');
+check('order history without PIN -> 401', r.status === 401);
+
+r = await call('GET', '/api/orders', { pin: PIN });
+check('order history defaults to 30 days',
+    r.status === 200 && r.data.range.range === '30d'
+    && !r.data.orders.some((order) => order.orderNum === '0999'));
+
+r = await call('GET', '/api/orders?range=all', { pin: PIN });
+check('all-time order history includes earlier orders',
+    r.status === 200 && r.data.orders.some((order) => order.orderNum === '0999'));
+
+r = await call('GET', '/api/orders?range=custom&from=2020-01-02&to=2020-01-01', { pin: PIN });
+check('invalid custom order range -> 400', r.status === 400);
 
 r = await call('GET', '/api/summary/today', { pin: PIN });
 check('summary counts the unpaid order but no revenue',
@@ -112,6 +149,17 @@ check('unknown order -> 404', r.status === 404);
 r = await call('PATCH', `/api/order/${orderNum}`, { body: { status: 'Printed' } });
 check('patch without PIN -> 401', r.status === 401);
 
+r = await call('PATCH', '/api/order-item/501', {
+    pin: PIN, body: { productionStatus: 'printed' },
+});
+check('operator updates a single product production status',
+    r.status === 200 && stub.tables.order_items.find((item) => item.id === 501).production_status === 'printed');
+
+r = await call('PATCH', '/api/order-item/502', {
+    body: { productionStatus: 'packed' },
+});
+check('item production update without PIN -> 401', r.status === 401);
+
 /* ═══ batches (persisted) ═══ */
 console.log('\n-- batches --');
 
@@ -128,6 +176,62 @@ check('count 0 removes the combo (the old parseInt||5 made 0 impossible)',
 
 r = await call('POST', '/api/batches', { body: { baseColor: '#111111', fontColor: '#FFFFFF', count: 2 } });
 check('batch write without PIN -> 401', r.status === 401);
+
+/* ═══ filament catalogue + inventory ═══ */
+console.log('\n-- filament inventory --');
+reset();
+stub.tables.filament_colours.push(
+    { id: 101, name: 'Orange', hex_color: '#FF9933', storefront_state: 'available', sort_order: 10 },
+    { id: 102, name: 'Teal', hex_color: '#00B5C8', storefront_state: 'made_to_order', sort_order: 20 },
+    { id: 103, name: 'Old Blue', hex_color: '#123456', storefront_state: 'unavailable', sort_order: 30 },
+);
+stub.tables.filament_spools.push(
+    { id: 201, colour_id: 101, material: 'PLA', brand: 'A', lot_code: 'L1', initial_weight_g: 1000, remaining_weight_g: 600, cost: 900, status: 'open', notes: '' },
+);
+
+r = await call('GET', '/api/filament-colours');
+check('public filament endpoint hides unavailable colours',
+    r.status === 200 && r.data.colors.length === 2
+    && r.data.colors.find((colour) => colour.state === 'made_to_order').notice === 'Ships in 2–3 days');
+
+r = await call('GET', '/api/admin/filaments');
+check('Express filament inventory requires PIN', r.status === 401);
+
+r = await call('GET', '/api/admin/filaments', { pin: PIN });
+check('Express admin loads all colours and spool totals',
+    r.status === 200 && r.data.colours.length === 3
+    && r.data.colours.find((colour) => colour.id === 101).remainingWeightG === 600);
+
+r = await call('POST', '/api/admin/filaments', {
+    pin: PIN,
+    body: { resource: 'colour', name: 'Pink', hex: '#ff61a6', state: 'available', sortOrder: 40 },
+});
+check('Express admin adds a colour', r.status === 201
+    && stub.tables.filament_colours.some((colour) => colour.hex_color === '#FF61A6'));
+
+r = await call('PATCH', '/api/admin/filaments', {
+    pin: PIN,
+    body: { resource: 'colour', id: 102, state: 'unavailable' },
+});
+check('Express admin marks a colour unavailable', r.status === 200
+    && stub.tables.filament_colours.find((colour) => colour.id === 102).storefront_state === 'unavailable');
+
+r = await call('POST', '/api/admin/filaments', {
+    pin: PIN,
+    body: {
+        resource: 'spool', colourId: 103, material: 'PLA', brand: 'New',
+        initialWeightG: 1000, remainingWeightG: 1000, status: 'sealed', cost: 850,
+    },
+});
+const expressSpool = stub.tables.filament_spools.find((spool) => spool.colour_id === 103);
+check('Express admin adds a spool lot', r.status === 201 && expressSpool);
+
+r = await call('PATCH', '/api/admin/filaments', {
+    pin: PIN,
+    body: { resource: 'spool', id: expressSpool.id, remainingWeightG: 700, status: 'open' },
+});
+check('Express admin manually adjusts spool stock',
+    r.status === 200 && expressSpool.remaining_weight_g === 700 && expressSpool.status === 'open');
 
 /* ═══ customer-api twin: same behaviours as the Cloudflare Functions ═══ */
 console.log('\n-- customer cart/checkout (Vercel twin) --');
@@ -171,6 +275,73 @@ r = await call('GET', '/api/my-orders', { token: 'ddd.eee.fff' });
 check('user B sees none', r.data.orders.length === 0);
 
 /* ═══ result ═══ */
+console.log('\n-- verified batch pricing --');
+reset();
+stub.tables.batches[0].count = 10;
+
+r = await call('POST', '/api/order', {
+    body: {
+        name: 'Batch',
+        phone: '9999999999',
+        productType: 'keychain',
+        text: 'Priya',
+        layers: '2L',
+        baseColor: '#FF6251',
+        fontColor: '#FFFFFF',
+        weightG: 20,
+        batchSize: 1,
+    },
+});
+check('Express quick order derives the live Classic batch',
+    r.status === 201 && r.data.order.finalAmount === 103 && r.data.order.batchSize === 10,
+    JSON.stringify(r.data.order && [r.data.order.finalAmount, r.data.order.batchSize]));
+
+r = await call('POST', '/api/order', {
+    body: {
+        name: 'Word Art',
+        phone: '9999999999',
+        productType: 'wordart',
+        text: 'Priya/LOVE',
+        layers: '2L',
+        baseColor: '#FF6251',
+        fontColor: '#FFFFFF',
+        weightG: 20,
+        batchSize: 100,
+    },
+});
+check('Express quick order rejects a Word Art batch claim',
+    r.status === 201 && r.data.order.finalAmount === 107,
+    JSON.stringify(r.data.order && r.data.order.finalAmount));
+
+const batchDesign = {
+    layers: '2L',
+    colors: { base: '#FF6251', font: '#FFFFFF' },
+};
+await call('POST', '/api/cart', {
+    token: 'aaa.bbb.ccc',
+    body: {
+        productType: 'keychain',
+        text: 'Batch cart',
+        quantity: 1,
+        design: batchDesign,
+        weightG: 20,
+        unitPrice: 1,
+    },
+});
+r = await call('GET', '/api/cart', { token: 'aaa.bbb.ccc' });
+check('Express cart exposes the verified saving and server price',
+    r.status === 200
+    && r.data.items[0].unitPrice === 103
+    && r.data.items[0].batchOffer.savings === 4,
+    JSON.stringify(r.data.items[0] && [r.data.items[0].unitPrice, r.data.items[0].batchOffer]));
+r = await call('POST', '/api/checkout', {
+    token: 'aaa.bbb.ccc',
+    body: { contactName: 'Priya', contactPhone: '9999999999' },
+});
+check('Express checkout revalidates the same saving',
+    r.status === 201 && r.data.totals.total === 103 && r.data.totals.batchSavings === 4,
+    JSON.stringify(r.data && r.data.totals));
+
 httpServer.close();
 const passed = results.filter(Boolean).length;
 console.log('\n' + '='.repeat(40));
