@@ -133,6 +133,9 @@ body::before {
 }
 
 /* ── Cart link + count badge in the header ── */
+/* "My orders" is no longer in the home header: a visitor who has not signed in
+   has no orders to look at, and a signed-in one reaches it from the profile
+   menu. Kept as a class because cart.html still uses it inline. */
 .header-orders-link {
     font-family: var(--font-family);
     font-size: 0.85rem;
@@ -146,7 +149,6 @@ body::before {
     min-height: 44px;
     padding: 0 0.6rem;
     border-radius: 8px;
-    margin-left: auto;          /* pushes itself + cart to the right edge */
     flex: 0 0 auto;
     white-space: nowrap;
 }
@@ -265,6 +267,9 @@ body::before {
     color: var(--text-main);
     text-decoration: none;
     flex: 0 0 auto;
+    /* Carries the right-edge push now that "My orders" (which used to own the
+       auto margin) has left the home header. */
+    margin-left: auto;
 }
 .cart-link:hover { background: var(--paper-2); }
 .cart-count {

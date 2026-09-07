@@ -5,6 +5,11 @@
  */
 import * as Cart from './cart.js?v=k1';
 import { initAuth } from './auth.js?v=k1';
+import { mountProfileChip } from './profile-chip.js?v=k1';
+
+/* Header identity, same control as the rest of the site. initAuth() is
+   memoised, so this costs nothing on top of the render path below. */
+mountProfileChip('#headerProfile');
 
 const el = {
     loading:  document.getElementById('cartLoading'),
