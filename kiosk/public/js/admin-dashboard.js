@@ -423,26 +423,24 @@ function productionOptions(selected) {
 function itemDesignLink(order, item) {
     const design = item.design && typeof item.design === 'object' ? item.design : {};
     const colors = design.colors && typeof design.colors === 'object' ? design.colors : {};
+    const productType = item.productType || order.productType || '';
+    const primaryFontColor = colors.font || String(order.fontColor || '').split('/').pop() || '';
+    const secondaryFontColor = colors.line2 || colors.outline || '';
+    let fontColor = primaryFontColor;
+    if (secondaryFontColor) {
+        fontColor = productType === 'keychain'
+            ? `${secondaryFontColor}/${primaryFontColor}`
+            : `${primaryFontColor}/${secondaryFontColor}`;
+    }
     const params = new URLSearchParams({
         text: item.text || '',
-        productType: item.productType || order.productType || '',
+        productType,
         font: design.font || order.font || '',
         baseColor: colors.base || order.baseColor || '',
-        fontColor: colors.font || String(order.fontColor || '').split('/').pop() || '',
-        outlineColor: colors.outline || '',
+        fontColor,
         wordartBase: design.wordartBase || order.wordartBase || 'none',
         orderNum: order.orderNum || '',
     });
-    try {
-        params.set('o', btoa(unescape(encodeURIComponent(JSON.stringify({
-            ...order,
-            ...item,
-            font: design.font || order.font,
-            baseColor: colors.base || order.baseColor,
-            fontColor: colors.font || order.fontColor,
-            outlineColor: colors.outline || '',
-        })))));
-    } catch (_) { /* explicit parameters still restore the design */ }
     return `/studio.html?${params.toString()}`;
 }
 

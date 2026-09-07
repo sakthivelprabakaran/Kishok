@@ -207,6 +207,16 @@ check('3b. Order Design action redirects in the same tab',
     && /class="action-btn design" href="\$\{itemDesignLink\(order, item\)\}">DESIGN<\/a>/.test(adminDashboard),
   'Order Design links must use a same-tab redirect so mobile browsers do not suppress or hide the navigation.');
 
+const designLinkStart = adminDashboard.indexOf('function itemDesignLink');
+const designLinkEnd = adminDashboard.indexOf('\n}', designLinkStart);
+const designLinkSource = adminDashboard.slice(designLinkStart, designLinkEnd + 2);
+check('3c. Order Design URL excludes previews and full order payloads',
+  designLinkStart >= 0
+    && !/params\.set\(['"]o['"]/.test(designLinkSource)
+    && !/\.\.\.(?:order|item)/.test(designLinkSource)
+    && !/\bbtoa\s*\(/.test(designLinkSource),
+  'Safari rejects oversized addresses; the Studio URL must contain only compact design parameters.');
+
 /* ---------- summary ---------- */
 const failed = reports.filter(r => !r.pass);
 console.log('\n========================================');
