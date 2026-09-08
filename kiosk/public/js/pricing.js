@@ -88,6 +88,54 @@ export function priceLine(line) {
 }
 
 /**
+ * Price one line from slicer-produced metrics.
+ *
+ * This is intentionally separate from priceLine(): checkout continues to use
+ * the established weight-based calculation until the Kiri benchmark is
+ * calibrated and approved. The comparison keeps every business rate identical
+ * and replaces only estimated weight/time with sliced weight/time.
+ *
+ * @param {{weightG:number, printTimeMins:number, quantity?:number, batchSize?:number}} line
+ * @returns {{unitPrice:number, lineTotal:number, breakdown:object}}
+ */
+export function priceFromSliceMetrics(line) {
+    const r = RATES;
+    const rawWeight = Number(line && line.weightG);
+    const unclampedWeight = Number.isFinite(rawWeight) && rawWeight > 0 ? rawWeight : 0;
+    const weightG = Math.min(r.MAX_BILLABLE_WEIGHT_G, Math.max(r.MIN_BILLABLE_WEIGHT_G, unclampedWeight));
+
+    const rawTime = Number(line && line.printTimeMins);
+    const printTimeMins = Number.isFinite(rawTime) && rawTime > 0
+        ? Math.min(7 * 24 * 60, rawTime)
+        : (weightG / r.THROUGHPUT_G_PER_HOUR) * 60;
+
+    const quantity = clampInt(line && line.quantity, 1, 20, 1);
+    const batchSize = clampInt(line && line.batchSize, 1, 100, r.DEFAULT_BATCH_SIZE);
+    const materialCost = weightG * r.MATERIAL_RATE;
+    const machineCost = (printTimeMins / 60) * r.MACHINE_RATE;
+    const labourCost = (r.SETUP_PER_BATCH / batchSize) + r.POST_PROCESS;
+    const productionCost = materialCost + machineCost + labourCost;
+    const withBuffer = productionCost * r.FAILURE_BUFFER * r.MARGIN_MULTIPLIER;
+    const unitPrice = Math.max(r.MIN_PRICE, Math.ceil(withBuffer));
+
+    return {
+        unitPrice,
+        lineTotal: unitPrice * quantity,
+        breakdown: {
+            weightG: round2(weightG),
+            printTimeMins: Math.round(printTimeMins),
+            materialCost: round2(materialCost),
+            machineCost: round2(machineCost),
+            labourCost: round2(labourCost),
+            productionCost: round2(productionCost),
+            batchSize,
+            quantity,
+            source: 'slice',
+        },
+    };
+}
+
+/**
  * Price a whole cart.
  * @param {Array} lines  each { weightG, quantity }
  * @param {{shippingFee?:number}} options

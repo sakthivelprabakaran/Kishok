@@ -15,7 +15,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="styles-root.css" rel="stylesheet"/>
-<link href="admin-console.css?v=wa3" rel="stylesheet"/>
+<link href="admin-console.css?v=wa7" rel="stylesheet"/>
 <style>
 /* ── PIN Gate ── */
 #studioLoginGate {
@@ -122,9 +122,10 @@
 <option value="name_beads">📿 Custom Name Beads</option>
 </select>
 <div class="presetGroup" id="adminPresetsSection">
-<button class="preset-btn active" data-preset="standard">Standard</button>
+<button class="preset-btn" data-preset="standard">Standard</button>
 <button class="preset-btn" data-preset="thin">Thin</button>
 <button class="preset-btn" data-preset="thick">Thick</button>
+<button class="preset-btn preset-btn-custom" id="adminPresetCustom" type="button" disabled hidden>Custom</button>
 </div>
 </div>
 <div class="toolbarRight">
@@ -140,7 +141,13 @@
 <div class="dimRow"><span class="dimLabel">H</span><span class="dimValue" id="dimHeight">—</span><span class="dimUnit">mm</span></div>
 <div class="dimRow"><span class="dimLabel">D</span><span class="dimValue" id="dimDepth">—</span><span class="dimUnit">mm</span></div>
 </div>
+<div class="printer-fit-badge" id="printerFitBadge" data-state="fits" hidden aria-live="polite">
+<span class="printer-fit-dot" aria-hidden="true"></span>
+<span id="printerFitText">Fits Bambu Lab A1</span>
+</div>
 <div class="viewportBar">
+<button class="vpBtn vpBtnActive" id="vpDimensionsToggle" type="button" aria-pressed="true" title="Show model dimensions">📐</button>
+<button class="vpBtn vpBtnText" id="vpPrintBedToggle" type="button" aria-pressed="false" title="Show Bambu Lab A1 print bed">A1</button>
 <button class="vpBtn" id="vpDownloadSVG" title="Download SVG">📐</button>
 <button class="vpBtn" id="vpDownloadSTL" title="Quick Export STL">🖨️</button>
 </div>
@@ -152,6 +159,22 @@
 </div>
 <div class="controlsPanel">
 <div class="controlsBody" id="controlsBody">
+<section class="studio-product-context" id="studioProductContext" aria-live="polite">
+<div class="studio-product-context-head">
+<div>
+<span class="studio-product-eyebrow">Product workspace</span>
+<h2 id="studioProductTitle">Classic Keychain</h2>
+</div>
+<span class="studio-scale-badge" id="studioScaleModeBadge">Footprint scale</span>
+</div>
+<p class="studio-product-description" id="studioProductDescription">Layered keychain with independently controlled base, outline, text and keyring geometry.</p>
+<div class="studio-context-metrics" aria-label="Current model dimensions">
+<div><span>Width</span><strong id="studioContextWidth">—</strong><small>mm</small></div>
+<div><span>Height</span><strong id="studioContextHeight">—</strong><small>mm</small></div>
+<div><span>Depth</span><strong id="studioContextDepth">—</strong><small>mm</small></div>
+</div>
+<nav class="studio-control-nav" id="studioControlNav" aria-label="Relevant control groups"></nav>
+</section>
 <div class="ctrlSection">
 <div class="ctrlSectionTitle">✏️ Text &amp; Language</div>
 <div class="ctrlTextWrap">
@@ -160,6 +183,7 @@
 <span class="ctrlCharCount"><span id="adminCharCount">6</span>/31</span>
 </div>
 <button class="langBtn" id="adminLangToggle" title="Toggle English / Tamil">EN</button>
+</div>
 </div>
 <div class="ctrlSection">
 <div class="ctrlSectionTitle">🔤 Font Style</div>
@@ -213,6 +237,48 @@
 </div>
 <div class="ctrlHint" id="adminWordartHint" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
 Letters only — the word itself is the whole structure.
+</div>
+<div id="adminWordartBackingControls" style="display: none;">
+<div class="sliderRow">
+<span class="sliderLabel">Total backing depth</span>
+<input class="sliderRange" id="adminWordartBackingDepth" max="30" min="2" step="0.5" type="range" value="15"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminWordartBackingDepthNum" max="30" min="2" step="0.5" type="number" value="15"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Backing padding</span>
+<input class="sliderRange" id="adminWordartPadding" max="8" min="0" step="0.25" type="range" value="3"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminWordartPaddingNum" max="8" min="0" step="0.25" type="number" value="3"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow" id="adminWordartSolidBevelRow" style="display: none;">
+<span class="sliderLabel">Solid bevel depth / side</span>
+<input class="sliderRange" id="adminWordartSolidBevel" max="2" min="0" step="0.1" type="range" value="0"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminWordartSolidBevelNum" max="2" min="0" step="0.1" type="number" value="0"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow" id="adminWordartWallRow" style="display: none;">
+<span class="sliderLabel">Hollow wall thickness</span>
+<input class="sliderRange" id="adminWordartWallThickness" max="6" min="1.2" step="0.1" type="range" value="2.2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminWordartWallThicknessNum" max="6" min="1.2" step="0.1" type="number" value="2.2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow" id="adminWordartCoverRow" style="display: none;">
+<span class="sliderLabel">Front cover thickness</span>
+<input class="sliderRange" id="adminWordartCoverThickness" max="5" min="0.8" step="0.1" type="range" value="1.8"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminWordartCoverThicknessNum" max="5" min="0.8" step="0.1" type="number" value="1.8"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
 </div>
 </div><div class="ctrlSection" id="adminBaseSection">
 <div class="ctrlSectionTitle">🟧 Base Layer</div>
@@ -317,6 +383,92 @@ Letters only — the word itself is the whole structure.
 <span class="valSuffix">mm</span>
 </div>
 </div>
+</div><div class="ctrlSection" id="adminLinkedSection" style="display: none;">
+<div class="ctrlSectionTitle">🔗 Linked Initial Geometry</div>
+<div class="sliderRow">
+<span class="sliderLabel">Initial core depth</span>
+<input class="sliderRange" id="adminLinkedDepth" max="10" min="1" step="0.1" type="range" value="4"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLinkedDepthNum" max="10" min="1" step="0.1" type="number" value="4"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Edge bevel depth / side</span>
+<input class="sliderRange" id="adminLinkedBevel" max="1" min="0" step="0.1" type="range" value="0.4"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLinkedBevelNum" max="1" min="0" step="0.1" type="number" value="0.4"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Ring outer radius</span>
+<input class="sliderRange" id="adminLinkedRingOuter" max="10" min="3" step="0.1" type="range" value="4.2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLinkedRingOuterNum" max="10" min="3" step="0.1" type="number" value="4.2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Ring inner radius</span>
+<input class="sliderRange" id="adminLinkedRingInner" max="8" min="1" step="0.1" type="range" value="2.4"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminLinkedRingInnerNum" max="8" min="1" step="0.1" type="number" value="2.4"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="ctrlHint">Finished thickness = core depth + bevel on both faces. The ring automatically matches that thickness.</div>
+</div><div class="ctrlSection" id="adminTileSection" style="display: none;">
+<div class="ctrlSectionTitle">🎴 Letter Tile Geometry</div>
+<div class="sliderRow">
+<span class="sliderLabel">Strip core depth</span>
+<input class="sliderRange" id="adminTileStripDepth" max="8" min="1" step="0.1" type="range" value="3"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminTileStripDepthNum" max="8" min="1" step="0.1" type="number" value="3"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Strip bevel depth / side</span>
+<input class="sliderRange" id="adminTileStripBevel" max="1.5" min="0" step="0.1" type="range" value="0.6"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminTileStripBevelNum" max="1.5" min="0" step="0.1" type="number" value="0.6"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Tile core depth</span>
+<input class="sliderRange" id="adminTileDepth" max="6" min="0.8" step="0.1" type="range" value="1.8"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminTileDepthNum" max="6" min="0.8" step="0.1" type="number" value="1.8"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Tile bevel depth / side</span>
+<input class="sliderRange" id="adminTileBevel" max="1" min="0" step="0.1" type="range" value="0.3"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminTileBevelNum" max="1" min="0" step="0.1" type="number" value="0.3"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Letter relief depth</span>
+<input class="sliderRange" id="adminTileLetterDepth" max="5" min="0.5" step="0.1" type="range" value="1.2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminTileLetterDepthNum" max="5" min="0.5" step="0.1" type="number" value="1.2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Letter bevel depth / side</span>
+<input class="sliderRange" id="adminTileLetterBevel" max="0.8" min="0" step="0.1" type="range" value="0.2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminTileLetterBevelNum" max="0.8" min="0" step="0.1" type="number" value="0.2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="ctrlHint">All values are before whole-model scale. The live dimensions show the final scaled size.</div>
 </div><div class="ctrlSection" id="adminNametagSection" style="display: none;">
 <div class="ctrlSectionTitle">🌊 Wavy Nametag Settings</div>
 <div class="sliderRow">
@@ -382,6 +534,16 @@ Letters only — the word itself is the whole structure.
 </div>
 </div>
 <div class="sliderRow">
+<span class="sliderLabel">Ring placement</span>
+<select class="ctrl-select-input" id="adminNametagRingPlacement" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+<option selected="" value="auto-left">Automatic left</option>
+<option value="auto-right">Automatic right</option>
+<option value="manual">Manual coordinates</option>
+<option value="none">No ring</option>
+</select>
+</div>
+<div id="adminNametagRingGeometry">
+<div class="sliderRow">
 <span class="sliderLabel">Ring Outer Dia</span>
 <input class="sliderRange" id="adminRingOuterD" max="20" min="4" step="0.5" type="range" value="10"/>
 <div class="sliderVal">
@@ -405,8 +567,9 @@ Letters only — the word itself is the whole structure.
 <span class="valSuffix">mm</span>
 </div>
 </div>
+<div id="adminNametagRingManual" hidden="">
 <div class="sliderRow">
-<span class="sliderLabel">Ring X Offset</span>
+<span class="sliderLabel">Manual ring X</span>
 <input class="sliderRange" id="adminRingX" max="30" min="-30" step="0.5" type="range" value="-1"/>
 <div class="sliderVal">
 <input class="sliderNum" id="adminRingXNum" max="30" min="-30" step="0.5" type="number" value="-1"/>
@@ -414,13 +577,17 @@ Letters only — the word itself is the whole structure.
 </div>
 </div>
 <div class="sliderRow">
-<span class="sliderLabel">Ring Y Offset</span>
+<span class="sliderLabel">Manual ring Y</span>
 <input class="sliderRange" id="adminRingY" max="20" min="-20" step="0.5" type="range" value="10"/>
 <div class="sliderVal">
 <input class="sliderNum" id="adminRingYNum" max="20" min="-20" step="0.5" type="number" value="10"/>
 <span class="valSuffix">mm</span>
 </div>
 </div>
+</div>
+</div>
+<div class="finished-thickness-summary" id="adminNametagThicknessSummary"></div>
+<div class="ctrlHint">Depth values are before whole-model scale. Automatic placement matches the customer view; manual coordinates must overlap the name body.</div>
 </div><div class="ctrlSection" id="adminBorderedSection" style="display: none;">
 <div class="ctrlSectionTitle">𔓲 Bordered Keychain Settings</div>
 <div class="sliderRow">
@@ -796,6 +963,16 @@ Letters only — the word itself is the whole structure.
 </div>
 </div>
 <div class="sliderRow">
+<span class="sliderLabel">Bottom Plate Thickness</span>
+<input class="sliderRange" id="adminOrganizerBottomThk" max="8" min="1.6" step="0.2" type="range" value="3"/>
+<div class="sliderVal"><input class="sliderNum" id="adminOrganizerBottomThkNum" max="8" min="1.6" step="0.2" type="number" value="3"/><span class="valSuffix">mm</span></div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Divider Thickness</span>
+<input class="sliderRange" id="adminOrganizerDividerThk" max="6" min="1.2" step="0.2" type="range" value="2.2"/>
+<div class="sliderVal"><input class="sliderNum" id="adminOrganizerDividerThkNum" max="6" min="1.2" step="0.2" type="number" value="2.2"/><span class="valSuffix">mm</span></div>
+</div>
+<div class="sliderRow">
 <span class="sliderLabel">Letter Depth / Press-fit</span>
 <input class="sliderRange" id="adminOrganizerLetterDepth" max="5.0" min="0.8" step="0.1" type="range" value="1.8"/>
 <div class="sliderVal">
@@ -846,6 +1023,14 @@ Letters only — the word itself is the whole structure.
 <span class="valSuffix">mm</span>
 </div>
 </div>
+</div><div class="ctrlSection" id="adminLedStandSection" style="display: none;">
+<div class="ctrlSectionTitle">💡 LED Stand Hardware</div>
+<div class="sliderRow"><span class="sliderLabel">Stand Height</span><input class="sliderRange" id="adminLedStandHeight" max="40" min="8" step="0.5" type="range" value="18"/><div class="sliderVal"><input class="sliderNum" id="adminLedStandHeightNum" max="40" min="8" step="0.5" type="number" value="18"/><span class="valSuffix">mm</span></div></div>
+<div class="sliderRow"><span class="sliderLabel">Stand Wall</span><input class="sliderRange" id="adminLedStandWall" max="6" min="1.2" step="0.1" type="range" value="2.5"/><div class="sliderVal"><input class="sliderNum" id="adminLedStandWallNum" max="6" min="1.2" step="0.1" type="number" value="2.5"/><span class="valSuffix">mm</span></div></div>
+<div class="sliderRow"><span class="sliderLabel">LED Channel Height</span><input class="sliderRange" id="adminLedChannelH" max="15" min="2" step="0.5" type="range" value="6"/><div class="sliderVal"><input class="sliderNum" id="adminLedChannelHNum" max="15" min="2" step="0.5" type="number" value="6"/><span class="valSuffix">mm</span></div></div>
+<div class="sliderRow"><span class="sliderLabel">LED Channel Width</span><input class="sliderRange" id="adminLedChannelW" max="20" min="4" step="0.5" type="range" value="10"/><div class="sliderVal"><input class="sliderNum" id="adminLedChannelWNum" max="20" min="4" step="0.5" type="number" value="10"/><span class="valSuffix">mm</span></div></div>
+<div class="sliderRow"><span class="sliderLabel">Cable Hole Diameter</span><input class="sliderRange" id="adminLedCableHole" max="12" min="2" step="0.5" type="range" value="6"/><div class="sliderVal"><input class="sliderNum" id="adminLedCableHoleNum" max="12" min="2" step="0.5" type="number" value="6"/><span class="valSuffix">mm</span></div></div>
+<div class="sliderRow"><span class="sliderLabel">Insert Clearance</span><input class="sliderRange" id="adminLedInsertClearance" max="1" min="0" step="0.05" type="range" value="0.3"/><div class="sliderVal"><input class="sliderNum" id="adminLedInsertClearanceNum" max="1" min="0" step="0.05" type="number" value="0.3"/><span class="valSuffix">mm</span></div></div>
 </div><div class="ctrlSection" id="adminLedCapSection" style="display: none;">
 <div class="ctrlSectionTitle">🧢 CAP (Diffuser Cover) — LED Word Art</div>
 <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;line-height:1.4;">Friction-fit translucent cover. Lip inserts into the housing for a press-fit.</div>
@@ -938,7 +1123,6 @@ Letters only — the word itself is the whole structure.
 <option value="0" selected="">➡️ Left to Right</option>
 <option value="1">⬇️ Up and Down (Vertical)</option>
 </select>
-</div>
 </div>
 </div>
 <div class="ctrlSection" id="adminBubbleSection" style="display: none;">
@@ -1074,6 +1258,6 @@ Letters only — the word itself is the whole structure.
   boot();
 })();
 </script>
-<script src="admin-console.js?v=14" type="module"></script>
+<script src="admin-console.js?v=30" type="module"></script>
 </body>
 </html>

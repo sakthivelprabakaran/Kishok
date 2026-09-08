@@ -27,6 +27,7 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 const studioApp  = read('admin-console.js');
 const studioHtml = read('studio.html');
+const studioProducts = read('js/studio-products.js');
 const viewerSrc  = read('js/viewer3d.js');
 const kioskApp   = read('js/kiosk-app.js');
 
@@ -178,7 +179,7 @@ const hiddenSectionIds = [...studioHtml.matchAll(
   /class="ctrlSection"\s+id="(admin\w+)"\s+style="display:\s*none;?"/g
 )].map((m) => m[1]);
 const neverToggled = hiddenSectionIds.filter(
-  (id) => (studioApp.match(new RegExp(`'${id}'`, 'g')) || []).length === 0
+  (id) => ((studioApp + studioProducts).match(new RegExp(`'${id}'`, 'g')) || []).length === 0
 );
 check(
   '4a. every hidden-by-default control section is revealed by the Studio script',
@@ -299,6 +300,69 @@ check(
   '6c. mobile still hides cards from steps other than the active step',
   classicMobile.stepOne === 'none' && classicMobile.ordinaryStep3 === '',
   'conditional visibility must not bypass the step-by-step wizard'
+);
+
+/* ---------- 7. product thickness rules stay honest ---------- */
+
+const buildKeychainSource = methodBody(viewerSrc, 'buildKeychain') || '';
+check(
+  '7a. Classic Keychain geometry owns the fixed 6mm stack',
+  /p\.productType\s*===\s*'keychain'/.test(buildKeychainSource)
+    && /p\.base\.depth\s*=\s*classicIsTwoLayer\s*\?\s*4\.5\s*:\s*3/.test(buildKeychainSource)
+    && /p\.outline\.depth\s*=\s*1\.5/.test(buildKeychainSource)
+    && /p\.font\.depth\s*=\s*1\.5/.test(buildKeychainSource),
+  '3L must remain 3 + 1.5 + 1.5; 2L must remain 4.5 + 1.5'
+);
+
+check(
+  '7b. Word Art has no hidden 6mm text or 4mm outline override',
+  !/fontSettings\.depth\s*=\s*Math\.max\s*\(\s*p\.font\.depth\s*,\s*6\s*\)/.test(buildKeychainSource)
+    && !/outlineSettings\.depth\s*=\s*Math\.max\s*\(/.test(buildKeychainSource),
+  'the displayed Word Art depth controls must equal the generated geometry'
+);
+
+check(
+  '7c. Studio locks fixed Classic Z controls but leaves other products editable',
+  /function\s+syncClassicKeychainThicknessControls/.test(studioApp)
+    && /controlled\.forEach\(\(slider\)\s*=>\s*setSliderPairDisabled\(slider,\s*isClassic\)\)/.test(studioApp),
+  'only productType=keychain may disable the shared depth controls'
+);
+
+const tileBuilderSource = methodBody(viewerSrc, '_buildTileKeychain') || '';
+check(
+  '7d. Letter Tiles uses its dedicated depth and bevel controls',
+  [
+    'tile_strip_depth',
+    'tile_strip_bevel',
+    'tile_depth',
+    'tile_bevel',
+    'tile_letter_depth',
+    'tile_letter_bevel',
+  ].every((key) => tileBuilderSource.includes(`p.${key}`))
+    && /adminTileSection/.test(studioProducts),
+  'Letter Tile controls must drive generated geometry and remain reachable from its product profile'
+);
+
+check(
+  '7e. Letter Tiles renders the selected letter colour without blackening it',
+  /var\s+matLetter\s*=\s*new\s+THREE\.MeshBasicMaterial/.test(tileBuilderSource)
+    && /color:\s+new\s+THREE\.Color\(letterColor\)/.test(tileBuilderSource)
+    && /toneMapped:\s+false/.test(tileBuilderSource)
+    && /new\s+THREE\.Mesh\(letterGeo,\s*matLetter\)/.test(tileBuilderSource),
+  'letter faces must use colors.font directly and bypass physical-lighting tone darkening'
+);
+
+const nametagBuilderSource = methodBody(viewerSrc, '_buildWavyNametag') || '';
+check(
+  '7f. Wavy Nametag uses truthful ring placement and parameter-based validation',
+  /adminNametagRingPlacement/.test(studioHtml)
+    && /nametag_ring_placement/.test(studioApp)
+    && /type\s*===\s*'nametag'/.test(viewerSrc)
+    && /checkFeature\('Nametag backing'/.test(viewerSrc)
+    && /if\s*\(hasRing\)/.test(nametagBuilderSource)
+    && !/Explicit ring_x\/y passed[\s\S]*hasRing\s*=\s*true/.test(nametagBuilderSource)
+    && /adminNametagThicknessSummary/.test(studioHtml),
+  'automatic placement must match the customer model; manual coordinates and actual thicknesses must be explicit'
 );
 
 /* ---------- result ---------- */

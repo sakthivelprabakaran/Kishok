@@ -9,6 +9,7 @@ import { SVGLoader }     from 'three/addons/loaders/SVGLoader.js';
 import { STLExporter }   from 'three/addons/exporters/STLExporter.js';
 // Mesh-boolean engine for the LED Word Stand (hollow channels, peg tabs, slots).
 import { Evaluator, Brush, SUBTRACTION, ADDITION } from 'three-bvh-csg';
+import { evaluatePrinterFit, getPrinterProfile } from './printer-profiles.js?v=p1';
 
 // ===================================================================
 // Clipper CAD helpers for boolean difference operations
@@ -293,6 +294,16 @@ export class KeychainViewer {
         this.fontCache  = {};
         this.keychainGroup = null;
         this.disposed = false;
+        this.printerProfile = getPrinterProfile();
+        this.printBedGroup = null;
+        this.printBedVisible = false;
+        this.dimensionOverlayVisible = false;
+        this._dimensionOverlay = null;
+        this._dimensionAxes = {};
+        this._sceneAidsDirty = true;
+        this._savedProductView = null;
+        this._autoRotateBeforeBed = false;
+        this._lastDimensions = null;
         this._init();
     }
 
@@ -321,6 +332,7 @@ export class KeychainViewer {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.container.appendChild(this.renderer.domElement);
+        this._initDimensionOverlay();
 
         // Lights
         const ambient = new THREE.AmbientLight(0xffffff, 0.85);
@@ -374,6 +386,9 @@ export class KeychainViewer {
         this.controls.addEventListener('start', () => {
             this.container.dispatchEvent(new CustomEvent('viewerinteract'));
         });
+        this.controls.addEventListener('change', () => {
+            this._sceneAidsDirty = true;
+        });
 
         // Resize observer
         this._resizeObserver = new ResizeObserver(() => this._onResize());
@@ -386,7 +401,11 @@ export class KeychainViewer {
     _animate() {
         if (this.disposed) return;
         requestAnimationFrame(() => this._animate());
-        this.controls.update();
+        if (this.controls.update()) this._sceneAidsDirty = true;
+        if (this._sceneAidsDirty) {
+            this._updateDimensionOverlay();
+            this._sceneAidsDirty = false;
+        }
         this.renderer.render(this.scene, this.camera);
     }
 
@@ -397,6 +416,383 @@ export class KeychainViewer {
         this.camera.aspect = w / h;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(w, h);
+        this._sceneAidsDirty = true;
+    }
+
+    /* ── Viewer-only dimensions and printer-bed aids ── */
+
+    _initDimensionOverlay() {
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const make = (tag, attrs) => {
+            const element = document.createElementNS(svgNS, tag);
+            Object.entries(attrs || {}).forEach(([name, value]) => element.setAttribute(name, value));
+            return element;
+        };
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'viewer-dimension-overlay';
+        wrapper.hidden = true;
+        wrapper.setAttribute('aria-hidden', 'true');
+
+        const svg = make('svg', { focusable: 'false', preserveAspectRatio: 'none' });
+        const defs = make('defs');
+        const markerId = `viewer-dimension-arrow-${(KeychainViewer._dimensionOverlayCounter || 0) + 1}`;
+        KeychainViewer._dimensionOverlayCounter = (KeychainViewer._dimensionOverlayCounter || 0) + 1;
+        const marker = make('marker', {
+            id: markerId,
+            viewBox: '0 0 8 8',
+            refX: '4',
+            refY: '4',
+            markerWidth: '5',
+            markerHeight: '5',
+            orient: 'auto-start-reverse',
+        });
+        marker.appendChild(make('path', { d: 'M 0 0 L 8 4 L 0 8 z' }));
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+
+        for (const axis of ['x', 'y', 'z']) {
+            const group = make('g', { class: 'viewer-dimension-axis', 'data-axis': axis });
+            const guideStart = make('line', { class: 'viewer-dimension-guide' });
+            const guideEnd = make('line', { class: 'viewer-dimension-guide' });
+            const line = make('line', {
+                class: 'viewer-dimension-line',
+                'marker-start': `url(#${markerId})`,
+                'marker-end': `url(#${markerId})`,
+            });
+            const label = make('g', { class: 'viewer-dimension-label' });
+            const labelRect = make('rect', { x: '-35', y: '-11', width: '70', height: '22', rx: '8' });
+            const labelText = make('text', { x: '0', y: '4', 'text-anchor': 'middle' });
+            label.append(labelRect, labelText);
+            group.append(guideStart, guideEnd, line, label);
+            svg.appendChild(group);
+            this._dimensionAxes[axis] = { group, guideStart, guideEnd, line, label, labelText };
+        }
+
+        wrapper.appendChild(svg);
+        this.container.appendChild(wrapper);
+        this._dimensionOverlay = { wrapper, svg };
+    }
+
+    _getModelBounds() {
+        if (!this.keychainGroup) return null;
+        this.keychainGroup.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(this.keychainGroup);
+        return box.isEmpty() ? null : box;
+    }
+
+    _projectDimensionPoint(point, width, height) {
+        const projected = point.clone().project(this.camera);
+        return {
+            x: (projected.x * 0.5 + 0.5) * width,
+            y: (-projected.y * 0.5 + 0.5) * height,
+            z: projected.z,
+        };
+    }
+
+    _dimensionSegments(box) {
+        const size = box.getSize(new THREE.Vector3());
+        const margin = Math.max(3, Math.min(16, Math.max(size.x, size.y, size.z) * 0.12));
+        const frontZ = box.max.z + Math.max(0.5, margin * 0.08);
+
+        return {
+            x: {
+                start: new THREE.Vector3(box.min.x, box.min.y - margin, frontZ),
+                end: new THREE.Vector3(box.max.x, box.min.y - margin, frontZ),
+                guideStart: new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+                guideEnd: new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+                value: size.x,
+                label: 'W',
+            },
+            y: {
+                start: new THREE.Vector3(box.min.x - margin, box.min.y, frontZ),
+                end: new THREE.Vector3(box.min.x - margin, box.max.y, frontZ),
+                guideStart: new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+                guideEnd: new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+                value: size.y,
+                label: 'H',
+            },
+            z: {
+                start: new THREE.Vector3(box.max.x + margin, box.min.y - margin * 0.3, box.min.z),
+                end: new THREE.Vector3(box.max.x + margin, box.min.y - margin * 0.3, box.max.z),
+                guideStart: new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+                guideEnd: new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+                value: size.z,
+                label: 'D',
+            },
+        };
+    }
+
+    _updateDimensionOverlay() {
+        if (!this._dimensionOverlay) return;
+        this._dimensionOverlay.wrapper.hidden = !this.dimensionOverlayVisible;
+        if (!this.dimensionOverlayVisible) return;
+
+        const box = this._getModelBounds();
+        const width = this.container.clientWidth;
+        const height = this.container.clientHeight;
+        if (!box || width <= 0 || height <= 0) {
+            this._dimensionOverlay.wrapper.hidden = true;
+            return;
+        }
+
+        this._dimensionOverlay.svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        const segments = this._dimensionSegments(box);
+        const setLine = (line, a, b) => {
+            line.setAttribute('x1', a.x.toFixed(1));
+            line.setAttribute('y1', a.y.toFixed(1));
+            line.setAttribute('x2', b.x.toFixed(1));
+            line.setAttribute('y2', b.y.toFixed(1));
+        };
+
+        for (const axis of ['x', 'y', 'z']) {
+            const segment = segments[axis];
+            const elements = this._dimensionAxes[axis];
+            const start = this._projectDimensionPoint(segment.start, width, height);
+            const end = this._projectDimensionPoint(segment.end, width, height);
+            const guideStart = this._projectDimensionPoint(segment.guideStart, width, height);
+            const guideEnd = this._projectDimensionPoint(segment.guideEnd, width, height);
+            const visible = [start, end, guideStart, guideEnd].every((point) =>
+                Number.isFinite(point.x) && Number.isFinite(point.y) && point.z >= -1.2 && point.z <= 1.2
+            );
+            elements.group.style.display = visible ? '' : 'none';
+            if (!visible) continue;
+
+            setLine(elements.line, start, end);
+            setLine(elements.guideStart, guideStart, start);
+            setLine(elements.guideEnd, guideEnd, end);
+
+            const labelX = Math.max(40, Math.min(width - 40, (start.x + end.x) / 2));
+            const labelY = Math.max(16, Math.min(height - 16, (start.y + end.y) / 2));
+            elements.label.setAttribute('transform', `translate(${labelX.toFixed(1)} ${labelY.toFixed(1)})`);
+            elements.labelText.textContent = `${segment.label} ${segment.value.toFixed(1)} mm`;
+        }
+    }
+
+    _disposeSceneObject(object) {
+        if (!object) return;
+        const geometries = new Set();
+        const materials = new Set();
+        object.traverse((child) => {
+            if (child.geometry) geometries.add(child.geometry);
+            if (Array.isArray(child.material)) child.material.forEach((material) => materials.add(material));
+            else if (child.material) materials.add(child.material);
+        });
+        geometries.forEach((geometry) => geometry.dispose());
+        materials.forEach((material) => material.dispose());
+    }
+
+    _buildPrintBed() {
+        if (this.printBedGroup) {
+            this.scene.remove(this.printBedGroup);
+            this._disposeSceneObject(this.printBedGroup);
+        }
+
+        const profile = this.printerProfile;
+        const width = profile.buildVolumeMm.x;
+        const height = profile.buildVolumeMm.y;
+        const group = new THREE.Group();
+        group.name = 'viewer-print-bed';
+        group.userData.viewerOnly = true;
+
+        const frame = new THREE.Mesh(
+            new THREE.BoxGeometry(width + 7, height + 7, 1.8),
+            new THREE.MeshStandardMaterial({ color: 0xa9afb7, roughness: 0.48, metalness: 0.68 })
+        );
+        frame.position.z = -3.1;
+        frame.receiveShadow = true;
+        group.add(frame);
+
+        const plateGeometry = new THREE.BoxGeometry(width, height, 2.6);
+        const plate = new THREE.Mesh(
+            plateGeometry,
+            new THREE.MeshStandardMaterial({ color: 0x2e3238, roughness: 0.9, metalness: 0.12 })
+        );
+        plate.position.z = -1.3;
+        plate.receiveShadow = true;
+        group.add(plate);
+
+        const border = new THREE.LineSegments(
+            new THREE.EdgesGeometry(plateGeometry),
+            new THREE.LineBasicMaterial({ color: 0xd7dce3, transparent: true, opacity: 0.78 })
+        );
+        border.position.z = 0.05;
+        group.add(border);
+
+        const makeGrid = (step, skipEvery, color, opacity) => {
+            const vertices = [];
+            const isSkipped = (offset) => skipEvery
+                && Math.abs(offset / skipEvery - Math.round(offset / skipEvery)) < 0.0001;
+            for (let offset = 0; offset <= width + 0.001; offset += step) {
+                if (isSkipped(offset)) continue;
+                const x = -width / 2 + offset;
+                vertices.push(x, -height / 2, 0.08, x, height / 2, 0.08);
+            }
+            for (let offset = 0; offset <= height + 0.001; offset += step) {
+                if (isSkipped(offset)) continue;
+                const y = -height / 2 + offset;
+                vertices.push(-width / 2, y, 0.08, width / 2, y, 0.08);
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            return new THREE.LineSegments(
+                geometry,
+                new THREE.LineBasicMaterial({ color, transparent: true, opacity })
+            );
+        };
+
+        group.add(makeGrid(profile.gridMinorMm, profile.gridMajorMm, 0x7d858f, 0.28));
+        group.add(makeGrid(profile.gridMajorMm, null, 0xb7bec8, 0.58));
+
+        const centerGeometry = new THREE.BufferGeometry();
+        centerGeometry.setAttribute('position', new THREE.Float32BufferAttribute([
+            -width / 2, 0, 0.1, width / 2, 0, 0.1,
+            0, -height / 2, 0.1, 0, height / 2, 0.1,
+        ], 3));
+        group.add(new THREE.LineSegments(
+            centerGeometry,
+            new THREE.LineBasicMaterial({ color: 0x62d5c8, transparent: true, opacity: 0.76 })
+        ));
+
+        const screwMaterial = new THREE.MeshStandardMaterial({
+            color: 0x111318,
+            roughness: 0.55,
+            metalness: 0.58,
+        });
+        const inset = 8;
+        for (const x of [-width / 2 + inset, width / 2 - inset]) {
+            for (const y of [-height / 2 + inset, height / 2 - inset]) {
+                const screw = new THREE.Mesh(new THREE.CircleGeometry(2.1, 20), screwMaterial);
+                screw.position.set(x, y, 0.11);
+                group.add(screw);
+            }
+        }
+
+        group.visible = this.printBedVisible;
+        this.printBedGroup = group;
+        this.scene.add(group);
+        this._syncPrintBedToModel();
+    }
+
+    _syncPrintBedToModel() {
+        if (!this.printBedGroup) return;
+        const box = this._getModelBounds();
+        this.printBedGroup.position.z = box ? box.min.z - 0.12 : -0.12;
+    }
+
+    _captureProductView() {
+        return {
+            cameraPosition: this.camera.position.clone(),
+            target: this.controls.target.clone(),
+            near: this.camera.near,
+            far: this.camera.far,
+            minDistance: this.controls.minDistance,
+            maxDistance: this.controls.maxDistance,
+        };
+    }
+
+    _restoreProductView() {
+        if (!this._savedProductView) return;
+        this.camera.position.copy(this._savedProductView.cameraPosition);
+        this.controls.target.copy(this._savedProductView.target);
+        this.camera.near = this._savedProductView.near;
+        this.camera.far = this._savedProductView.far;
+        this.controls.minDistance = this._savedProductView.minDistance;
+        this.controls.maxDistance = this._savedProductView.maxDistance;
+        this.camera.updateProjectionMatrix();
+        this.controls.update();
+    }
+
+    _framePrintBed() {
+        if (!this.printBedGroup) return;
+        const volume = this.printerProfile.buildVolumeMm;
+        const target = new THREE.Vector3(0, 0, this.printBedGroup.position.z);
+        const radius = Math.sqrt(volume.x * volume.x + volume.y * volume.y) / 2;
+        const distance = (radius / Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 1.14;
+        const direction = new THREE.Vector3(0.72, -0.86, 1.08).normalize();
+        this.camera.position.copy(target).add(direction.multiplyScalar(distance));
+        this.camera.near = Math.max(0.5, distance / 1000);
+        this.camera.far = distance * 4;
+        this.camera.updateProjectionMatrix();
+        this.controls.target.copy(target);
+        this.controls.minDistance = radius * 0.55;
+        this.controls.maxDistance = distance * 2.2;
+        this.controls.update();
+        this._sceneAidsDirty = true;
+    }
+
+    _emitMetricsChange() {
+        const dimensions = this.getDimensions();
+        this._lastDimensions = dimensions;
+        this.container.dispatchEvent(new CustomEvent('viewermetricschange', {
+            detail: {
+                dimensions,
+                fit: evaluatePrinterFit(dimensions, this.printerProfile),
+                printBedVisible: this.printBedVisible,
+                dimensionsVisible: this.dimensionOverlayVisible,
+            },
+        }));
+    }
+
+    _afterModelUpdated() {
+        this._syncPrintBedToModel();
+        this._sceneAidsDirty = true;
+        if (this.printBedVisible) {
+            this._savedProductView = this._captureProductView();
+            this.controls.autoRotate = false;
+            this._framePrintBed();
+        }
+        this._emitMetricsChange();
+    }
+
+    setPrinterProfile(profileOrId) {
+        this.printerProfile = getPrinterProfile(profileOrId);
+        this._buildPrintBed();
+        if (this.printBedVisible) this._framePrintBed();
+        this._emitMetricsChange();
+        return this.printerProfile;
+    }
+
+    setDimensionOverlayVisible(visible) {
+        this.dimensionOverlayVisible = Boolean(visible);
+        this._sceneAidsDirty = true;
+        if (this._dimensionOverlay) {
+            this._dimensionOverlay.wrapper.hidden = !this.dimensionOverlayVisible;
+        }
+        this._emitMetricsChange();
+        return this.dimensionOverlayVisible;
+    }
+
+    setPrintBedVisible(visible) {
+        const nextVisible = Boolean(visible);
+        if (!this.printBedGroup) this._buildPrintBed();
+        if (nextVisible === this.printBedVisible) {
+            if (nextVisible) this._framePrintBed();
+            return this.printBedVisible;
+        }
+
+        this.printBedVisible = nextVisible;
+        this.printBedGroup.visible = nextVisible;
+        if (this.shadowPlane) this.shadowPlane.visible = !nextVisible;
+
+        if (nextVisible) {
+            this._savedProductView = this._captureProductView();
+            this._autoRotateBeforeBed = this.controls.autoRotate;
+            this.controls.autoRotate = false;
+            this._syncPrintBedToModel();
+            this._framePrintBed();
+        } else {
+            this._restoreProductView();
+            this.controls.autoRotate = this._autoRotateBeforeBed;
+        }
+
+        this._sceneAidsDirty = true;
+        this._emitMetricsChange();
+        return this.printBedVisible;
+    }
+
+    getPrinterFit(profileOrId) {
+        return evaluatePrinterFit(this._lastDimensions || this.getDimensions(), profileOrId || this.printerProfile);
     }
 
     /* ── Font Loading (opentype.js) ── */
@@ -477,15 +873,19 @@ export class KeychainViewer {
        and text letters sit flush at z = 0.
     */
     _buildWordartBackplate(shapes, mode, p, baseMat) {
-        var COVER_THK = 1.8;                      // front skin thickness in hollow mode (mm)
         var isHollow  = (mode === 'hollow');
-
-        // Depth has to clear the cover plus at least a 2mm wall run.
-        var depth = Math.max(isHollow ? COVER_THK + 2 : 2, p.base.depth || 14);
-
-        // Padding = how far the plate extends past the letters.
-        var padding = Math.max(1.5, p.base.bevelSize || 3.0);
-        var wallThk = Math.max(1.8, Math.min(2.4, p.base.bevelThickness || 2.2));
+        var requestedDepth = Number(p.base.depth);
+        var depth = Number.isFinite(requestedDepth) ? requestedDepth : 14;
+        var requestedPadding = Number(p.base.bevelSize);
+        var padding = Number.isFinite(requestedPadding) ? requestedPadding : 3;
+        var requestedCover = Number(p.base.coverThickness);
+        var coverThk = Number.isFinite(requestedCover) ? requestedCover : 1.8;
+        var requestedWall = Number(p.base.wallThickness);
+        var wallThk = Number.isFinite(requestedWall)
+            ? requestedWall
+            : (Number.isFinite(Number(p.base.bevelThickness)) && Number(p.base.bevelThickness) > 0
+                ? Number(p.base.bevelThickness)
+                : 2.2);
 
         // Fill letter counters (holes inside 'O', 'A', etc.) so backplate is a continuous solid backing footprint
         var solidShapes = [];
@@ -511,10 +911,15 @@ export class KeychainViewer {
         }
 
         if (!isHollow) {
-            // Solid backplate: single solid plaque
-            var bevelThk = Math.min(0.6, depth * 0.2);
+            // Solid backplate: keep the requested value as the finished depth,
+            // including the explicitly controlled bevel on both faces.
+            var requestedBevel = Number(p.base.solidBevelThickness);
+            var bevelThk = Number.isFinite(requestedBevel)
+                ? requestedBevel
+                : Math.max(0, Number(p.base.bevelThickness) || 0);
+            var coreDepth = Math.max(0.1, depth - bevelThk * 2);
             var plateGeo = new THREE.ExtrudeGeometry(outerShapes, {
-                depth:          depth,
+                depth:          coreDepth,
                 bevelEnabled:   bevelThk > 0,
                 bevelThickness: bevelThk,
                 bevelSize:      Math.min(0.4, padding * 0.4),
@@ -522,7 +927,7 @@ export class KeychainViewer {
                 bevelSegments:  p.base.bevelSegments || 3,
                 curveSegments:  12,
             });
-            plateGeo.translate(0, 0, -(depth + (bevelThk > 0 ? bevelThk : 0)));
+            plateGeo.translate(0, 0, -(coreDepth + bevelThk));
             this.keychainGroup.add(new THREE.Mesh(plateGeo, baseMat));
             return;
         }
@@ -530,11 +935,11 @@ export class KeychainViewer {
         // Hollow backplate:
         // 1. Front solid skin (deck) on which texts sit flush at z = 0
         var coverGeo = new THREE.ExtrudeGeometry(outerShapes, {
-            depth:         COVER_THK,
+            depth:         coverThk,
             bevelEnabled:  false,
             curveSegments: 12,
         });
-        coverGeo.translate(0, 0, -COVER_THK);
+        coverGeo.translate(0, 0, -coverThk);
         this.keychainGroup.add(new THREE.Mesh(coverGeo, baseMat));
 
         // 2. Continuous outer perimeter wall with clean hollow interior (no letter dividers or internal ribs)
@@ -545,7 +950,7 @@ export class KeychainViewer {
 
         if (wallShapes && wallShapes.length > 0) {
             var wallGeo = new THREE.ExtrudeGeometry(wallShapes, {
-                depth:         depth - COVER_THK,
+                depth:         Math.max(0.1, depth - coverThk),
                 bevelEnabled:  false,
                 curveSegments: 12,
             });
@@ -620,6 +1025,8 @@ export class KeychainViewer {
         this._beadGroups = null;
         this._beadCord = null;
         this._beadStoppers = null;
+        this._lastDimensions = null;
+        this._sceneAidsDirty = true;
     }
 
     // Builds a closed heart THREE.Shape in opentype/SVG coords (Y-down: cusps at low Y, point at high Y).
@@ -865,6 +1272,15 @@ export class KeychainViewer {
         p.ring    = Object.assign({}, defaults.ring,    (params && params.ring)    || {});
 
         var type = productType || p.productType || 'keychain';
+        if (type === 'keychain') {
+            var classicIsTwoLayer = p.layers === '2L';
+            p.base.depth = classicIsTwoLayer ? 4.5 : 3;
+            p.base.bevelThickness = 0;
+            p.outline.depth = 1.5;
+            p.outline.bevelThickness = 0;
+            p.font.depth = 1.5;
+            p.font.bevelThickness = 0;
+        }
         var errors = [];
         var warnings = [];
         var features = [];
@@ -943,10 +1359,41 @@ export class KeychainViewer {
         if (isScaled) {
             // These builders multiply their own constants by scaleFactor.
             if (type === 'tilekey') {
-                // Constants from _buildTileKeychain.
-                checkFeature('Letter relief (' + scale + '× scale)', 1.2 * scale);
-                checkFeature('Tile thickness (' + scale + '× scale)', 1.8 * scale);
-                checkFeature('Strip thickness (' + scale + '× scale)', 3 * scale);
+                var tileStripDepth = num(p.tile_strip_depth, 3);
+                var tileStripBevel = num(p.tile_strip_bevel, 0.6);
+                var tileDepth = num(p.tile_depth, 1.8);
+                var tileBevel = num(p.tile_bevel, 0.3);
+                var tileLetterDepth = num(p.tile_letter_depth, 1.2);
+                var tileLetterBevel = num(p.tile_letter_bevel, 0.2);
+                checkFeature('Letter relief (' + scale + '× scale)',
+                    (tileLetterDepth + 2 * tileLetterBevel) * scale);
+                checkFeature('Tile thickness (' + scale + '× scale)',
+                    (tileDepth + 2 * tileBevel) * scale);
+                checkFeature('Strip thickness (' + scale + '× scale)',
+                    (tileStripDepth + 2 * tileStripBevel) * scale);
+            } else if (type === 'nametag') {
+                var tagBase = num(p.base_thickness, 2.5);
+                var tagEven = num(p.height_even, 4);
+                var tagOdd = num(p.height_odd, 2);
+                var tagPlacement = p.nametag_ring_placement
+                    || (p.ringPosition === 'none' ? 'none' : 'auto-left');
+                checkFeature('Nametag backing', tagBase * scale,
+                    { min: L.MIN_FEATURE, safe: L.SAFE_KEYCHAIN_BODY });
+                checkFeature('Even-letter relief', tagEven * scale);
+                checkFeature('Odd-letter relief', tagOdd * scale);
+                checkFeature('Tallest finished letter',
+                    (tagBase + Math.max(tagEven, tagOdd)) * scale,
+                    { min: L.MIN_FEATURE, safe: L.SAFE_KEYCHAIN_BODY });
+                if (tagPlacement !== 'none') {
+                    checkFeature('Ring height', num(p.ring_height, 4.5) * scale);
+                    checkRing(
+                        (num(p.ring_outer_d, 10) / 2) * scale,
+                        (num(p.ring_inner_d, 5) / 2) * scale
+                    );
+                    if (tagPlacement === 'manual') {
+                        warnings.push('Manual ring coordinates must overlap the name body; verify the connection in the 3D view.');
+                    }
+                }
             } else if (type === 'bubble_keychain') {
                 // Sliders from the Bubble Keychain section; constants elsewhere in
                 // _buildBubbleKeychain (inset floor 0.8, rim 1.6).
@@ -961,9 +1408,75 @@ export class KeychainViewer {
                 checkRing(bubOuter * scale, bubInner * scale);
                 checkFeature('Total body', (bubBase + 0.8 + bubText) * scale,
                     { min: L.MIN_FEATURE, safe: L.SAFE_KEYCHAIN_BODY });
+            } else if (type === 'bordered_keychain') {
+                var borderWidth = num(p.bordered_border_thickness, 3);
+                var borderHeight = num(p.bordered_border_height, 3);
+                var borderedText = num(p.bordered_text_height, 1.5);
+                checkFeature('Border width', borderWidth * scale);
+                checkFeature('Border body height', borderHeight * scale,
+                    { min: L.MIN_FEATURE, safe: L.SAFE_KEYCHAIN_BODY });
+                if (borderedText > 0) {
+                    checkFeature('Raised text relief', borderedText * scale);
+                } else if (borderedText < 0) {
+                    var engravingDepth = Math.abs(borderedText);
+                    features.push({ label: 'Engraving depth', mm: Math.round(engravingDepth * scale * 100) / 100 });
+                    if (engravingDepth >= borderHeight) {
+                        errors.push('Engraving depth must be smaller than the border body height.');
+                    }
+                }
+                if (p.bordered_show_ring !== false) {
+                    checkFeature('Ring height', num(p.bordered_ring_height, 3) * scale);
+                    checkRing(
+                        (num(p.bordered_ring_outer_d, 11) / 2) * scale,
+                        (num(p.bordered_ring_inner_d, 4) / 2) * scale
+                    );
+                }
+            } else if (type === 'supported_text') {
+                checkFeature('Supported nameplate extrusion', num(p.supported_extrusion, 3) * scale,
+                    { min: L.MIN_FEATURE, safe: L.SAFE_KEYCHAIN_BODY });
+            } else if (type === 'flower_keychain') {
+                var flowerBase = num(p.flower_base_thickness, 3);
+                var flowerDisc = num(p.flower_center_disc_thickness, 1);
+                var flowerLetter = num(p.flower_letter_thickness, 1.5);
+                checkFeature('Flower base', flowerBase * scale,
+                    { min: L.MIN_FEATURE, safe: L.SAFE_KEYCHAIN_BODY });
+                checkFeature('Center disc', flowerDisc * scale);
+                checkFeature('Initial relief', flowerLetter * scale);
+                checkFeature('Finished flower stack', (flowerBase + flowerDisc + flowerLetter) * scale,
+                    { min: L.MIN_FEATURE, safe: L.SAFE_KEYCHAIN_BODY });
+                checkFeature('Ring height', num(p.flower_ring_height, 3) * scale);
+                checkRing(
+                    (num(p.flower_ring_outer_d, 10) / 2) * scale,
+                    (num(p.flower_ring_inner_d, 5) / 2) * scale
+                );
+            } else if (type === 'led_word_stand' || type === 'led_word_art') {
+                var ledBody = num(p.body_depth, 25);
+                var ledWall = num(p.wall_thickness, 2);
+                var ledBack = num(p.back_wall_thickness, 2);
+                var ledCover = num(p.cover_thickness, 2);
+                var ledLipDepth = num(p.cover_lip_depth, 3);
+                var ledLipWidth = num(p.cover_lip_width, 1.5);
+                var ledTolerance = num(p.cover_tolerance, 0.15);
+                checkFeature('Housing wall', ledWall * scale);
+                checkFeature('Back wall', ledBack * scale);
+                checkFeature('Diffuser cover', ledCover * scale);
+                checkFeature('Cover lip width', ledLipWidth * scale);
+                checkFeature('Cover lip depth', ledLipDepth * scale);
+                if (ledBack >= ledBody) {
+                    errors.push('Back wall thickness must be smaller than the LED body depth.');
+                }
+                if (ledLipDepth >= ledBody) {
+                    errors.push('Cover lip depth must be smaller than the LED body depth.');
+                }
+                if (ledTolerance < 0) {
+                    errors.push('Cover tolerance cannot be negative.');
+                } else if (ledTolerance * scale < 0.1) {
+                    warnings.push('Scaled cover tolerance is under 0.10mm and may fuse after printing.');
+                }
             } else if (type === 'desk_organizer') {
-                // Constants and sliders from _buildDeskOrganizer. No keyring.
-                checkFeature('Compartment wall', num(p.organizer_wall_thk, 3.2) * scale);
+                checkFeature('Outer wall', num(p.organizer_wall_thk, 3.2) * scale);
+                checkFeature('Bottom plate', 3 * scale);
+                checkFeature('Internal divider', 2.2 * scale);
                 checkFeature('Nameplate letter relief', num(p.organizer_letter_depth, 1.2) * scale);
             } else if (type === 'name_beads') {
                 // A bead is a cube with a cord hole through it; the thin part is the
@@ -997,11 +1510,16 @@ export class KeychainViewer {
         // backing is switched on.
         var wordartMode = (p.base.wordartMode || 'none');
         if (isWordartLike && wordartMode !== 'none') {
-            var backDepth = Math.max(wordartMode === 'hollow' ? 3 : 1, Number(p.base.depth) || 0);
+            var backDepth = num(p.base.depth, wordartMode === 'hollow' ? 15 : 4);
             if (wordartMode === 'hollow') {
-                checkFeature('Standee shell wall', Math.max(1.2, Number(p.base.bevelThickness) || 2.2),
+                var shellWall = num(p.base.wallThickness, num(p.base.bevelThickness, 2.2));
+                var frontCover = num(p.base.coverThickness, 1.8);
+                checkFeature('Standee shell wall', shellWall,
                     { min: L.MIN_FEATURE, safe: L.SAFE_FEATURE });
-                checkFeature('Standee front cover', 2);
+                checkFeature('Standee front cover', frontCover);
+                if (frontCover >= backDepth) {
+                    errors.push('Front cover thickness must be smaller than the total backing depth.');
+                }
                 if (backDepth < 10) {
                     warnings.push('Backing depth is ' + backDepth.toFixed(1) + 'mm. Hollow only reads as a '
                         + 'standing piece from about 10mm; below that use Solid instead.');
@@ -1021,23 +1539,21 @@ export class KeychainViewer {
         // Outline (middle) layer — 3L only, and word art forces a thicker halo.
         if (p.layers === '3L' && !isLinkedInitial) {
             var outlineTotal = total(p.outline);
-            if (isWordartLike) {
-                outlineTotal = Math.max(outlineTotal, 4);   // builder forces depth >= 4
-            }
             checkFeature('Outline layer', outlineTotal);
         }
 
-        // Text layer — word art and linked initials force >= 6mm.
-        var fontTotal = total(p.font);
-        if (isWordartLike || isLinkedInitial) {
-            fontTotal = Math.max(fontTotal, 6);
-        }
+        var fontTotal = isLinkedInitial
+            ? num(p.linked_depth, 4) + 2 * num(p.linked_bevel, 0.4)
+            : total(p.font);
         checkFeature('Text relief', fontTotal);
 
         // Keyring — skipped for nameplate/word art, and when explicitly off.
         var hasRing = !isNameplate && !isWordartLike && p.ringPosition !== 'none';
         if (hasRing) {
-            checkRing(Number(p.ring.outerRadius) || 0, Number(p.ring.innerRadius) || 0);
+            checkRing(
+                isLinkedInitial ? num(p.linked_ring_outer, 4.2) : (Number(p.ring.outerRadius) || 0),
+                isLinkedInitial ? num(p.linked_ring_inner, 2.4) : (Number(p.ring.innerRadius) || 0)
+            );
         }
 
         return { errors: errors, warnings: warnings, features: features };
@@ -1145,6 +1661,19 @@ export class KeychainViewer {
         p.outline = Object.assign({}, defaults.outline, (params && params.outline) || {});
         p.font    = Object.assign({}, defaults.font,    (params && params.font)    || {});
         p.ring    = Object.assign({}, defaults.ring,    (params && params.ring)    || {});
+
+        // Classic Keychain is the only fixed-thickness product. Keep the final
+        // stack at exactly 6mm in Studio, storefront previews and STL exports.
+        // Bevel size still controls the XY edge shape; only Z-depth is fixed.
+        if (p.productType === 'keychain') {
+            var classicIsTwoLayer = p.layers === '2L';
+            p.base.depth = classicIsTwoLayer ? 4.5 : 3;
+            p.base.bevelThickness = 0;
+            p.outline.depth = 1.5;
+            p.outline.bevelThickness = 0;
+            p.font.depth = 1.5;
+            p.font.bevelThickness = 0;
+        }
 
         // Store current params for rebuildWithParams
         this._lastText       = text;
@@ -1524,11 +2053,6 @@ export class KeychainViewer {
             // Word-art: thicker outline AND wider bevelSize so the halo spreads outward
             // enough to bridge the visual seam between line 1 and line 2 — gives one
             // continuous silhouette like the inspiration ("schon HIER").
-            if (isWordart) {
-                outlineSettings.depth     = Math.max(outlineSettings.depth, 4);
-                outlineSettings.bevelSize = Math.max(outlineSettings.bevelSize, 2.5);
-                outlineSettings.bevelThickness = Math.max(outlineSettings.bevelThickness, 0.5);
-            }
             var outlineGeo  = new THREE.ExtrudeGeometry(shapes, outlineSettings);
             var outlineLayerBottomZ = currentZ + p.outline.bevelThickness;
             outlineGeo.translate(0, 0, outlineLayerBottomZ);
@@ -1553,10 +2077,6 @@ export class KeychainViewer {
         var fontLayerBottomZ = currentZ + p.font.bevelThickness;
 
         // Word-art and Linked Initials use thicker text since they have no base plate.
-        if (isWordart || isLinkedInitials) {
-            fontSettings.depth = Math.max(p.font.depth, 6);
-        }
-
         if (isWordart && perLine && perLine.length > 0) {
             for (var lj = 0; lj < perLine.length; lj++) {
                 var lineEntry = perLine[lj];
@@ -1592,10 +2112,15 @@ export class KeychainViewer {
         } else if (isLinkedInitials) {
             // For linked initials, use a clean flush bevel with zero lateral expansion (bevelSize: 0)
             // so boolean-subtracted mating boundaries remain sharp, precise, and non-overlapping.
+            var requestedLinkedDepth = Number(p.linked_depth);
+            var linkedDepth = Number.isFinite(requestedLinkedDepth) ? requestedLinkedDepth : 4;
+            var requestedLinkedBevel = Number(p.linked_bevel);
+            var linkedBevel = Number.isFinite(requestedLinkedBevel) ? requestedLinkedBevel : 0.4;
+            var linkedLayerBottomZ = currentZ + linkedBevel;
             var linkedFontSettings = {
-                depth:         fontSettings.depth,
-                bevelEnabled:  true,
-                bevelThickness: Math.min(0.4, p.font.bevelThickness || 0.4),
+                depth:         linkedDepth,
+                bevelEnabled:  linkedBevel > 0,
+                bevelThickness: linkedBevel,
                 bevelSize:      0, // Zero lateral bevel expansion prevents boundary bulging / merging
                 bevelOffset:    0,
                 bevelSegments:  p.font.bevelSegments,
@@ -1613,7 +2138,7 @@ export class KeychainViewer {
             });
             this._applyFDMTexture(leftMat, p);
             var leftGeo = new THREE.ExtrudeGeometry(shapesLeft, linkedFontSettings);
-            leftGeo.translate(0, 0, fontLayerBottomZ);
+            leftGeo.translate(0, 0, linkedLayerBottomZ);
             stackParent.add(new THREE.Mesh(leftGeo, leftMat));
 
             // Right Initial mesh
@@ -1627,7 +2152,7 @@ export class KeychainViewer {
             });
             this._applyFDMTexture(rightMat, p);
             var rightGeo = new THREE.ExtrudeGeometry(shapesRight, linkedFontSettings);
-            rightGeo.translate(0, 0, fontLayerBottomZ);
+            rightGeo.translate(0, 0, linkedLayerBottomZ);
             stackParent.add(new THREE.Mesh(rightGeo, rightMat));
 
             // Central connecting red heart mesh
@@ -1641,7 +2166,7 @@ export class KeychainViewer {
             });
             this._applyFDMTexture(heartMat, p);
             var heartGeo = new THREE.ExtrudeGeometry(shapesHeart, linkedFontSettings);
-            heartGeo.translate(0, 0, fontLayerBottomZ);
+            heartGeo.translate(0, 0, linkedLayerBottomZ);
             stackParent.add(new THREE.Mesh(heartGeo, heartMat));
         } else {
             var fontGeo  = new THREE.ExtrudeGeometry(shapes, fontSettings);
@@ -1654,8 +2179,14 @@ export class KeychainViewer {
         // ── Programmatic Keychain Ring (Top-Left, like a Degree Symbol) ──
         // Skip for nameplates (sit flat on desk) and word-art (letters are the structure).
         if (!isNameplate && !isWordart && p.ringPosition !== 'none') {
-        var ringOuter = isLinkedInitials ? 4.2 : p.ring.outerRadius;
-        var ringInner = isLinkedInitials ? 2.4 : p.ring.innerRadius;
+        var linkedRingOuter = Number(p.linked_ring_outer);
+        var linkedRingInner = Number(p.linked_ring_inner);
+        var ringOuter = isLinkedInitials
+            ? (Number.isFinite(linkedRingOuter) ? linkedRingOuter : 4.2)
+            : p.ring.outerRadius;
+        var ringInner = isLinkedInitials
+            ? (Number.isFinite(linkedRingInner) ? linkedRingInner : 2.4)
+            : p.ring.innerRadius;
         var ringShape = new THREE.Shape();
         ringShape.absarc(0, 0, ringOuter, 0, Math.PI * 2, false);
         var ringHole = new THREE.Path();
@@ -1670,17 +2201,18 @@ export class KeychainViewer {
         if (isLinkedInitials) {
             ringMat = (p.ringPosition === 'right') ? (rightMat || fontMat) : (leftMat || fontMat);
             var totalFontThickness = linkedFontSettings.depth + linkedFontSettings.bevelThickness * 2;
-            var ringDepth = totalFontThickness - p.ring.bevelThickness * 2;
+            var linkedRingBevel = Math.min(linkedFontSettings.bevelThickness, 0.4);
+            var ringDepth = totalFontThickness - linkedRingBevel * 2;
             ringDepthSettings = {
-                depth:         Math.max(2, ringDepth),
-                bevelEnabled:  true,
-                bevelThickness: Math.min(0.4, p.ring.bevelThickness),
-                bevelSize:      Math.min(0.3, p.ring.bevelSize),
+                depth:         Math.max(0.1, ringDepth),
+                bevelEnabled:  linkedRingBevel > 0,
+                bevelThickness: linkedRingBevel,
+                bevelSize:      Math.min(0.3, linkedRingBevel),
                 bevelOffset:    0,
                 bevelSegments:  p.ring.bevelSegments,
                 curveSegments:  8,
             };
-            ringZ = fontLayerBottomZ - linkedFontSettings.bevelThickness + p.ring.bevelThickness;
+            ringZ = linkedLayerBottomZ - linkedFontSettings.bevelThickness + linkedRingBevel;
         } else {
             var totalBaseThickness = p.base.depth + p.base.bevelThickness * 2;
             var ringDepth = totalBaseThickness - p.ring.bevelThickness * 2;
@@ -1904,8 +2436,6 @@ export class KeychainViewer {
         // (lineColors[1] carries colors.line2 in update() above.)
         var tileColor = (p.lineColors && p.lineColors[1]) || outlineColorFallback || '#FFFFFF';
 
-        console.log('[TileKey rebuild]', { stripColor: stripColor, letterColor: letterColor, tileColor: tileColor, lineColors: p.lineColors });
-
         var rawText = (text || '').replace(/[\r\n]/g, '');
         var chars   = rawText.toUpperCase().split('').slice(0, 8);
         if (chars.length === 0) return;
@@ -1920,9 +2450,12 @@ export class KeychainViewer {
         var TILE_CORNER      = 4;
         var LANYARD_RADIUS   = 4;
         var LANYARD_FROM_TOP = 9;             // hole center distance from strip top
-        var STRIP_DEPTH      = 3;
-        var TILE_DEPTH       = 1.8;
-        var LETTER_DEPTH     = 1.2;
+        var STRIP_DEPTH      = Number.isFinite(Number(p.tile_strip_depth)) ? Number(p.tile_strip_depth) : 3;
+        var STRIP_BEVEL      = Number.isFinite(Number(p.tile_strip_bevel)) ? Number(p.tile_strip_bevel) : 0.6;
+        var TILE_DEPTH       = Number.isFinite(Number(p.tile_depth)) ? Number(p.tile_depth) : 1.8;
+        var TILE_BEVEL       = Number.isFinite(Number(p.tile_bevel)) ? Number(p.tile_bevel) : 0.3;
+        var LETTER_DEPTH     = Number.isFinite(Number(p.tile_letter_depth)) ? Number(p.tile_letter_depth) : 1.2;
+        var LETTER_BEVEL     = Number.isFinite(Number(p.tile_letter_bevel)) ? Number(p.tile_letter_bevel) : 0.2;
 
         // Apply user scaleFactor to the whole assembly.
         var scale = p.scaleFactor || 1;
@@ -1979,21 +2512,20 @@ export class KeychainViewer {
         });
         this._applyFDMTexture(matTile, p);
 
-        var matLetter = new THREE.MeshPhysicalMaterial({
+        // These small raised glyphs use an unlit material outside ACES tone
+        // mapping, so the model shows the exact selected filament colour instead
+        // of darkening saturated red, blue and purple until they look black.
+        var matLetter = new THREE.MeshBasicMaterial({
             color:              new THREE.Color(letterColor),
-            roughness:          0.28,
-            metalness:          0.0,
-            clearcoat:          0.95,
-            clearcoatRoughness: 0.08,
             side:               THREE.DoubleSide,
+            toneMapped:         false,
         });
-        this._applyFDMTexture(matLetter, p);
 
         // ── Strip mesh ──
         var stripGeo = new THREE.ExtrudeGeometry(strip, {
             depth:          STRIP_DEPTH,
             bevelEnabled:   true,
-            bevelThickness: 0.6,
+            bevelThickness: STRIP_BEVEL,
             bevelSize:      1.2,
             bevelSegments:  4,
             curveSegments:  8,
@@ -2030,7 +2562,7 @@ export class KeychainViewer {
             var tileGeo = new THREE.ExtrudeGeometry(tile, {
                 depth:          TILE_DEPTH,
                 bevelEnabled:   true,
-                bevelThickness: 0.3,
+                bevelThickness: TILE_BEVEL,
                 bevelSize:      0.5,
                 bevelSegments:  3,
                 curveSegments:  8,
@@ -2067,14 +2599,18 @@ export class KeychainViewer {
             var letterGeo = new THREE.ExtrudeGeometry(letterShapes, {
                 depth:          LETTER_DEPTH,
                 bevelEnabled:   true,
-                bevelThickness: 0.2,
+                bevelThickness: LETTER_BEVEL,
                 bevelSize:      0.3,
                 bevelSegments:  3,
                 curveSegments:  8,
             });
             // opentype paths are Y-down (caps at negative Y after centering). Flip the
-            // geometry's Y before translating into scene Y-up coords.
+            // geometry's Y before translating into scene Y-up coords. The reflection
+            // reverses triangle winding, so recalculate normals afterward; otherwise
+            // DoubleSide lighting treats the visible letter faces as back faces and
+            // makes bright filament colours appear almost black.
             letterGeo.scale(1, -1, 1);
+            letterGeo.computeVertexNormals();
             letterGeo.translate(0, tileMidY, letterFrontZ);
             this.keychainGroup.add(new THREE.Mesh(letterGeo, matLetter));
         }
@@ -2124,17 +2660,21 @@ export class KeychainViewer {
         this.keychainGroup = new THREE.Group();
 
         // 1. Resolve custom params with OpenSCAD defaults
-        var text_size = p.text_size || 22;
+        function tagNumber(value, fallback) {
+            var parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : fallback;
+        }
+        var text_size = tagNumber(p.text_size, 22);
         var letter_gap = p.letter_gap !== undefined ? p.letter_gap : -2.5;
-        var base_thickness = p.base_thickness || 2.5;
+        var base_thickness = tagNumber(p.base_thickness, 2.5);
         var wave_mode = p.wave_mode || "wave";
         var wave_amplitude = p.wave_amplitude !== undefined ? p.wave_amplitude : 5.0;
         var wave_cycles = p.wave_cycles !== undefined ? p.wave_cycles : 1.0;
-        var height_even = p.height_even || 4.0;
-        var height_odd = p.height_odd || 2.0;
-        var ring_outer_d = p.ring_outer_d || 10;
-        var ring_inner_d = p.ring_inner_d || 5;
-        var ring_height = p.ring_height || 4.5;
+        var height_even = tagNumber(p.height_even, 4.0);
+        var height_odd = tagNumber(p.height_odd, 2.0);
+        var ring_outer_d = tagNumber(p.ring_outer_d, 10);
+        var ring_inner_d = tagNumber(p.ring_inner_d, 5);
+        var ring_height = tagNumber(p.ring_height, 4.5);
         var ring_x = p.ring_x;
         var ring_y = p.ring_y;
 
@@ -2197,22 +2737,18 @@ export class KeychainViewer {
         var ringInnerR = ring_inner_d / 2;
         var hasRing = (p.ringPosition !== 'none');
 
-        if (ring_x === undefined || ring_y === undefined) {
-            if (p.ringPosition === 'none') {
-                hasRing = false;
-            } else if (p.ringPosition === 'right') {
+        if (hasRing) {
+            var hasManualRing = Number.isFinite(Number(ring_x)) && Number.isFinite(Number(ring_y));
+            if (!hasManualRing && p.ringPosition === 'right') {
                 var overlap = Math.min(4, ringOuterR * 0.8);
                 ring_x = totalWidth + ringOuterR - overlap;
                 ring_y = posY[n - 1];
-            } else {
+            } else if (!hasManualRing) {
                 // default left
                 var overlap = Math.min(4, ringOuterR * 0.8);
                 ring_x = posX[0] - ringOuterR + overlap;
                 ring_y = posY[0];
             }
-        } else {
-            // Explicit ring_x/y passed (admin console)
-            hasRing = true;
         }
 
         // 5. Materials
@@ -4450,6 +4986,7 @@ export class KeychainViewer {
             this._lastOutlineColor,
             params
         );
+        this._afterModelUpdated();
     }
 
 
@@ -4510,6 +5047,7 @@ export class KeychainViewer {
             if (!params.fontBottom) params.fontBottom = font;
         }
         this.buildKeychain(text, font, colors.base, colors.font, colors.outline, params);
+        this._afterModelUpdated();
     }
 
     /* ── Auto-rotate toggle ── */
@@ -4529,6 +5067,10 @@ export class KeychainViewer {
         scale = scale || 4;
         var w = this.container.clientWidth  * scale;
         var h = this.container.clientHeight * scale;
+        var bedWasVisible = Boolean(this.printBedGroup && this.printBedGroup.visible);
+        var shadowWasVisible = Boolean(this.shadowPlane && this.shadowPlane.visible);
+        if (this.printBedGroup) this.printBedGroup.visible = false;
+        if (this.shadowPlane) this.shadowPlane.visible = true;
 
         // Temporarily resize renderer for high-res capture
         var origW = this.renderer.domElement.width;
@@ -4544,6 +5086,8 @@ export class KeychainViewer {
         // Restore original size
         this.renderer.setPixelRatio(origPixelRatio);
         this.renderer.setSize(origW / origPixelRatio, origH / origPixelRatio);
+        if (this.printBedGroup) this.printBedGroup.visible = bedWasVisible;
+        if (this.shadowPlane) this.shadowPlane.visible = shadowWasVisible;
 
         // Trigger download
         var a    = document.createElement('a');
@@ -4555,6 +5099,20 @@ export class KeychainViewer {
     }
 
     /* ── Download STL (For 3D Printing) ── */
+    // Return the exact printable Classic Keychain STL without triggering a
+    // download. The local Kiri:Moto benchmark consumes this binary directly.
+    // Print-bed, dimension and shadow aids live outside keychainGroup and are
+    // therefore excluded from this data by construction.
+    getSTLBinary() {
+        if (!this.keychainGroup) return null;
+        if (this._lastParams && this._lastParams.productType !== 'keychain') {
+            throw new Error('The Kiri:Moto benchmark currently supports Classic Keychain only.');
+        }
+        this.scene.updateMatrixWorld(true);
+        const exporter = new STLExporter();
+        return exporter.parse(this.keychainGroup, { binary: true });
+    }
+
     // For LED Word Art (2-part: Back Panel + CAP) — ported from Achuva
     // Achuva exports box vs cover separately; we support the same via `part` arg:
     //   'back'/'housing' → back panel (housing tray)
@@ -4645,8 +5203,16 @@ export class KeychainViewer {
         this.disposed = true;
         this._resizeObserver.disconnect();
         this._clearKeychain();
+        if (this.printBedGroup) {
+            this.scene.remove(this.printBedGroup);
+            this._disposeSceneObject(this.printBedGroup);
+            this.printBedGroup = null;
+        }
         this.controls.dispose();
         this.renderer.dispose();
+        if (this._dimensionOverlay && this._dimensionOverlay.wrapper.parentNode) {
+            this._dimensionOverlay.wrapper.parentNode.removeChild(this._dimensionOverlay.wrapper);
+        }
         if (this.renderer.domElement.parentNode) {
             this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
         }

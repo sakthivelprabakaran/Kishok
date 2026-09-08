@@ -3,12 +3,16 @@
    Full-screen STL Generation Console
    ========================================= */
 
-import { KeychainViewer } from './js/viewer3d.js?v=wa6';
+import { KeychainViewer } from './js/viewer3d.js?v=wa19';
 import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
 } from './js/filament-catalog.js?v=k1';
+import {
+    STUDIO_PRODUCT_SECTION_IDS,
+    getStudioProductProfile,
+} from './js/studio-products.js?v=s5';
 
 // ===== FONT & COLOR DATA (mirrors script.js) =====
 
@@ -102,6 +106,7 @@ const PRESETS = {
         ring_outer_d: 8,
         ring_inner_d: 4,
         ring_height: 3.0,
+        nametag_ring_placement: 'auto-left',
         ring_x: -1,
         ring_y: 8,
     }, // Total = 5mm (thin < standard < thick)
@@ -123,6 +128,7 @@ const PRESETS = {
         ring_outer_d: 10,
         ring_inner_d: 5,
         ring_height: 4.5,
+        nametag_ring_placement: 'auto-left',
         ring_x: -1,
         ring_y: 10,
 
@@ -153,10 +159,24 @@ const PRESETS = {
         ring_outer_d: 12,
         ring_inner_d: 6,
         ring_height: 6.0,
+        nametag_ring_placement: 'auto-left',
         ring_x: -2,
         ring_y: 12,
     }, // Total = 12mm
 };
+
+const CLASSIC_KEYCHAIN_FIXED_STACK = Object.freeze({
+    '2L': Object.freeze({
+        base: Object.freeze({ depth: 4.5, bevelThickness: 0 }),
+        outline: Object.freeze({ depth: 1.5, bevelThickness: 0 }),
+        font: Object.freeze({ depth: 1.5, bevelThickness: 0 }),
+    }),
+    '3L': Object.freeze({
+        base: Object.freeze({ depth: 3, bevelThickness: 0 }),
+        outline: Object.freeze({ depth: 1.5, bevelThickness: 0 }),
+        font: Object.freeze({ depth: 1.5, bevelThickness: 0 }),
+    }),
+});
 
 // ===== STATE =====
 
@@ -195,6 +215,10 @@ const autoRotBtn    = $('autoRotateBtn');
 const vpPNGBtn      = $('vpDownloadPNG');
 const vpSVGBtn      = $('vpDownloadSVG');
 const vpSTLBtn      = $('vpDownloadSTL');
+const dimensionsToggleBtn = $('vpDimensionsToggle');
+const printBedToggleBtn = $('vpPrintBedToggle');
+const printerFitBadge = $('printerFitBadge');
+const printerFitText = $('printerFitText');
 const dimWidth      = $('dimWidth');
 const dimHeight     = $('dimHeight');
 const dimDepth      = $('dimDepth');
@@ -210,6 +234,93 @@ const outlineSection = $('adminOutlineSection');
 const exportBtn     = $('adminExportSTL');
 const resetBtn      = $('adminResetBtn');
 const filenameInput = $('adminFilename');
+const controlsBody = $('controlsBody');
+const productContextTitle = $('studioProductTitle');
+const productContextDescription = $('studioProductDescription');
+const productScaleModeBadge = $('studioScaleModeBadge');
+const productControlNav = $('studioControlNav');
+const contextWidth = $('studioContextWidth');
+const contextHeight = $('studioContextHeight');
+const contextDepth = $('studioContextDepth');
+
+function assignStudioSectionIds() {
+    const sectionFor = (element) => element && element.closest('.ctrlSection');
+    const assignments = [
+        [sectionFor(nameInput), 'adminTextSection'],
+        [sectionFor(fontChipsWrap), 'adminFontStyleSection'],
+        [sectionFor($('adminScaleFactor')), 'adminScaleSection'],
+    ];
+    for (const [section, id] of assignments) {
+        if (section && !section.id) section.id = id;
+    }
+
+    const exportSection = exportBtn && exportBtn.closest('.exportSection');
+    if (exportSection && !exportSection.id) exportSection.id = 'adminExportSection';
+
+    const scaleSection = $('adminScaleSection');
+    if (scaleSection) {
+        const title = scaleSection.querySelector('.ctrlSectionTitle');
+        const label = scaleSection.querySelector('.sliderLabel');
+        if (title) title.id = 'adminScaleTitle';
+        if (label) label.id = 'adminScaleLabel';
+        if (!$('adminScaleHelp')) {
+            const help = document.createElement('div');
+            help.id = 'adminScaleHelp';
+            help.className = 'ctrlHint scale-help';
+            scaleSection.appendChild(help);
+        }
+        if (!$('adminThicknessSummary')) {
+            const summary = document.createElement('div');
+            summary.id = 'adminThicknessSummary';
+            summary.className = 'finished-thickness-summary';
+            summary.hidden = true;
+            scaleSection.appendChild(summary);
+        }
+    }
+
+    const decorateLayerSection = (sectionId, depthInputId, bevelInputId, bevelSizeInputId, totalId) => {
+        const section = $(sectionId);
+        if (!section) return;
+        const relabel = (inputId, text) => {
+            const input = $(inputId);
+            const label = input && input.closest('.sliderRow')?.querySelector('.sliderLabel');
+            if (label) label.textContent = text;
+        };
+        relabel(depthInputId, 'Core depth');
+        relabel(bevelInputId, 'Bevel depth / side');
+        relabel(bevelSizeInputId, 'Edge round width');
+        if (!$(totalId)) {
+            const total = document.createElement('div');
+            total.id = totalId;
+            total.className = 'layer-finished-total';
+            section.appendChild(total);
+        }
+    };
+
+    decorateLayerSection(
+        'adminBaseSection',
+        'adminBaseDepth',
+        'adminBaseBevelThk',
+        'adminBaseBevelSize',
+        'adminBaseFinishedTotal'
+    );
+    decorateLayerSection(
+        'adminOutlineSection',
+        'adminOutlineDepth',
+        'adminOutlineBevelThk',
+        'adminOutlineBevelSize',
+        'adminOutlineFinishedTotal'
+    );
+    decorateLayerSection(
+        'adminFontSection',
+        'adminFontDepth',
+        'adminFontBevelThk',
+        'adminFontBevelSize',
+        'adminFontFinishedTotal'
+    );
+}
+
+assignStudioSectionIds();
 
 // ===== SLIDER MAP =====
 // Maps param keys to { range: rangeEl, num: numberInputEl }
@@ -228,6 +339,21 @@ const SLIDER_MAP = {
     fontBevelSize:    { range: 'adminFontBevelSize',     num: 'adminFontBevelSizeNum' },
     ringOuter:        { range: 'adminRingOuter',         num: 'adminRingOuterNum' },
     ringInner:        { range: 'adminRingInner',         num: 'adminRingInnerNum' },
+    wordart_backing_depth:  { range: 'adminWordartBackingDepth',     num: 'adminWordartBackingDepthNum' },
+    wordart_padding:        { range: 'adminWordartPadding',          num: 'adminWordartPaddingNum' },
+    wordart_solid_bevel:    { range: 'adminWordartSolidBevel',       num: 'adminWordartSolidBevelNum' },
+    wordart_wall_thickness: { range: 'adminWordartWallThickness',    num: 'adminWordartWallThicknessNum' },
+    wordart_cover_thickness:{ range: 'adminWordartCoverThickness',   num: 'adminWordartCoverThicknessNum' },
+    linked_depth:           { range: 'adminLinkedDepth',              num: 'adminLinkedDepthNum' },
+    linked_bevel:           { range: 'adminLinkedBevel',              num: 'adminLinkedBevelNum' },
+    linked_ring_outer:      { range: 'adminLinkedRingOuter',          num: 'adminLinkedRingOuterNum' },
+    linked_ring_inner:      { range: 'adminLinkedRingInner',          num: 'adminLinkedRingInnerNum' },
+    tile_strip_depth:       { range: 'adminTileStripDepth',           num: 'adminTileStripDepthNum' },
+    tile_strip_bevel:       { range: 'adminTileStripBevel',           num: 'adminTileStripBevelNum' },
+    tile_depth:             { range: 'adminTileDepth',                num: 'adminTileDepthNum' },
+    tile_bevel:             { range: 'adminTileBevel',                num: 'adminTileBevelNum' },
+    tile_letter_depth:      { range: 'adminTileLetterDepth',          num: 'adminTileLetterDepthNum' },
+    tile_letter_bevel:      { range: 'adminTileLetterBevel',          num: 'adminTileLetterBevelNum' },
     // Wavy Nametag Sliders
     wave_amplitude:   { range: 'adminWaveAmplitude',     num: 'adminWaveAmplitudeNum' },
     wave_cycles:      { range: 'adminWaveCycles',        num: 'adminWaveCyclesNum' },
@@ -290,6 +416,8 @@ const SLIDER_MAP = {
     organizer_depth:        { range: 'adminOrganizerDepth',       num: 'adminOrganizerDepthNum' },
     organizer_height:       { range: 'adminOrganizerHeight',      num: 'adminOrganizerHeightNum' },
     organizer_wall_thk:     { range: 'adminOrganizerWallThk',     num: 'adminOrganizerWallThkNum' },
+    organizer_bottom_thk:   { range: 'adminOrganizerBottomThk',   num: 'adminOrganizerBottomThkNum' },
+    organizer_divider_thk:  { range: 'adminOrganizerDividerThk',  num: 'adminOrganizerDividerThkNum' },
     organizer_letter_depth: { range: 'adminOrganizerLetterDepth', num: 'adminOrganizerLetterDepthNum' },
 
     // LED Word Art Sliders — 2-Part (Back Panel + CAP) — Ported from Achuva
@@ -305,6 +433,12 @@ const SLIDER_MAP = {
     led_lip_width:  { range: 'adminLedLipWidth',  num: 'adminLedLipWidthNum' },
     led_tolerance:  { range: 'adminLedTolerance', num: 'adminLedToleranceNum' },
     led_explode:    { range: 'adminLedExplode',   num: 'adminLedExplodeNum' },
+    led_stand_height:     { range: 'adminLedStandHeight',      num: 'adminLedStandHeightNum' },
+    led_stand_wall:       { range: 'adminLedStandWall',        num: 'adminLedStandWallNum' },
+    led_channel_h:        { range: 'adminLedChannelH',         num: 'adminLedChannelHNum' },
+    led_channel_w:        { range: 'adminLedChannelW',         num: 'adminLedChannelWNum' },
+    led_cable_hole:       { range: 'adminLedCableHole',        num: 'adminLedCableHoleNum' },
+    led_insert_clearance: { range: 'adminLedInsertClearance',  num: 'adminLedInsertClearanceNum' },
 
     // Name Beads — Jackson's SCAD Generator
     bead_size:          { range: 'adminBeadSize',         num: 'adminBeadSizeNum' },
@@ -334,8 +468,90 @@ for (const key in SLIDER_MAP) {
 
 function initViewer() {
     viewer = new KeychainViewer(viewportEl);
+    viewer.container.addEventListener('viewermetricschange', (event) => {
+        updateDimensions(event.detail.dimensions);
+        renderPrinterFit(event.detail.fit, event.detail.printBedVisible);
+        syncViewportAidButtons(event.detail);
+    });
     viewer.container.addEventListener('autorotatestop', () => {
         if (autoRotBtn) autoRotBtn.classList.remove('active');
+    });
+
+    const dimensionsVisible = localStorage.getItem('studioDimensionsVisible') !== 'false';
+    const printBedVisible = localStorage.getItem('studioPrintBedVisible') === 'true';
+    viewer.setDimensionOverlayVisible(dimensionsVisible);
+    viewer.setPrintBedVisible(printBedVisible);
+}
+
+function studioControlEntries(profile) {
+    const entries = [
+        { id: 'adminTextSection', label: 'Text' },
+        { id: 'adminFontStyleSection', label: 'Font' },
+        { id: 'adminColorsSection', label: 'Colours' },
+        { id: 'adminScaleSection', label: 'Size' },
+        ...profile.controlSections,
+    ];
+
+    if (profile.standardStack) {
+        if (profile.baseControl !== 'none') entries.push({ id: 'adminBaseSection', label: 'Base depth' });
+        entries.push({ id: 'adminOutlineSection', label: 'Outline depth' });
+        entries.push({ id: 'adminFontSection', label: 'Text depth' });
+        if (profile.ringControl) entries.push({ id: 'adminRingSection', label: 'Ring' });
+    }
+    entries.push({ id: 'adminExportSection', label: 'Print & export' });
+
+    const seen = new Set();
+    return entries.filter((entry) => {
+        if (seen.has(entry.id)) return false;
+        seen.add(entry.id);
+        const section = $(entry.id);
+        return section && section.style.display !== 'none';
+    });
+}
+
+function renderStudioProductContext() {
+    const profile = getStudioProductProfile(state.productType);
+    if (productContextTitle) productContextTitle.textContent = profile.label;
+    if (productContextDescription) productContextDescription.textContent = profile.description;
+    if (productScaleModeBadge) {
+        productScaleModeBadge.dataset.mode = profile.scaleMode;
+        productScaleModeBadge.textContent = profile.scaleMode === 'whole'
+            ? 'Whole-model scale'
+            : 'Footprint scale';
+    }
+
+    const scaleTitle = $('adminScaleTitle');
+    const scaleLabel = $('adminScaleLabel');
+    const scaleHelp = $('adminScaleHelp');
+    if (scaleTitle) scaleTitle.textContent = 'Size & scale';
+    if (scaleLabel) scaleLabel.textContent = profile.scaleLabel;
+    if (scaleHelp) scaleHelp.textContent = profile.scaleHelp;
+
+    if (productControlNav) {
+        productControlNav.replaceChildren();
+        for (const entry of studioControlEntries(profile)) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'studio-control-link';
+            button.dataset.target = entry.id;
+            button.textContent = entry.label;
+            productControlNav.appendChild(button);
+        }
+    }
+}
+
+function setupStudioControlNavigation() {
+    if (!productControlNav || productControlNav.dataset.bound === 'true') return;
+    productControlNav.dataset.bound = 'true';
+    productControlNav.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-target]');
+        if (!button) return;
+        const section = $(button.dataset.target);
+        if (!section) return;
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        section.classList.remove('control-focus');
+        requestAnimationFrame(() => section.classList.add('control-focus'));
+        setTimeout(() => section.classList.remove('control-focus'), 1300);
     });
 }
 
@@ -504,7 +720,10 @@ function initLayerToggle() {
         // Show/hide outline section
         const is3L = state.layers === '3L';
         outlineGroup.style.display = is3L ? '' : 'none';
-        outlineSection.style.display = is3L ? '' : 'none';
+        syncClassicKeychainThicknessControls();
+        syncStandardSectionRelevance();
+        refreshThicknessUI();
+        renderStudioProductContext();
 
         updateViewer();
     });
@@ -514,8 +733,8 @@ function initLayerToggle() {
 
 const WORDART_BASE_HINTS = {
     none:   'Letters only — the word itself is the whole structure.',
-    solid:  'Filled plaque behind the letters. Uses Base Depth for thickness and Base Bevel Size for how far it extends past the letters.',
-    hollow: 'Walls + a 2mm front cover — stands on its own, no infill. Base Depth = total depth, Bevel Thickness = wall thickness, Bevel Size = padding.',
+    solid:  'Filled plaque behind the letters. Total depth, padding and bevel are controlled below.',
+    hollow: 'Open-back standee. Total depth, wall thickness and front cover thickness are controlled below.',
 };
 
 // Reflect state.wordartBase onto the button row + hint text.
@@ -528,6 +747,19 @@ function syncWordartBaseUI() {
     }
     const hint = $('adminWordartHint');
     if (hint) hint.textContent = WORDART_BASE_HINTS[state.wordartBase] || WORDART_BASE_HINTS.none;
+    const backingControls = $('adminWordartBackingControls');
+    const solidBevelRow = $('adminWordartSolidBevelRow');
+    const wallRow = $('adminWordartWallRow');
+    const coverRow = $('adminWordartCoverRow');
+    const hasBacking = state.wordartBase === 'solid' || state.wordartBase === 'hollow';
+    if (backingControls) backingControls.style.display = hasBacking ? 'block' : 'none';
+    if (solidBevelRow) solidBevelRow.style.display = state.wordartBase === 'solid' ? 'flex' : 'none';
+    if (wallRow) wallRow.style.display = state.wordartBase === 'hollow' ? 'flex' : 'none';
+    if (coverRow) coverRow.style.display = state.wordartBase === 'hollow' ? 'flex' : 'none';
+    const layerToggleWrap = $('adminLayerToggleWrap');
+    if (layerToggleWrap && state.productType === 'wordart') {
+        layerToggleWrap.style.display = hasBacking ? 'none' : '';
+    }
 }
 
 function initWordartBaseToggle() {
@@ -538,8 +770,10 @@ function initWordartBaseToggle() {
         if (!btn || !btn.dataset.mode) return;
         state.wordartBase = btn.dataset.mode;
         syncWordartBaseUI();
-        // The Base Layer sliders only bite once a backing exists.
+        // Backing changes which Word Art depth controls affect geometry.
         syncStandardSectionRelevance();
+        renderStudioProductContext();
+        refreshThicknessUI();
         updateViewer();
     });
 }
@@ -601,6 +835,7 @@ function initSliders() {
         // Range → Number sync
         s.range.addEventListener('input', () => {
             s.num.value = s.range.value;
+            refreshThicknessUI();
             debouncedRebuild();
         });
 
@@ -614,6 +849,7 @@ function initSliders() {
             if (val < min) val = min;
             if (val > max) val = max;
             s.range.value = val;
+            refreshThicknessUI();
             debouncedRebuild();
         });
 
@@ -659,6 +895,40 @@ function collectParams() {
         },
     };
 
+    if (state.productType === 'wordart') {
+        p.base.depth = parseFloat(sliders.wordart_backing_depth.range.value);
+        p.base.bevelSize = parseFloat(sliders.wordart_padding.range.value);
+        p.base.solidBevelThickness = parseFloat(sliders.wordart_solid_bevel.range.value);
+        p.base.wallThickness = parseFloat(sliders.wordart_wall_thickness.range.value);
+        p.base.coverThickness = parseFloat(sliders.wordart_cover_thickness.range.value);
+    }
+
+    if (state.productType === 'linked_initials') {
+        p.linked_depth = parseFloat(sliders.linked_depth.range.value);
+        p.linked_bevel = parseFloat(sliders.linked_bevel.range.value);
+        p.linked_ring_outer = parseFloat(sliders.linked_ring_outer.range.value);
+        p.linked_ring_inner = parseFloat(sliders.linked_ring_inner.range.value);
+    }
+
+    if (state.productType === 'tilekey') {
+        p.tile_strip_depth = parseFloat(sliders.tile_strip_depth.range.value);
+        p.tile_strip_bevel = parseFloat(sliders.tile_strip_bevel.range.value);
+        p.tile_depth = parseFloat(sliders.tile_depth.range.value);
+        p.tile_bevel = parseFloat(sliders.tile_bevel.range.value);
+        p.tile_letter_depth = parseFloat(sliders.tile_letter_depth.range.value);
+        p.tile_letter_bevel = parseFloat(sliders.tile_letter_bevel.range.value);
+    }
+
+    if (state.productType === 'keychain') {
+        const fixed = CLASSIC_KEYCHAIN_FIXED_STACK[state.layers] || CLASSIC_KEYCHAIN_FIXED_STACK['3L'];
+        p.base.depth = fixed.base.depth;
+        p.base.bevelThickness = fixed.base.bevelThickness;
+        p.outline.depth = fixed.outline.depth;
+        p.outline.bevelThickness = fixed.outline.bevelThickness;
+        p.font.depth = fixed.font.depth;
+        p.font.bevelThickness = fixed.font.bevelThickness;
+    }
+
     if (sliders.wave_amplitude) {
         p.wave_mode = $('adminWaveMode').value;
         p.wave_amplitude = parseFloat(sliders.wave_amplitude.range.value);
@@ -671,8 +941,15 @@ function collectParams() {
         p.ring_outer_d = parseFloat(sliders.ring_outer_d.range.value);
         p.ring_inner_d = parseFloat(sliders.ring_inner_d.range.value);
         p.ring_height = parseFloat(sliders.ring_height.range.value);
-        p.ring_x = parseFloat(sliders.ring_x.range.value);
-        p.ring_y = parseFloat(sliders.ring_y.range.value);
+        const ringPlacement = $('adminNametagRingPlacement')?.value || 'auto-left';
+        p.nametag_ring_placement = ringPlacement;
+        p.ringPosition = ringPlacement === 'auto-right'
+            ? 'right'
+            : (ringPlacement === 'none' ? 'none' : 'left');
+        if (ringPlacement === 'manual') {
+            p.ring_x = parseFloat(sliders.ring_x.range.value);
+            p.ring_y = parseFloat(sliders.ring_y.range.value);
+        }
     }
     
     // Bordered Keychain
@@ -737,6 +1014,8 @@ function collectParams() {
         p.organizer_depth = parseFloat(sliders.organizer_depth.range.value);
         p.organizer_height = parseFloat(sliders.organizer_height.range.value);
         p.organizer_wall_thk = parseFloat(sliders.organizer_wall_thk.range.value);
+        p.organizer_bottom_thk = parseFloat(sliders.organizer_bottom_thk.range.value);
+        p.organizer_divider_thk = parseFloat(sliders.organizer_divider_thk.range.value);
         p.organizer_letter_depth = parseFloat(sliders.organizer_letter_depth.range.value);
     }
 
@@ -753,6 +1032,12 @@ function collectParams() {
         p.cover_lip_width = parseFloat(sliders.led_lip_width.range.value);
         p.cover_tolerance = parseFloat(sliders.led_tolerance.range.value);
         p.explode_cover   = parseFloat(sliders.led_explode.range.value);
+        p.stand_height = parseFloat(sliders.led_stand_height.range.value);
+        p.stand_wall = parseFloat(sliders.led_stand_wall.range.value);
+        p.led_channel_h = parseFloat(sliders.led_channel_h.range.value);
+        p.led_channel_w = parseFloat(sliders.led_channel_w.range.value);
+        p.cable_hole_d = parseFloat(sliders.led_cable_hole.range.value);
+        p.cover_insert_clearance = parseFloat(sliders.led_insert_clearance.range.value);
     }
 
     // Name Beads — Jackson's Custom Bead Generator (SCAD)
@@ -804,6 +1089,23 @@ function setSliders(p) {
         sliders.baseBevelSize.num.value   = p.base.bevelSize;
         sliders.baseBevelSeg.range.value  = p.base.bevelSegments;
         sliders.baseBevelSeg.num.value    = p.base.bevelSegments;
+        const hasWordartBackingValues = p.base.wordartMode
+            || p.base.solidBevelThickness !== undefined
+            || p.base.wallThickness !== undefined
+            || p.base.coverThickness !== undefined;
+        if (hasWordartBackingValues) {
+            setSliderPairValue(sliders.wordart_backing_depth, p.base.depth);
+            setSliderPairValue(sliders.wordart_padding, p.base.bevelSize);
+            if (p.base.solidBevelThickness !== undefined) {
+                setSliderPairValue(sliders.wordart_solid_bevel, p.base.solidBevelThickness);
+            }
+            if (p.base.wallThickness !== undefined) {
+                setSliderPairValue(sliders.wordart_wall_thickness, p.base.wallThickness);
+            }
+            if (p.base.coverThickness !== undefined) {
+                setSliderPairValue(sliders.wordart_cover_thickness, p.base.coverThickness);
+            }
+        }
     }
     if (p.outline) {
         sliders.outlineDepth.range.value     = p.outline.depth;
@@ -827,11 +1129,49 @@ function setSliders(p) {
         sliders.ringInner.range.value     = p.ring.innerRadius;
         sliders.ringInner.num.value       = p.ring.innerRadius;
     }
+    if (p.linked_depth !== undefined) {
+        setSliderPairValue(sliders.linked_depth, p.linked_depth);
+    }
+    if (p.linked_bevel !== undefined) {
+        setSliderPairValue(sliders.linked_bevel, p.linked_bevel);
+    }
+    if (p.linked_ring_outer !== undefined) {
+        setSliderPairValue(sliders.linked_ring_outer, p.linked_ring_outer);
+    }
+    if (p.linked_ring_inner !== undefined) {
+        setSliderPairValue(sliders.linked_ring_inner, p.linked_ring_inner);
+    }
+    if (p.tile_strip_depth !== undefined) {
+        setSliderPairValue(sliders.tile_strip_depth, p.tile_strip_depth);
+    }
+    if (p.tile_strip_bevel !== undefined) {
+        setSliderPairValue(sliders.tile_strip_bevel, p.tile_strip_bevel);
+    }
+    if (p.tile_depth !== undefined) {
+        setSliderPairValue(sliders.tile_depth, p.tile_depth);
+    }
+    if (p.tile_bevel !== undefined) {
+        setSliderPairValue(sliders.tile_bevel, p.tile_bevel);
+    }
+    if (p.tile_letter_depth !== undefined) {
+        setSliderPairValue(sliders.tile_letter_depth, p.tile_letter_depth);
+    }
+    if (p.tile_letter_bevel !== undefined) {
+        setSliderPairValue(sliders.tile_letter_bevel, p.tile_letter_bevel);
+    }
 
     // Nametag specific
     if (p.wave_mode !== undefined) {
         $('adminWaveMode').value = p.wave_mode;
     }
+    const savedNametagPlacement = p.nametag_ring_placement
+        || (p.ringPosition === 'none'
+            ? 'none'
+            : (p.ringPosition === 'right'
+                ? 'auto-right'
+                : (p.ring_x !== undefined && p.ring_y !== undefined ? 'manual' : 'auto-left')));
+    const nametagPlacement = $('adminNametagRingPlacement');
+    if (nametagPlacement) nametagPlacement.value = savedNametagPlacement;
     if (p.wave_amplitude !== undefined) {
         sliders.wave_amplitude.range.value = p.wave_amplitude;
         sliders.wave_amplitude.num.value   = p.wave_amplitude;
@@ -880,6 +1220,7 @@ function setSliders(p) {
         sliders.ring_y.range.value = p.ring_y;
         sliders.ring_y.num.value   = p.ring_y;
     }
+    syncNametagRingPlacementUI();
 
     // Bordered Keychain
     if (p.bordered_border_thickness !== undefined) {
@@ -1186,9 +1527,6 @@ function debouncedRebuild() {
         try { localStorage.setItem('adminConsoleParams', JSON.stringify(params)); } catch(e) {}
 
         viewer.rebuildWithParams(params);
-
-        // Update dimensions after rebuild
-        setTimeout(updateDimensions, 200);
     }, 250);
 }
 
@@ -1239,9 +1577,6 @@ async function _runUpdateViewer() {
     }
     hideLoading();
 
-    // Update dimensions
-    setTimeout(updateDimensions, 200);
-
     // Save state
     try {
         localStorage.setItem('adminConsoleState', JSON.stringify({
@@ -1265,17 +1600,88 @@ async function _runUpdateViewer() {
 
 // ===== UPDATE DIMENSIONS =====
 
-function updateDimensions() {
-    if (!viewer) return;
-    const dims = viewer.getDimensions();
-    dimWidth.textContent  = dims.width.toFixed(1);
-    dimHeight.textContent = dims.height.toFixed(1);
-    dimDepth.textContent  = dims.depth.toFixed(1);
+function updateDimensions(nextDimensions) {
+    if (!viewer && !nextDimensions) return;
+    const dims = nextDimensions || viewer.getDimensions();
+    const width = dims.width.toFixed(1);
+    const height = dims.height.toFixed(1);
+    const depth = dims.depth.toFixed(1);
+    dimWidth.textContent  = width;
+    dimHeight.textContent = height;
+    dimDepth.textContent  = depth;
+    if (contextWidth) contextWidth.textContent = width;
+    if (contextHeight) contextHeight.textContent = height;
+    if (contextDepth) contextDepth.textContent = depth;
+}
+
+function renderPrinterFit(fit, printBedVisible) {
+    if (!printerFitBadge || !printerFitText) return;
+    printerFitBadge.hidden = !printBedVisible;
+    if (!printBedVisible || !fit) return;
+
+    printerFitBadge.dataset.state = fit.status;
+    const axisLabels = { x: 'Width', y: 'Height', z: 'Depth' };
+    if (fit.status === 'over') {
+        const details = fit.exceededAxes.map((axis) =>
+            `${axisLabels[axis]} ${fit.dimensionsMm[axis].toFixed(1)}mm`
+        ).join(', ');
+        printerFitText.textContent = `Too large for A1 · ${details}`;
+        return;
+    }
+    if (fit.status === 'near') {
+        const details = fit.nearAxes.map((axis) =>
+            `${axisLabels[axis]} ${fit.dimensionsMm[axis].toFixed(1)}/256mm`
+        ).join(', ');
+        printerFitText.textContent = `Near A1 limit · ${details}`;
+        return;
+    }
+    printerFitText.textContent = `Fits A1 · ${Math.round(fit.maxUsageRatio * 100)}% max axis`;
+}
+
+function syncViewportAidButtons(detail) {
+    if (!detail || !viewer) return;
+    if (dimensionsToggleBtn) {
+        dimensionsToggleBtn.classList.toggle('vpBtnActive', detail.dimensionsVisible);
+        dimensionsToggleBtn.setAttribute('aria-pressed', String(detail.dimensionsVisible));
+        dimensionsToggleBtn.title = detail.dimensionsVisible
+            ? 'Hide model dimensions'
+            : 'Show model dimensions';
+    }
+    if (printBedToggleBtn) {
+        printBedToggleBtn.classList.toggle('vpBtnActive', detail.printBedVisible);
+        printBedToggleBtn.setAttribute('aria-pressed', String(detail.printBedVisible));
+        printBedToggleBtn.title = detail.printBedVisible
+            ? 'Return to product view'
+            : 'Show Bambu Lab A1 print bed';
+    }
+    if (autoRotBtn) {
+        autoRotBtn.disabled = detail.printBedVisible;
+        autoRotBtn.classList.toggle('active', !detail.printBedVisible && viewer.controls.autoRotate);
+        autoRotBtn.title = detail.printBedVisible
+            ? 'Auto-rotate is paused in A1 bed view'
+            : (viewer.controls.autoRotate ? 'Pause auto-rotate' : 'Resume auto-rotate');
+    }
 }
 
 // ===== VIEWPORT ACTION BUTTONS =====
 
 function initViewportActions() {
+    if (dimensionsToggleBtn) {
+        dimensionsToggleBtn.addEventListener('click', () => {
+            if (!viewer) return;
+            const visible = viewer.setDimensionOverlayVisible(!viewer.dimensionOverlayVisible);
+            try { localStorage.setItem('studioDimensionsVisible', String(visible)); } catch (_) {}
+        });
+    }
+
+    if (printBedToggleBtn) {
+        printBedToggleBtn.addEventListener('click', () => {
+            if (!viewer) return;
+            const visible = viewer.setPrintBedVisible(!viewer.printBedVisible);
+            try { localStorage.setItem('studioPrintBedVisible', String(visible)); } catch (_) {}
+        });
+    }
+
     // Auto-rotate toggle
     autoRotBtn.addEventListener('click', () => {
         if (!viewer) return;
@@ -1337,6 +1743,160 @@ function initViewportActions() {
 
 // ===== PRESETS =====
 
+function printedLayerThickness(layer) {
+    if (!layer) return 0;
+    return (Number(layer.depth) || 0) + 2 * (Number(layer.bevelThickness) || 0);
+}
+
+function setSliderPairValue(slider, value) {
+    if (!slider) return;
+    slider.range.value = String(value);
+    slider.num.value = String(value);
+}
+
+function setSliderPairDisabled(slider, disabled) {
+    if (!slider) return;
+    slider.range.disabled = disabled;
+    slider.num.disabled = disabled;
+    slider.range.setAttribute('aria-disabled', String(disabled));
+    slider.num.setAttribute('aria-disabled', String(disabled));
+}
+
+function syncClassicKeychainThicknessControls() {
+    const isClassic = state.productType === 'keychain';
+    const fixed = CLASSIC_KEYCHAIN_FIXED_STACK[state.layers] || CLASSIC_KEYCHAIN_FIXED_STACK['3L'];
+    const controlled = [
+        sliders.baseDepth,
+        sliders.baseBevelThk,
+        sliders.outlineDepth,
+        sliders.outlineBevelThk,
+        sliders.fontDepth,
+        sliders.fontBevelThk,
+    ];
+
+    if (isClassic) {
+        setSliderPairValue(sliders.baseDepth, fixed.base.depth);
+        setSliderPairValue(sliders.baseBevelThk, fixed.base.bevelThickness);
+        setSliderPairValue(sliders.outlineDepth, fixed.outline.depth);
+        setSliderPairValue(sliders.outlineBevelThk, fixed.outline.bevelThickness);
+        setSliderPairValue(sliders.fontDepth, fixed.font.depth);
+        setSliderPairValue(sliders.fontBevelThk, fixed.font.bevelThickness);
+    }
+    controlled.forEach((slider) => setSliderPairDisabled(slider, isClassic));
+}
+
+function nearlyEqual(a, b) {
+    return Math.abs((Number(a) || 0) - (Number(b) || 0)) < 0.001;
+}
+
+function matchesPreset(params, preset) {
+    if (!params || !preset || !nearlyEqual(params.scaleFactor, preset.scaleFactor)) return false;
+    const layerKeys = ['depth', 'bevelThickness', 'bevelSize'];
+    for (const layerName of ['base', 'outline', 'font']) {
+        for (const key of layerKeys) {
+            if (!nearlyEqual(params[layerName]?.[key], preset[layerName]?.[key])) return false;
+        }
+    }
+    return nearlyEqual(params.ring?.outerRadius, preset.ring?.outerRadius)
+        && nearlyEqual(params.ring?.innerRadius, preset.ring?.innerRadius);
+}
+
+function syncPresetState(params) {
+    let matchedPreset = '';
+    for (const name of ['thin', 'standard', 'thick']) {
+        if (matchesPreset(params, PRESETS[name])) {
+            matchedPreset = name;
+            break;
+        }
+    }
+
+    document.querySelectorAll('.preset-btn[data-preset]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.preset === matchedPreset);
+    });
+    const customButton = $('adminPresetCustom');
+    if (customButton) {
+        customButton.hidden = Boolean(matchedPreset);
+        customButton.classList.toggle('active', !matchedPreset);
+    }
+}
+
+function renderThicknessBreakdown(params) {
+    if (!params) return;
+    const layers = [
+        { id: 'adminBaseFinishedTotal', name: 'Base', data: params.base },
+        { id: 'adminOutlineFinishedTotal', name: 'Outline', data: params.outline },
+        { id: 'adminFontFinishedTotal', name: 'Text', data: params.font },
+    ];
+    for (const layer of layers) {
+        const output = $(layer.id);
+        if (!output || !layer.data) continue;
+        const core = Number(layer.data.depth) || 0;
+        const bevel = Number(layer.data.bevelThickness) || 0;
+        output.textContent =
+            `Printed layer = ${core.toFixed(1)} + 2 × ${bevel.toFixed(1)} = `
+            + `${printedLayerThickness(layer.data).toFixed(1)} mm`;
+    }
+
+    const summary = $('adminThicknessSummary');
+    if (!summary) return;
+    const isClassic = state.productType === 'keychain';
+    summary.hidden = !isClassic;
+    if (!isClassic) return;
+
+    const base = printedLayerThickness(params.base);
+    const outline = state.layers === '3L' ? printedLayerThickness(params.outline) : 0;
+    const font = printedLayerThickness(params.font);
+    const total = base + outline + font;
+    summary.dataset.state = 'target';
+
+    const headline = document.createElement('strong');
+    headline.textContent = `Finished thickness: ${total.toFixed(1)} mm · fixed`;
+    const formula = document.createElement('span');
+    formula.textContent = state.layers === '3L'
+        ? `Base ${base.toFixed(1)} + Outline ${outline.toFixed(1)} + Text ${font.toFixed(1)}`
+        : `Base ${base.toFixed(1)} + Text ${font.toFixed(1)} (2-layer)`;
+    const explanation = document.createElement('span');
+    explanation.textContent = 'Classic Keychain thickness is locked at 6.0 mm; footprint and edge-shape controls remain editable.';
+    summary.replaceChildren(headline, formula, explanation);
+}
+
+function renderNametagThicknessBreakdown(params) {
+    const summary = $('adminNametagThicknessSummary');
+    if (!summary || !params) return;
+    const scale = Number.isFinite(Number(params.scaleFactor)) ? Number(params.scaleFactor) : 1;
+    const base = Number(params.base_thickness) || 0;
+    const even = Number(params.height_even) || 0;
+    const odd = Number(params.height_odd) || 0;
+    const placement = params.nametag_ring_placement || 'auto-left';
+    const ring = placement === 'none' ? 0 : (Number(params.ring_height) || 0);
+    const tallestLetters = base + Math.max(even, odd);
+    const finalThickness = Math.max(tallestLetters, ring) * scale;
+
+    const headline = document.createElement('strong');
+    headline.textContent = `Finished thickness: ${finalThickness.toFixed(1)} mm at ${scale.toFixed(2)}×`;
+    const formula = document.createElement('span');
+    formula.textContent = `Tallest letters (${base.toFixed(1)} base + ${Math.max(even, odd).toFixed(1)} relief)`
+        + `${ring ? ` vs ring ${ring.toFixed(1)}` : ''}, then whole-model scale`;
+    const explanation = document.createElement('span');
+    explanation.textContent = 'The live D measurement is the final generated thickness.';
+    summary.replaceChildren(headline, formula, explanation);
+}
+
+function refreshThicknessUI(params) {
+    const current = params || collectParams();
+    renderThicknessBreakdown(current);
+    renderNametagThicknessBreakdown(current);
+    syncPresetState(current);
+}
+
+function syncNametagRingPlacementUI() {
+    const placement = $('adminNametagRingPlacement')?.value || 'auto-left';
+    const geometry = $('adminNametagRingGeometry');
+    const manual = $('adminNametagRingManual');
+    if (geometry) geometry.hidden = placement === 'none';
+    if (manual) manual.hidden = placement !== 'manual';
+}
+
 // ===== PRINTABILITY CHECK =====
 // Surfaces KeychainViewer.validatePrintability() and blocks STL export on hard
 // errors, so a model that physically cannot print never reaches the slicer.
@@ -1346,6 +1906,7 @@ let _printCheckHasErrors = false;
 function renderPrintCheck(params) {
     const panel = $('adminPrintCheck');
     if (!panel) return;
+    refreshThicknessUI(params);
 
     let result;
     try {
@@ -1397,6 +1958,7 @@ function initPresets() {
             btn.classList.add('active');
 
             setSliders(preset);
+            refreshThicknessUI();
             debouncedRebuild();
         });
     });
@@ -1436,6 +1998,7 @@ function initExportReset() {
         document.querySelectorAll('.preset-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.preset === 'standard');
         });
+        refreshThicknessUI();
         debouncedRebuild();
     });
 }
@@ -1499,6 +2062,28 @@ function restoreState() {
                 && Number(savedParams.scaleFactor) === 1) {
                 savedParams.scaleFactor = 0.5;
             }
+
+            // An earlier Classic configuration looked like "4mm" when only the
+            // three Core depth fields were added, but its bevels made the real
+            // printed stack 7mm. Migrate only that exact legacy combination to
+            // the verified 6mm Standard preset; deliberate custom stacks stay
+            // untouched and are now labelled Custom in the toolbar.
+            const thicknessVersion = localStorage.getItem('adminClassicThicknessVersion');
+            const isLegacySevenMm = state.productType === 'keychain'
+                && nearlyEqual(savedParams.base?.depth, 3)
+                && nearlyEqual(savedParams.base?.bevelThickness, 0)
+                && nearlyEqual(savedParams.outline?.depth, 0.5)
+                && nearlyEqual(savedParams.outline?.bevelThickness, 0.5)
+                && nearlyEqual(savedParams.font?.depth, 0.5)
+                && nearlyEqual(savedParams.font?.bevelThickness, 1);
+            if (thicknessVersion !== 'classic-6mm-v1' && isLegacySevenMm) {
+                savedParams.base = { ...PRESETS.standard.base };
+                savedParams.outline = { ...PRESETS.standard.outline };
+                savedParams.font = { ...PRESETS.standard.font };
+                savedParams.scaleFactor = PRESETS.standard.scaleFactor;
+                localStorage.setItem('adminConsoleParams', JSON.stringify(savedParams));
+            }
+            localStorage.setItem('adminClassicThicknessVersion', 'classic-6mm-v1');
             setSliders(savedParams);
         }
         localStorage.setItem('adminConsoleParamsVersion', 'classic-scale-v2');
@@ -1679,10 +2264,15 @@ function ensureDefaultsForProductType() {
 let _standardStackVisible = true;   // set by applyProductTypeUI
 
 function syncStandardSectionRelevance() {
-    const type = state.productType;
-
-    const ringRelevant = !(type === 'nameplate' || type === 'wordart');
-    const baseRelevant = !(type === 'wordart' && (state.wordartBase || 'none') === 'none');
+    const profile = getStudioProductProfile(state.productType);
+    const ringRelevant = profile.ringControl;
+    const baseRelevant = profile.baseControl === 'always'
+        || (profile.baseControl === 'backing' && (state.wordartBase || 'none') !== 'none');
+    const isWordart = state.productType === 'wordart';
+    const hasWordartBacking = isWordart && (state.wordartBase || 'none') !== 'none';
+    const outlineRelevant = isWordart
+        ? !hasWordartBacking
+        : state.layers === '3L';
 
     const ringSection = $('adminRingSection');
     if (ringSection) {
@@ -1692,9 +2282,15 @@ function syncStandardSectionRelevance() {
     if (baseSection) {
         baseSection.style.display = (_standardStackVisible && baseRelevant) ? 'block' : 'none';
     }
+    const outlineLayerSection = $('adminOutlineSection');
+    if (outlineLayerSection) {
+        outlineLayerSection.style.display =
+            (_standardStackVisible && outlineRelevant) ? 'block' : 'none';
+    }
 }
 
 function applyProductTypeUI() {
+    const profile = getStudioProductProfile(state.productType);
     const isWordartLikeMultiLine = state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey';
     if (isWordartLikeMultiLine && nameInput.value.includes('/')) {
         nameInput.value = nameInput.value.replace(/\//g, '\n');
@@ -1709,50 +2305,20 @@ function applyProductTypeUI() {
     const isLedArt = state.productType === 'led_word_art';
     const isLedStand = state.productType === 'led_word_stand';
     const isLed = isLedArt || isLedStand;
-    const isBubble = state.productType === 'bubble_keychain';
-    const isTile = state.productType === 'tilekey';
-    const isLinked = state.productType === 'linked_initials';
-    // LOVE Series renders through the word-art pipeline, so it gets the same backing options.
-    const isWordartFamily = state.productType === 'wordart' || state.productType === 'loveseries';
-
-    // Show/hide sections
-    $('adminNametagSection').style.display = isNametag ? 'block' : 'none';
-
-    const wordartSection = $('adminWordartSection');
-    if (wordartSection) wordartSection.style.display = isWordartFamily ? 'block' : 'none';
-    
-    const borderedSection = $('adminBorderedSection');
-    if (borderedSection) borderedSection.style.display = isBordered ? 'block' : 'none';
-
-    const supportedSection = $('adminSupportedSection');
-    if (supportedSection) supportedSection.style.display = isSupported ? 'block' : 'none';
-
-    const flowerSection = $('adminFlowerSection');
-    if (flowerSection) flowerSection.style.display = isFlower ? 'block' : 'none';
-
-    const organizerSection = $('adminDeskOrganizerSection');
-    if (organizerSection) organizerSection.style.display = isDeskOrganizer ? 'block' : 'none';
+    const activeSectionIds = new Set(profile.controlSections.map((section) => section.id));
+    for (const sectionId of STUDIO_PRODUCT_SECTION_IDS) {
+        const section = $(sectionId);
+        if (section) section.style.display = activeSectionIds.has(sectionId) ? 'block' : 'none';
+    }
 
     // LED Word Art — 2-Part (Back Panel + CAP) — Ported from Achuva
-    const ledBackSection = $('adminLedBackSection');
-    if (ledBackSection) ledBackSection.style.display = isLed ? 'block' : 'none';
-    const ledCapSection = $('adminLedCapSection');
-    if (ledCapSection) ledCapSection.style.display = isLed ? 'block' : 'none';
-
-    const beadsSection = $('adminBeadsSection');
-    if (beadsSection) beadsSection.style.display = isBeads ? 'block' : 'none';
-
-    const bubbleSection = $('adminBubbleSection');
-    if (bubbleSection) bubbleSection.style.display = isBubble ? 'block' : 'none';
-
     const standardSections = [
         $('adminBaseSection'),
         $('adminOutlineSection'),
         $('adminFontSection'),
-        $('adminRingSection'),
-        $('adminPresetsSection')
+        $('adminRingSection')
     ];
-    const hideStandard = isNametag || isBordered || isSupported || isFlower || isDeskOrganizer || isBeads || isLed || isBubble || isTile || isLinked;
+    const hideStandard = !profile.standardStack;
     _standardStackVisible = !hideStandard;
     standardSections.forEach(sec => {
         if (sec) {
@@ -1764,6 +2330,13 @@ function applyProductTypeUI() {
     // sliders cannot reach this product's geometry, so the panel stops offering
     // controls that silently do nothing.
     syncStandardSectionRelevance();
+    syncClassicKeychainThicknessControls();
+
+    const presetsSection = $('adminPresetsSection');
+    if (presetsSection) {
+        presetsSection.style.display =
+            (!profile.standardStack || state.productType === 'keychain') ? 'none' : '';
+    }
 
     const fontSwatchGroup = $('adminFontSwatchGroup');
     const outlineSwatchGroup = $('adminOutlineSwatchGroup');
@@ -1774,7 +2347,8 @@ function applyProductTypeUI() {
     if (fontSwatchGroup) fontSwatchGroup.style.display = isNametag ? 'none' : '';
     const isWordartLike = state.productType === 'wordart' || state.productType === 'loveseries' || state.productType === 'tilekey' || state.productType === 'linked_initials';
     if (outlineSwatchGroup) outlineSwatchGroup.style.display = (hideOutlineAndLayers || (state.layers !== '3L' && !isWordartLike && !isDeskOrganizer && !isBeads)) ? 'none' : '';
-    if (layerToggleWrap) layerToggleWrap.style.display = (hideOutlineAndLayers || isDeskOrganizer || isBeads || isLed) ? 'none' : '';
+    if (layerToggleWrap) layerToggleWrap.style.display = profile.supportsLayers ? '' : 'none';
+    if (state.productType === 'wordart') syncWordartBaseUI();
 
     // LED: Update color labels to reflect 2-part product (Housing + Diffuser) — Achuva style
     if (isLed) {
@@ -1864,6 +2438,8 @@ function applyProductTypeUI() {
 
     ensureDefaultsForProductType();
     buildFontChips();
+    refreshThicknessUI();
+    renderStudioProductContext();
     updateViewerNow();
 }
 
@@ -2013,6 +2589,7 @@ function parseURLParameters() {
 async function init() {
     // Initialize viewer
     initViewer();
+    setupStudioControlNavigation();
 
     // Restore saved state
     restoreState();
@@ -2051,8 +2628,18 @@ async function init() {
     const waveModeSelect = $('adminWaveMode');
     if (waveModeSelect) {
         waveModeSelect.addEventListener('change', () => {
+            refreshThicknessUI();
             debouncedRebuild();
         });
+    }
+    const nametagRingPlacement = $('adminNametagRingPlacement');
+    if (nametagRingPlacement) {
+        nametagRingPlacement.addEventListener('change', () => {
+            syncNametagRingPlacementUI();
+            refreshThicknessUI();
+            debouncedRebuild();
+        });
+        syncNametagRingPlacementUI();
     }
 
     // Bind Name Beads shape/direction (Jackson's SCAD)

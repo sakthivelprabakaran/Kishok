@@ -29,7 +29,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/kiosk.css?v=k5">
     <link rel="stylesheet" href="css/legal.css?v=wa1">
-    <link rel="stylesheet" href="css/customize.css?v=k3">
+    <link rel="stylesheet" href="css/customize.css?v=k7">
 </head>
 <body>
     <!-- Sticky 3D Canvas Pane (45% viewport height) -->
@@ -54,6 +54,17 @@
 
         <!-- Main Three.js Container -->
         <div class="visualizer-canvas-wrap" id="viewer3dCanvas">
+            <div class="customer-size-chip" id="customerSizeChip" hidden aria-live="polite">
+                <span>Approx. finished size</span>
+                <strong id="customerSizeValue">—</strong>
+                <small>Length × height × thickness · slight print variation is normal</small>
+            </div>
+            <div class="visualizer-overlay-controls">
+                <button class="visualizer-btn" id="customerDimensionsBtn" type="button" aria-pressed="false">
+                    <span aria-hidden="true">📐</span>
+                    <span>Dimensions</span>
+                </button>
+            </div>
             <!-- Loading indicator -->
             <div class="viewer-loading" id="viewerLoading">
                 <div class="loader-spinner"></div>
@@ -324,6 +335,40 @@
             <div class="print-time-info">
                 <span>🖨️ Total Printing Time: <strong id="infoPrintTime">~0 min</strong></span>
             </div>
+            <section class="kiri-benchmark-card" id="kiriBenchmarkCard" hidden aria-labelledby="kiriBenchmarkTitle">
+                <div class="kiri-benchmark-heading">
+                    <div>
+                        <span class="kiri-benchmark-eyebrow">Local pricing lab</span>
+                        <h4 id="kiriBenchmarkTitle">Current estimate vs Kiri:Moto slice</h4>
+                    </div>
+                    <span class="kiri-local-badge">Browser only</span>
+                </div>
+                <div class="kiri-comparison-grid">
+                    <div class="kiri-comparison-column">
+                        <span>Current calculation</span>
+                        <strong id="kiriCurrentPrice">₹0</strong>
+                        <small id="kiriCurrentMetrics">0.0 g · 0 min</small>
+                    </div>
+                    <div class="kiri-comparison-column kiri-comparison-column-result">
+                        <span>Kiri sliced calculation</span>
+                        <strong id="kiriSlicedPrice">—</strong>
+                        <small id="kiriSlicedMetrics">Run the exact STL slice</small>
+                    </div>
+                </div>
+                <div class="kiri-difference" id="kiriDifference" hidden></div>
+                <div class="kiri-progress" id="kiriProgress" hidden>
+                    <span id="kiriProgressBar"></span>
+                </div>
+                <p class="kiri-status" id="kiriBenchmarkStatus" aria-live="polite">
+                    Uses the Bambu A1 profile, 0.20 mm layers, three walls and 40% grid infill.
+                </p>
+                <button class="kiri-benchmark-btn" id="kiriBenchmarkBtn" type="button">
+                    Run Kiri comparison
+                </button>
+                <p class="kiri-benchmark-note">
+                    Benchmark only. Cart and checkout continue using the current server-verified price.
+                </p>
+            </section>
         </div>
 
         <!-- STEP 5: Quantity & Customer Info -->
@@ -435,6 +480,6 @@
     }
     </script>
 
-    <script type="module" src="js/kiosk-app.js?v=k4"></script>
+    <script type="module" src="js/kiosk-app.js?v=k16"></script>
 </body>
 </html>

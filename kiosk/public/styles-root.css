@@ -74,6 +74,42 @@ body {
 .visualizer-canvas-wrap { position: relative; width: 100%; height: 100%; outline: none; z-index: 1; }
 .visualizer-canvas-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
 
+/* Shared SVG measurement layer created by KeychainViewer. It is deliberately
+   DOM-only, so dimension graphics never enter PNG/STL/model calculations. */
+.viewer-dimension-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    overflow: hidden;
+    pointer-events: none;
+}
+.viewer-dimension-overlay[hidden] { display: none; }
+.viewer-dimension-overlay svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.viewer-dimension-line {
+    stroke: #7c3aed;
+    stroke-width: 1.8;
+    vector-effect: non-scaling-stroke;
+}
+.viewer-dimension-guide {
+    stroke: rgba(76, 51, 124, 0.55);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    vector-effect: non-scaling-stroke;
+}
+.viewer-dimension-axis[data-axis="z"] .viewer-dimension-line { stroke: #0891b2; }
+.viewer-dimension-axis[data-axis="z"] .viewer-dimension-guide { stroke: rgba(8, 145, 178, 0.55); }
+.viewer-dimension-overlay marker path { fill: #7c3aed; }
+.viewer-dimension-label rect {
+    fill: rgba(255, 255, 255, 0.94);
+    stroke: rgba(76, 51, 124, 0.25);
+    stroke-width: 1;
+}
+.viewer-dimension-label text {
+    fill: #34235f;
+    font: 700 10px var(--font-mono, monospace);
+    letter-spacing: -0.02em;
+}
+
 /* Loading overlay */
 .viewer-loading {
     position: absolute; inset: 0;

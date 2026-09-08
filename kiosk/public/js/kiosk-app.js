@@ -3,10 +3,11 @@
    Three.js Integration + Cost Engine + UPI
    ========================================= */
 
-import { KeychainViewer } from './viewer3d.js?v=wa2';
+import { KeychainViewer } from './viewer3d.js?v=wa19';
 import * as Cart from './cart.js?v=k1';
 import * as Pricing from './pricing.js?v=k1';
 import * as BatchOffers from './batch-offers.js?v=k1';
+import { KiriMotoBenchmark } from './kiri-moto-benchmark.js?v=k1';
 import { bootAuthIfSession } from './auth-boot.js?v=k1';
 import {
     FALLBACK_FILAMENT_COLOURS,
@@ -79,6 +80,8 @@ const COLOR_PALETTES = {
 // checkout, so the number shown here is the number charged. The constants that
 // used to live here (MATERIAL_RATE etc.) moved into Pricing.RATES.
 const DEFAULT_BATCH_SIZE = Pricing.RATES.DEFAULT_BATCH_SIZE;
+const PRICING_LAB_ENABLED = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    || new URLSearchParams(window.location.search).get('kiri') === '1';
 
 const UPI_VPA = 'sakthivelprabakaran311-1@okaxis';
 
@@ -137,7 +140,8 @@ const state = {
     dims: null,
     activeBatches: [],
     matchedBatchSize: null,
-    costs: null
+    costs: null,
+    kiriComparison: null,
 };
 
 // ===== DOM ELEMENTS =====
@@ -148,6 +152,9 @@ function cacheElements() {
     el.viewerCanvas    = document.getElementById('viewer3dCanvas');
     el.viewerLoading   = document.getElementById('viewerLoading');
     el.dragHint        = document.getElementById('dragHint');
+    el.customerSizeChip = document.getElementById('customerSizeChip');
+    el.customerSizeValue = document.getElementById('customerSizeValue');
+    el.customerDimensionsBtn = document.getElementById('customerDimensionsBtn');
     
     el.productTitle    = document.getElementById('productTitle');
     el.productSubtitle = document.getElementById('productSubtitle');
@@ -226,6 +233,16 @@ function cacheElements() {
     el.priceLabor      = document.getElementById('priceLabor');
     el.priceTotal      = document.getElementById('priceTotal');
     el.infoPrintTime   = document.getElementById('infoPrintTime');
+    el.kiriBenchmarkCard = document.getElementById('kiriBenchmarkCard');
+    el.kiriCurrentPrice = document.getElementById('kiriCurrentPrice');
+    el.kiriCurrentMetrics = document.getElementById('kiriCurrentMetrics');
+    el.kiriSlicedPrice = document.getElementById('kiriSlicedPrice');
+    el.kiriSlicedMetrics = document.getElementById('kiriSlicedMetrics');
+    el.kiriDifference = document.getElementById('kiriDifference');
+    el.kiriProgress = document.getElementById('kiriProgress');
+    el.kiriProgressBar = document.getElementById('kiriProgressBar');
+    el.kiriBenchmarkStatus = document.getElementById('kiriBenchmarkStatus');
+    el.kiriBenchmarkBtn = document.getElementById('kiriBenchmarkBtn');
     
     el.batchPromoAlert = document.getElementById('batchPromoAlert');
     el.batchPromoAlertMsg = document.getElementById('batchPromoAlertMsg');
@@ -254,10 +271,47 @@ function cacheElements() {
 // ===== 3D VIEWER WORK =====
 
 let viewer = null;
+let kiriBenchmark = null;
+let kiriBenchmarkEnabled = false;
+let kiriBenchmarkTimer = null;
+let kiriBenchmarkRunning = false;
+let kiriBenchmarkPending = false;
+let kiriModelRevision = 0;
+let kiriBenchmarkStatusMessage = '';
+let kiriBenchmarkProgressValue = 0;
 
 function init3DViewer() {
     if (!viewer) {
         viewer = new KeychainViewer(el.viewerCanvas);
+        viewer.container.addEventListener('viewermetricschange', (event) => {
+            state.dims = event.detail.dimensions;
+            renderCustomerDimensions(event.detail);
+        });
+        const showDimensions = window.matchMedia('(min-width: 880px)').matches;
+        viewer.setDimensionOverlayVisible(showDimensions);
+    }
+}
+
+function renderCustomerDimensions(detail) {
+    const dims = detail && detail.dimensions;
+    if (!dims) return;
+    const valid = dims.width > 0 && dims.height > 0 && dims.depth > 0;
+    if (el.customerSizeChip) el.customerSizeChip.hidden = !valid;
+    if (el.customerSizeValue && valid) {
+        el.customerSizeValue.textContent =
+            `L ${dims.width.toFixed(1)} × H ${dims.height.toFixed(1)} × T ${dims.depth.toFixed(1)} mm`;
+        el.customerSizeChip.setAttribute(
+            'aria-label',
+            `Approximate finished size: length ${dims.width.toFixed(1)} millimetres, `
+                + `height ${dims.height.toFixed(1)} millimetres, `
+                + `thickness ${dims.depth.toFixed(1)} millimetres`
+        );
+    }
+    if (el.customerDimensionsBtn) {
+        const visible = Boolean(detail.dimensionsVisible);
+        el.customerDimensionsBtn.classList.toggle('active', visible);
+        el.customerDimensionsBtn.setAttribute('aria-pressed', String(visible));
+        el.customerDimensionsBtn.title = visible ? 'Hide dimensions' : 'Show dimensions';
     }
 }
 
@@ -375,7 +429,11 @@ async function _runUpdate3D() {
         
         // Recalculate dimensions & weight
         state.dims = viewer.getDimensions();
+        kiriModelRevision += 1;
+        state.kiriComparison = null;
         calculatePricing();
+        renderKiriBenchmark();
+        if (kiriBenchmarkEnabled) scheduleKiriBenchmark();
     } catch (err) {
         console.error('Failed to update 3D model:', err);
     } finally {
@@ -454,6 +512,129 @@ function calculatePricing() {
     // Update main checkout button text
     const btnText = document.querySelector('.primary-pay-btn .btn-text');
     btnText.textContent = `PAY ₹${state.costs.finalAmount * state.quantity} VIA UPI`;
+}
+
+function renderKiriBenchmark() {
+    if (!el.kiriBenchmarkCard) return;
+    const visible = PRICING_LAB_ENABLED && state.productType === 'keychain';
+    el.kiriBenchmarkCard.hidden = !visible;
+    if (!visible || !state.costs) return;
+
+    el.kiriCurrentPrice.textContent = `₹${state.costs.finalAmount}`;
+    el.kiriCurrentMetrics.textContent =
+        `${state.costs.weight.toFixed(1)} g · ${state.costs.printTimeMins} min`;
+
+    const comparison = state.kiriComparison;
+    if (comparison) {
+        el.kiriSlicedPrice.textContent = `₹${comparison.unitPrice}`;
+        el.kiriSlicedMetrics.textContent =
+            `${comparison.weightGrams.toFixed(1)} g · ${Math.round(comparison.printTimeMins)} min`;
+        const delta = comparison.unitPrice - comparison.currentUnitPrice;
+        const percent = comparison.currentUnitPrice > 0
+            ? Math.abs(delta / comparison.currentUnitPrice) * 100
+            : 0;
+        const direction = delta === 0 ? 'the same as' : (delta > 0 ? 'higher than' : 'lower than');
+        el.kiriDifference.hidden = false;
+        el.kiriDifference.textContent = delta === 0
+            ? `Both methods return ₹${comparison.unitPrice}.`
+            : `Kiri is ₹${Math.abs(delta)} ${direction} the current price (${percent.toFixed(1)}%).`;
+        el.kiriBenchmarkStatus.textContent =
+            'Completed locally in this browser. No STL or customer design was uploaded.';
+        el.kiriBenchmarkBtn.textContent = 'Refresh Kiri comparison';
+    } else {
+        el.kiriSlicedPrice.textContent = '—';
+        el.kiriSlicedMetrics.textContent = kiriBenchmarkRunning
+            ? 'Slicing the exact Classic STL…'
+            : 'Run the exact STL slice';
+        el.kiriDifference.hidden = true;
+        el.kiriBenchmarkStatus.textContent = kiriBenchmarkStatusMessage
+            || 'Uses the Bambu A1 profile, 0.20 mm layers, three walls and 40% grid infill.';
+        el.kiriBenchmarkBtn.textContent = kiriBenchmarkRunning
+            ? 'Kiri:Moto is calculating…'
+            : 'Run Kiri comparison';
+    }
+
+    el.kiriBenchmarkBtn.disabled = kiriBenchmarkRunning;
+    el.kiriProgress.hidden = !kiriBenchmarkRunning;
+    el.kiriProgressBar.style.width = `${Math.round(kiriBenchmarkProgressValue * 100)}%`;
+}
+
+function updateKiriProgress(update) {
+    const progress = Number(update && update.progress);
+    if (Number.isFinite(progress)) {
+        kiriBenchmarkProgressValue = Math.max(
+            kiriBenchmarkProgressValue,
+            Math.min(1, Math.max(0, progress))
+        );
+    }
+    if (update && update.message) kiriBenchmarkStatusMessage = update.message;
+    renderKiriBenchmark();
+}
+
+function scheduleKiriBenchmark(delay = 800) {
+    if (!kiriBenchmarkEnabled || !PRICING_LAB_ENABLED || state.productType !== 'keychain') return;
+    clearTimeout(kiriBenchmarkTimer);
+    kiriBenchmarkTimer = setTimeout(runKiriBenchmark, delay);
+}
+
+async function runKiriBenchmark() {
+    if (!viewer || !state.costs || state.productType !== 'keychain') return;
+    if (kiriBenchmarkRunning) {
+        kiriBenchmarkPending = true;
+        return;
+    }
+
+    clearTimeout(kiriBenchmarkTimer);
+    kiriBenchmarkRunning = true;
+    kiriBenchmarkPending = false;
+    kiriBenchmarkProgressValue = 0.02;
+    kiriBenchmarkStatusMessage = 'Loading the local Kiri:Moto slicing engine…';
+    state.kiriComparison = null;
+    renderKiriBenchmark();
+
+    const revision = kiriModelRevision;
+    const currentUnitPrice = state.costs.finalAmount;
+    try {
+        if (!kiriBenchmark) {
+            kiriBenchmark = new KiriMotoBenchmark({ onProgress: updateKiriProgress });
+        }
+        const stl = viewer.getSTLBinary();
+        if (!stl) throw new Error('The Classic Keychain STL is not ready yet.');
+
+        const metrics = await kiriBenchmark.slice(stl);
+        if (revision !== kiriModelRevision || state.productType !== 'keychain') {
+            kiriBenchmarkPending = true;
+            return;
+        }
+
+        const priced = Pricing.priceFromSliceMetrics({
+            weightG: metrics.weightGrams,
+            printTimeMins: metrics.printTimeMins,
+            quantity: 1,
+            batchSize: state.matchedBatchSize || DEFAULT_BATCH_SIZE,
+        });
+        state.kiriComparison = {
+            currentUnitPrice,
+            unitPrice: priced.unitPrice,
+            weightGrams: metrics.weightGrams,
+            printTimeMins: metrics.printTimeMins,
+            filamentMm: metrics.filamentMm,
+            breakdown: priced.breakdown,
+        };
+        kiriBenchmarkStatusMessage = '';
+    } catch (error) {
+        console.error('Kiri:Moto benchmark failed:', error);
+        kiriBenchmarkStatusMessage =
+            `Comparison failed: ${error && error.message ? error.message : 'Unknown slicer error'}`;
+    } finally {
+        kiriBenchmarkRunning = false;
+        kiriBenchmarkProgressValue = state.kiriComparison ? 1 : 0;
+        renderKiriBenchmark();
+        if (kiriBenchmarkPending) {
+            kiriBenchmarkPending = false;
+            scheduleKiriBenchmark(0);
+        }
+    }
 }
 
 // Desktop shows every step at once in one scrolling sidebar; mobile keeps
@@ -1336,6 +1517,14 @@ function buildCartLine() {
         ringAnchor: state.ringAnchor,
         showFDMTexture: state.showFDMTexture,
     };
+    if (state.dims && state.dims.width > 0 && state.dims.height > 0 && state.dims.depth > 0) {
+        design.finishedSize = {
+            approximate: true,
+            lengthMm: Number(state.dims.width.toFixed(1)),
+            heightMm: Number(state.dims.height.toFixed(1)),
+            thicknessMm: Number(state.dims.depth.toFixed(1)),
+        };
+    }
 
     // Only carry the product-specific fields that actually apply, so the jsonb
     // stays readable instead of every line hauling every product's options.
@@ -1386,6 +1575,14 @@ function setInputValuePreservingCaret(input, next) {
 // ===== EVENT BINDINGS =====
 
 function setupEvents() {
+    if (el.kiriBenchmarkBtn) {
+        el.kiriBenchmarkBtn.addEventListener('click', () => {
+            kiriBenchmarkEnabled = true;
+            kiriBenchmarkStatusMessage = '';
+            scheduleKiriBenchmark(0);
+        });
+    }
+
     // Stepper Navigation
     if(el.btnNextStep) {
         el.btnNextStep.addEventListener('click', () => {

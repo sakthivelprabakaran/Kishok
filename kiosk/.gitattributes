@@ -1,0 +1,6 @@
+# Self-hosted third-party slicer runtime. Keep exact upstream bytes and avoid
+# rendering multi-megabyte minified bundles or WASM payloads as text diffs.
+public/vendor/kiri/*.js binary
+public/vendor/**/*.wasm binary
+public/wasm/*.wasm binary
+public/vendor/** -whitespace
