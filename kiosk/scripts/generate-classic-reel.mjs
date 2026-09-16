@@ -239,7 +239,8 @@ try {
 
 const payload = JSON.parse(Buffer.from(encodedPayload.trim(), 'base64').toString('utf8'));
 if (payload.error) throw new Error(payload.error);
-if (payload.productType !== productId || payload.variants?.length !== 3 || payload.angles?.length !== 5) {
+const expectedVariantCount = productId === 'keychain' ? 5 : 3;
+if (payload.productType !== productId || payload.variants?.length !== expectedVariantCount || payload.angles?.length !== 5) {
     throw new Error(`Renderer returned an unexpected ${productId} payload.`);
 }
 
@@ -267,6 +268,7 @@ const manifestVariants = payload.variants.map((variant, index) => {
         text: variant.text,
         font: variant.font,
         fontFile: variant.fontFile,
+        layers: variant.layers,
         ringPosition: variant.ringPosition,
         ringAnchor: variant.ringAnchor,
         colors: variant.colors,
@@ -285,8 +287,12 @@ const totalBytes = written.reduce((sum, asset) => sum + asset.bytes, 0);
 if (!initialPoster || initialPoster.bytes > 100 * 1024) {
     throw new Error(`Initial WebP poster is ${initialPoster?.bytes || 0} bytes; the 2x budget is 100KB.`);
 }
-if (totalBytes > 1024 * 1024) {
-    throw new Error(`Classic reel assets total ${totalBytes} bytes; the 2x budget is 1MB.`);
+const totalAssetBudget = productId === 'keychain' ? 1536 * 1024 : 1024 * 1024;
+if (totalBytes > totalAssetBudget) {
+    throw new Error(
+        `${payload.label} reel assets total ${totalBytes} bytes;`
+        + ` the 2x budget is ${Math.round(totalAssetBudget / 1024)}KB.`
+    );
 }
 
 const manifest = {
@@ -314,6 +320,7 @@ const manifest = {
     budgets: {
         initialPosterBytes: initialPoster.bytes,
         totalAssetBytes: totalBytes,
+        totalAssetBudgetBytes: totalAssetBudget,
     },
 };
 fs.writeFileSync(path.join(assetDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);

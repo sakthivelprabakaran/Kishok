@@ -39,23 +39,33 @@ assert.equal(
     'generated assets are stale because the viewer or render harness changed'
 );
 assert.equal(manifest.productType, 'keychain');
-assert.equal(manifest.sample.text, 'PRIYA');
-assert.equal(manifest.sample.font, 'Anton');
+assert.equal(manifest.sample.text, 'Luna');
+assert.equal(manifest.sample.font, 'Lobster');
 assert.equal(manifest.sample.layers, '3L');
 assert.equal(manifest.sample.ringPosition, 'left');
 assert.equal(manifest.sample.ringAnchor, 'center');
 assert.equal(manifest.sample.showFDMTexture, false);
 assert.deepEqual(manifest.frame.angles, [-8, -4, 0, 4, 8]);
-assert.equal(manifest.variants.length, 3);
+assert.equal(manifest.variants.length, 5);
 assert.deepEqual(
     manifest.variants.map((variant) => variant.text),
-    ['PRIYA', 'ARUN', 'NITHYA'],
+    ['Luna', 'Zoya', 'MIRA', 'Aira', 'AARAV'],
     'Classic reel must demonstrate different customer names'
 );
 assert.equal(
     new Set(manifest.variants.map((variant) => variant.font)).size,
-    3,
-    'Classic reel must demonstrate three different fonts'
+    5,
+    'Classic reel must demonstrate five different fonts'
+);
+assert.deepEqual(
+    manifest.variants.map((variant) => variant.layers),
+    ['3L', '3L', '3L', '2L', '2L'],
+    'Classic reel must demonstrate both 3-layer and 2-layer keychains'
+);
+assert.deepEqual(
+    manifest.variants[0].colors,
+    { base: '#A8E6CF', font: '#FFFFFF', outline: '#111111', line2: '#FFFFFF' },
+    'the lead design must use the approved pastel green, white and black combination'
 );
 assert.ok(
     manifest.variants.every((variant) => variant.ringAnchor === 'center'),
@@ -79,6 +89,6 @@ const initialPosterPath = path.join(root, 'public', manifest.poster.replace(/^\/
 assert.equal(manifest.frame.width, 840, '2x reel width must be 840px');
 assert.equal(manifest.frame.height, 600, '2x reel height must be 600px');
 assert.ok(fs.statSync(initialPosterPath).size <= 100 * 1024, 'initial poster exceeds 100KB');
-assert.ok(totalBytes <= 1024 * 1024, 'Classic reel assets exceed 1MB');
+assert.ok(totalBytes <= 1536 * 1024, 'Classic reel assets exceed 1.5MB');
 
 console.log('Classic Keychain exact-render reel pilot verified.');

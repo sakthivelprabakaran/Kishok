@@ -68,8 +68,8 @@
             const response = await fetch('/assets/classic-reel/manifest.json', { cache: 'no-store' });
             if (!response.ok) throw new Error(`Manifest returned ${response.status}`);
             manifest = await response.json();
-            if (!Array.isArray(manifest.variants) || manifest.variants.length !== 3) {
-                throw new Error('Manifest does not contain three Classic variants');
+            if (!Array.isArray(manifest.variants) || manifest.variants.length !== 5) {
+                throw new Error('Manifest does not contain five Classic variants');
             }
         } catch (error) {
             console.warn('Classic render reel pilot unavailable:', error);

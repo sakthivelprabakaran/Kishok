@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T07:18:17.655Z",
-  "sourceHash": "64077f3acd2ea6a2d897f57ae7b5f527f30ee5f7b95391c5b0fe58f38f30a0bd",
+  "generatedAt": "2026-09-16T09:03:25.116Z",
+  "sourceHash": "3208cb204a783faef1ec9ba861df25ba8f9711c822f3c60537a45f96584d819b",
   "productType": "keychain",
   "sample": {
-    "text": "PRIYA",
-    "font": "Anton",
-    "fontFile": "Fonts/Anton-Regular.ttf",
+    "text": "Luna",
+    "font": "Lobster",
+    "fontFile": "Fonts/Lobster-Regular.ttf",
     "layers": "3L",
     "ringPosition": "left",
     "ringAnchor": "center",
@@ -28,73 +28,123 @@
   "variants": [
     {
       "id": "orange-white-black",
-      "label": "PRIYA · Anton · Orange, White and Black",
-      "text": "PRIYA",
-      "font": "Anton",
-      "fontFile": "Fonts/Anton-Regular.ttf",
+      "label": "Luna - Lobster - Pastel Green, White and Black",
+      "text": "Luna",
+      "font": "Lobster",
+      "fontFile": "Fonts/Lobster-Regular.ttf",
+      "layers": "3L",
       "ringPosition": "left",
       "ringAnchor": "center",
       "colors": {
-        "base": "#FF9933",
+        "base": "#A8E6CF",
         "font": "#FFFFFF",
-        "outline": "#000000",
-        "line2": "#FFD700"
+        "outline": "#111111",
+        "line2": "#FFFFFF"
       },
       "sprite": "/assets/classic-reel/orange-white-black-orbit.webp",
       "poster": "/assets/classic-reel/orange-white-black-poster.webp",
       "dimensions": {
-        "width": 50.2,
-        "height": 21.5,
+        "width": 43.3,
+        "height": 20.9,
         "depth": 6
       }
     },
     {
       "id": "purple-white-gold",
-      "label": "ARUN · Bagel Fat One · Purple, White and Gold",
-      "text": "ARUN",
-      "font": "Bagel Fat One",
-      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "label": "Zoya - Oleo Script - Pastel Blush, White and Plum",
+      "text": "Zoya",
+      "font": "Oleo Script",
+      "fontFile": "Fonts/OleoScript-Bold.ttf",
+      "layers": "3L",
       "ringPosition": "left",
       "ringAnchor": "center",
       "colors": {
-        "base": "#7B2FFF",
+        "base": "#F7B7C9",
         "font": "#FFFFFF",
-        "outline": "#FFD700",
-        "line2": "#FFD700"
+        "outline": "#4B2545",
+        "line2": "#FFFFFF"
       },
       "sprite": "/assets/classic-reel/purple-white-gold-orbit.webp",
       "poster": "/assets/classic-reel/purple-white-gold-poster.webp",
       "dimensions": {
-        "width": 53.3,
-        "height": 17,
+        "width": 45.6,
+        "height": 20.2,
         "depth": 6
       }
     },
     {
       "id": "blue-gold-black",
-      "label": "NITHYA · Pacifico · Blue, Gold and Black",
-      "text": "NITHYA",
-      "font": "Pacifico",
-      "fontFile": "Fonts/Pacifico-Regular.ttf",
+      "label": "MIRA - Super Bubble - Pastel Sky, Cream and Navy",
+      "text": "MIRA",
+      "font": "Super Bubble",
+      "fontFile": "Fonts/Super Bubble.ttf",
+      "layers": "3L",
       "ringPosition": "left",
       "ringAnchor": "center",
       "colors": {
-        "base": "#3A88FE",
-        "font": "#FFD700",
-        "outline": "#000000",
+        "base": "#A9D6F5",
+        "font": "#FFF8E7",
+        "outline": "#17324D",
         "line2": "#FFFFFF"
       },
       "sprite": "/assets/classic-reel/blue-gold-black-orbit.webp",
       "poster": "/assets/classic-reel/blue-gold-black-poster.webp",
       "dimensions": {
-        "width": 98.4,
-        "height": 27.7,
+        "width": 59.2,
+        "height": 18.6,
+        "depth": 6
+      }
+    },
+    {
+      "id": "peach-black-2l",
+      "label": "Aira - Satisfy - Pastel Peach and Black - 2 Layer",
+      "text": "Aira",
+      "font": "Satisfy",
+      "fontFile": "Fonts/Satisfy-Regular.ttf",
+      "layers": "2L",
+      "ringPosition": "left",
+      "ringAnchor": "center",
+      "colors": {
+        "base": "#FFC8A2",
+        "font": "#181818",
+        "outline": "#181818",
+        "line2": "#FFFFFF"
+      },
+      "sprite": "/assets/classic-reel/peach-black-2l-orbit.webp",
+      "poster": "/assets/classic-reel/peach-black-2l-poster.webp",
+      "dimensions": {
+        "width": 41.4,
+        "height": 21.1,
+        "depth": 6
+      }
+    },
+    {
+      "id": "lavender-plum-2l",
+      "label": "AARAV - Fredoka One - Pastel Lavender and Plum - 2 Layer",
+      "text": "AARAV",
+      "font": "Fredoka One",
+      "fontFile": "Fonts/FredokaOne-Regular.ttf",
+      "layers": "2L",
+      "ringPosition": "left",
+      "ringAnchor": "center",
+      "colors": {
+        "base": "#C7B8EA",
+        "font": "#3A275E",
+        "outline": "#3A275E",
+        "line2": "#FFFFFF"
+      },
+      "sprite": "/assets/classic-reel/lavender-plum-2l-orbit.webp",
+      "poster": "/assets/classic-reel/lavender-plum-2l-poster.webp",
+      "dimensions": {
+        "width": 74.3,
+        "height": 18.7,
         "depth": 6
       }
     }
   ],
   "budgets": {
-    "initialPosterBytes": 23440,
-    "totalAssetBytes": 719639
+    "initialPosterBytes": 39852,
+    "totalAssetBytes": 1233690,
+    "totalAssetBudgetBytes": 1572864
   }
 }

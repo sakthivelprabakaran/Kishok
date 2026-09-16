@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T07:18:50.641Z",
-  "sourceHash": "01bbb23dcb885f2247a9d492e47bc727bb157a914214c9b15d0df22b41668430",
+  "generatedAt": "2026-09-16T09:03:48.935Z",
+  "sourceHash": "3570e1ab8e704a8f24524122df93246c93da85b571f4bec2df7904abf8fb4a48",
   "productType": "wordart",
   "sample": {
     "text": "Vivi\nSAKTHI",
@@ -32,6 +32,7 @@
       "text": "Vivi\nSAKTHI",
       "font": "Brandy / CANAVAR",
       "fontFile": "Fonts/Brandy.ttf",
+      "layers": "3L",
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
@@ -54,6 +55,7 @@
       "text": "Vivi\nSAKTHI",
       "font": "Brandy / CANAVAR",
       "fontFile": "Fonts/Brandy.ttf",
+      "layers": "3L",
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
@@ -76,6 +78,7 @@
       "text": "Vivi\nSAKTHI",
       "font": "Brandy / CANAVAR",
       "fontFile": "Fonts/Brandy.ttf",
+      "layers": "3L",
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
@@ -95,6 +98,7 @@
   ],
   "budgets": {
     "initialPosterBytes": 32860,
-    "totalAssetBytes": 648288
+    "totalAssetBytes": 648288,
+    "totalAssetBudgetBytes": 1048576
   }
 }

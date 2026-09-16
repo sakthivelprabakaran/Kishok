@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T07:19:50.944Z",
-  "sourceHash": "b92789a7d839152804dc48365718d2e3fdae03b1f82d7589703c8fac7638bb23",
+  "generatedAt": "2026-09-16T09:04:02.827Z",
+  "sourceHash": "e0edeb49886b4f11c85eb4a9fd68dd9f188d8afee0bf13b9896b431c6a098ff0",
   "productType": "desk_organizer",
   "sample": {
     "text": "ALEX",
@@ -32,6 +32,7 @@
       "text": "ALEX",
       "font": "Bagel Fat One",
       "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "layers": "3L",
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
@@ -54,6 +55,7 @@
       "text": "ALEX",
       "font": "Bagel Fat One",
       "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "layers": "3L",
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
@@ -76,6 +78,7 @@
       "text": "ALEX",
       "font": "Bagel Fat One",
       "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "layers": "3L",
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
@@ -95,6 +98,7 @@
   ],
   "budgets": {
     "initialPosterBytes": 27374,
-    "totalAssetBytes": 737643
+    "totalAssetBytes": 737643,
+    "totalAssetBudgetBytes": 1048576
   }
 }
