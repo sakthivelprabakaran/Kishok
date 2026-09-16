@@ -1,15 +1,18 @@
 export const MADE_TO_ORDER_NOTICE = 'Ships in 2–3 days';
 
+// Numakers-published HEX values are used where available. Colours marked as
+// approximate are sampled from the supplied product photos and are previews,
+// not promises of an exact screen-to-filament match.
 export const FALLBACK_FILAMENT_COLOURS = Object.freeze([
-    { name: 'Imperial Red',      hex: '#C83858', state: 'available', sortOrder: 10 },
-    { name: 'Water Blue',        hex: '#187888', state: 'available', sortOrder: 20 },
-    { name: 'Terracotta Orange', hex: '#B86848', state: 'available', sortOrder: 30 },
-    { name: 'Pure White',        hex: '#FFFFFF', state: 'available', sortOrder: 40 },
-    { name: 'Pitch Black',       hex: '#000000', state: 'available', sortOrder: 50 },
-    { name: 'Forest Green',      hex: '#48C888', state: 'available', sortOrder: 60 },
-    { name: 'Army Green',        hex: '#788868', state: 'available', sortOrder: 70 },
-    { name: 'Light Beige',       hex: '#C8B898', state: 'available', sortOrder: 80 },
-    { name: 'Lemon Yellow',      hex: '#F8C828', state: 'available', sortOrder: 90 },
+    { name: 'Imperial Red',      hex: '#C83858', state: 'available', sortOrder: 10, approximate: true },
+    { name: 'Water Blue',        hex: '#187888', state: 'available', sortOrder: 20, approximate: true },
+    { name: 'Terracotta Orange', hex: '#B86848', state: 'available', sortOrder: 30, approximate: true },
+    { name: 'Pure White',        hex: '#F1ECE1', state: 'available', sortOrder: 40 },
+    { name: 'Pitch Black',       hex: '#0E0E10', state: 'available', sortOrder: 50 },
+    { name: 'Forest Green',      hex: '#008351', state: 'available', sortOrder: 60 },
+    { name: 'Army Green',        hex: '#50533C', state: 'available', sortOrder: 70 },
+    { name: 'Light Beige',       hex: '#C8B898', state: 'available', sortOrder: 80, approximate: true },
+    { name: 'Lemon Yellow',      hex: '#F9A800', state: 'available', sortOrder: 90 },
 ]);
 
 const HEX_RE = /^#[0-9A-F]{6}$/;

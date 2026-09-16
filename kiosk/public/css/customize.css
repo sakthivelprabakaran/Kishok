@@ -702,6 +702,13 @@ body {
     font-weight: 750;
 }
 
+.filament-colour-disclaimer {
+    margin: 0.35rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    line-height: 1.35;
+}
+
 .swatch.selected::after {
     content: "✓";
     position: absolute;

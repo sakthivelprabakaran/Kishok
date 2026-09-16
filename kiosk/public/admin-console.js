@@ -1,4 +1,4 @@
-﻿/* =========================================
+/* =========================================
    KOOTZY — ADMIN CONSOLE JS (ES Module)
    Full-screen STL Generation Console
    ========================================= */
@@ -8,7 +8,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './js/filament-catalog.js?v=k2';
+} from './js/filament-catalog.js?v=k3';
 import {
     STUDIO_PRODUCT_SECTION_IDS,
     getStudioProductProfile,
@@ -75,6 +75,7 @@ function studioPalette(colours) {
         hex: colour.hex,
         label: colour.name,
         state: colour.state,
+        approximate: Boolean(colour.approximate),
     }));
 }
 
@@ -191,8 +192,8 @@ const state = {
     selectedFontIndex: null,
     colors: {
         base:    '#B86848',
-        font:    '#FFFFFF',
-        outline: '#000000',
+        font:    '#F1ECE1',
+        outline: '#0E0E10',
     },
     _girlyColorsApplied: false,
     _borderedColorsApplied: false,
@@ -714,11 +715,12 @@ function buildSwatches() {
                 + (currentColor === item.hex.toUpperCase() ? ' active' : '');
             swatch.style.backgroundColor = item.hex;
             swatch.title = item.label
+                + (item.approximate ? ' — screen preview' : '')
                 + (item.state === 'made_to_order' ? ` — ${MADE_TO_ORDER_NOTICE}` : '')
                 + (item.state === 'unavailable' ? ' — hidden from new storefront designs' : '');
 
             // White swatch needs inner border
-            if (item.hex === '#FFFFFF' || item.hex === '#fff' || item.hex.toUpperCase() === '#FFFFFF') {
+            if (item.hex.toUpperCase() === '#F1ECE1') {
                 swatch.style.boxShadow = 'inset 0 0 0 1.5px rgba(200,200,200,0.6)';
             }
 
@@ -2208,51 +2210,51 @@ function ensureDefaultsForProductType() {
     } else {
         if (state._nametagColorsApplied) {
             state.colors.base = '#B86848';
-            state.colors.font = '#FFFFFF';
-            state.colors.outline = '#000000';
+            state.colors.font = '#F1ECE1';
+            state.colors.outline = '#0E0E10';
             state._nametagColorsApplied = false;
             buildSwatches();
         }
 
         if (state.productType !== 'girly_keychain' && state._girlyColorsApplied) {
             state.colors.base = '#B86848';
-            state.colors.font = '#FFFFFF';
-            state.colors.outline = '#000000';
+            state.colors.font = '#F1ECE1';
+            state.colors.outline = '#0E0E10';
             state._girlyColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'bordered_keychain' && state._borderedColorsApplied) {
             state.colors.base = '#B86848';
-            state.colors.font = '#FFFFFF';
-            state.colors.outline = '#000000';
+            state.colors.font = '#F1ECE1';
+            state.colors.outline = '#0E0E10';
             state._borderedColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'flower_keychain' && state._flowerColorsApplied) {
             state.colors.base = '#B86848';
-            state.colors.font = '#FFFFFF';
-            state.colors.outline = '#000000';
+            state.colors.font = '#F1ECE1';
+            state.colors.outline = '#0E0E10';
             state._flowerColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'led_word_art' && state.productType !== 'led_word_stand' && state._ledColorsApplied) {
             state.colors.base = '#B86848';
-            state.colors.font = '#FFFFFF';
-            state.colors.outline = '#000000';
+            state.colors.font = '#F1ECE1';
+            state.colors.outline = '#0E0E10';
             state._ledColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'desk_organizer' && state._organizerColorsApplied) {
             state.colors.base = '#B86848';
-            state.colors.font = '#FFFFFF';
-            state.colors.outline = '#000000';
+            state.colors.font = '#F1ECE1';
+            state.colors.outline = '#0E0E10';
             state._organizerColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'name_beads' && state._beadsColorsApplied) {
             state.colors.base = '#B86848';
-            state.colors.font = '#FFFFFF';
-            state.colors.outline = '#000000';
+            state.colors.font = '#F1ECE1';
+            state.colors.outline = '#0E0E10';
             state._beadsColorsApplied = false;
             buildSwatches();
         }
@@ -2278,48 +2280,48 @@ function ensureDefaultsForProductType() {
             }
             if (!state._girlyColorsApplied) {
                 state.colors.base = '#C83858';
-                state.colors.font = '#FFFFFF';
-                state.colors.outline = '#000000';
+                state.colors.font = '#F1ECE1';
+                state.colors.outline = '#0E0E10';
                 state._girlyColorsApplied = true;
                 buildSwatches();
             }
         } else if (state.productType === 'bordered_keychain') {
             if (!state._borderedColorsApplied) {
-                state.colors.base = '#000000';
-                state.colors.font = '#48C888';
-                state.colors.outline = '#000000';
+                state.colors.base = '#0E0E10';
+                state.colors.font = '#008351';
+                state.colors.outline = '#0E0E10';
                 state._borderedColorsApplied = true;
                 buildSwatches();
             }
         } else if (state.productType === 'flower_keychain') {
             if (!state._flowerColorsApplied) {
                 state.colors.base = '#C83858';
-                state.colors.font = '#FFFFFF';
-                state.colors.outline = '#000000';
+                state.colors.font = '#F1ECE1';
+                state.colors.outline = '#0E0E10';
                 state._flowerColorsApplied = true;
                 buildSwatches();
             }
         } else if (state.productType === 'led_word_art' || state.productType === 'led_word_stand') {
             if (!state._ledColorsApplied) {
                 // Ported from Achuva: dark housing + bright diffuser for LED (2-part)
-                state.colors.base = '#000000';
+                state.colors.base = '#0E0E10';
                 state.colors.font = '#187888';
-                state.colors.outline = '#000000';
+                state.colors.outline = '#0E0E10';
                 state._ledColorsApplied = true;
                 buildSwatches();
             }
         } else if (state.productType === 'desk_organizer') {
             if (!state._organizerColorsApplied) {
-                state.colors.base = '#000000';
-                state.colors.font = '#FFFFFF';
-                state.colors.outline = '#000000';
+                state.colors.base = '#0E0E10';
+                state.colors.font = '#F1ECE1';
+                state.colors.outline = '#0E0E10';
                 state._organizerColorsApplied = true;
                 buildSwatches();
             }
         } else if (state.productType === 'name_beads') {
             if (!state._beadsColorsApplied) {
                 state.colors.base = '#187888';
-                state.colors.font = '#FFFFFF';
+                state.colors.font = '#F1ECE1';
                 state.colors.outline = '#187888';
                 state._beadsColorsApplied = true;
                 buildSwatches();

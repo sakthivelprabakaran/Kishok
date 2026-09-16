@@ -13,7 +13,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './filament-catalog.js?v=k2';
+} from './filament-catalog.js?v=k3';
 
 // ===== DATA & CONFIG =====
 
@@ -65,6 +65,7 @@ function toPalette(colours) {
         label: colour.name,
         state: colour.state,
         notice: colour.notice || '',
+        approximate: Boolean(colour.approximate),
     }));
 }
 
@@ -104,9 +105,9 @@ const state = {
     fontCategory: 'all',
     colors: {
         base: '#B86848',
-        font: '#FFFFFF',
-        outline: '#000000',
-        line2: '#F8C828'
+        font: '#F1ECE1',
+        outline: '#0E0E10',
+        line2: '#F9A800'
     },
     selectedFont: 'Brandy',
     selectedFontFile: 'Fonts/Brandy.ttf',
@@ -219,6 +220,13 @@ function cacheElements() {
         notice.className = 'filament-availability-notice';
         notice.hidden = true;
         colorWrap.appendChild(notice);
+    }
+    if (colorWrap && !document.getElementById('filamentColourDisclaimer')) {
+        const disclaimer = document.createElement('p');
+        disclaimer.id = 'filamentColourDisclaimer';
+        disclaimer.className = 'filament-colour-disclaimer';
+        disclaimer.textContent = 'Screen preview only — actual filament colour may vary with lighting and display.';
+        colorWrap.appendChild(disclaimer);
     }
     el.filamentAvailabilityNotice = document.getElementById('filamentAvailabilityNotice');
     
@@ -974,7 +982,7 @@ function applyFilamentCatalogue(colours) {
     for (const key of Object.keys(state.colors)) {
         const current = String(state.colors[key] || '').toUpperCase();
         if (!palette.some((colour) => colour.hex.toUpperCase() === current)) {
-            state.colors[key] = palette[0] ? palette[0].hex : '#FFFFFF';
+            state.colors[key] = palette[0] ? palette[0].hex : '#F1ECE1';
         }
     }
 }
@@ -1024,8 +1032,9 @@ function renderColorSwatches() {
             swatch.className = `swatch ${color.state === 'made_to_order' ? 'made-to-order' : ''} ${isSelected ? 'selected' : ''}`;
             swatch.style.backgroundColor = color.hex;
             const availability = color.state === 'made_to_order' ? ` — ${MADE_TO_ORDER_NOTICE}` : '';
-            swatch.title = color.label + availability;
-            swatch.setAttribute('aria-label', color.label + availability);
+            const approximation = color.approximate ? ' — screen preview' : '';
+            swatch.title = color.label + approximation + availability;
+            swatch.setAttribute('aria-label', color.label + approximation + availability);
             
             swatch.addEventListener('click', () => {
                 conf.container.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
@@ -1099,22 +1108,22 @@ function applyProductTypeConstraints() {
             state.name = state.name || 'Rodic';
             state.selectedFont = 'Super Bubble';
             state.selectedFontFile = 'Fonts/Super Bubble.ttf';
-            state.colors.base = '#FFFFFF';    // White base plate & inset floor
+            state.colors.base = '#F1ECE1';    // Pure White base plate & inset floor
             state.colors.font = '#187888';    // Water Blue rim & bubble text
-            state.colors.outline = '#FFFFFF';
+            state.colors.outline = '#F1ECE1';
         } else if (isDeskOrganizer) {
             el.nameInput.maxLength = 12;
             state.name = state.name || 'ALEX';
             state.selectedFont = state.selectedFont || 'BagelFatOne';
-            state.colors.base = state.colors.base || '#FFFFFF';     // Main box body
+            state.colors.base = state.colors.base || '#F1ECE1';     // Main box body
             state.colors.font = state.colors.font || '#C83858';     // Imperial Red name
-            state.colors.outline = state.colors.outline || '#FFFFFF';
+            state.colors.outline = state.colors.outline || '#F1ECE1';
         } else if (isBeads) {
             el.nameInput.maxLength = 10;
             state.name = state.name || 'EMMA';
             state.selectedFont = state.selectedFont || 'Lilita One';
             state.colors.base = state.colors.base || '#187888';     // Water Blue bead body
-            state.colors.font = state.colors.font || '#FFFFFF';     // Embossed letter color
+            state.colors.font = state.colors.font || '#F1ECE1';     // Embossed letter color
             state.colors.outline = state.colors.outline || '#187888';
         } else {
             el.nameInput.maxLength = 15;
