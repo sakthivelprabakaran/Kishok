@@ -8,7 +8,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './js/filament-catalog.js?v=k5';
+} from './js/filament-catalog.js?v=k6';
 import {
     STUDIO_PRODUCT_SECTION_IDS,
     getStudioProductProfile,
@@ -2199,9 +2199,9 @@ function ensureDefaultsForProductType() {
             selectFont(idx >= 0 ? idx : 0);
         }
         if (!state._nametagColorsApplied) {
-            state.colors.base = '#7A414C';
-            state.colors.font = '#7A414C';
-            state.colors.outline = '#7A414C';
+            state.colors.base = '#C93655';
+            state.colors.font = '#C93655';
+            state.colors.outline = '#C93655';
             state._nametagColorsApplied = true;
             buildSwatches();
         }
@@ -2277,7 +2277,7 @@ function ensureDefaultsForProductType() {
                 selectFont(idx >= 0 ? idx : 0);
             }
             if (!state._girlyColorsApplied) {
-                state.colors.base = '#7A414C';
+                state.colors.base = '#C93655';
                 state.colors.font = '#F1ECE1';
                 state.colors.outline = '#0E0E10';
                 state._girlyColorsApplied = true;
@@ -2293,7 +2293,7 @@ function ensureDefaultsForProductType() {
             }
         } else if (state.productType === 'flower_keychain') {
             if (!state._flowerColorsApplied) {
-                state.colors.base = '#7A414C';
+                state.colors.base = '#C93655';
                 state.colors.font = '#F1ECE1';
                 state.colors.outline = '#0E0E10';
                 state._flowerColorsApplied = true;

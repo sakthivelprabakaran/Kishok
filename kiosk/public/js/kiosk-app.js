@@ -13,7 +13,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './filament-catalog.js?v=k5';
+} from './filament-catalog.js?v=k6';
 
 // ===== DATA & CONFIG =====
 
@@ -1114,7 +1114,7 @@ function applyProductTypeConstraints() {
             state.name = state.name || 'ALEX';
             state.selectedFont = state.selectedFont || 'BagelFatOne';
             state.colors.base = state.colors.base || '#F1ECE1';     // Main box body
-            state.colors.font = state.colors.font || '#7A414C';     // Imperial Red name
+            state.colors.font = state.colors.font || '#C93655';     // Imperial Red name
             state.colors.outline = state.colors.outline || '#F1ECE1';
         } else if (isBeads) {
             el.nameInput.maxLength = 10;

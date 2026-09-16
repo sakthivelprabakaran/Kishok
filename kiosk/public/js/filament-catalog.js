@@ -1,9 +1,8 @@
 export const MADE_TO_ORDER_NOTICE = 'Ships in 2–3 days';
 
-// Numakers PLA+ swatches. Imperial Red uses a photo-calibrated display value
-// because the embedded #6E0B05 metadata is darker and browner than the spool.
+// Numakers PLA+ swatches. Imperial Red uses the approved customer-facing value.
 export const FALLBACK_FILAMENT_COLOURS = Object.freeze([
-    { name: 'Imperial Red',      hex: '#7A414C', state: 'available', sortOrder: 10 },
+    { name: 'Imperial Red',      hex: '#C93655', state: 'available', sortOrder: 10 },
     { name: 'Water Blue',        hex: '#1D7D8D', state: 'available', sortOrder: 20 },
     { name: 'Terracotta Orange', hex: '#D67842', state: 'available', sortOrder: 30 },
     { name: 'Pure White',        hex: '#F1ECE1', state: 'available', sortOrder: 40 },
