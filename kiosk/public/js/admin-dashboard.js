@@ -712,7 +712,7 @@ function renderFilaments() {
                 <summary>Spool lots and manual stock adjustments</summary>
                 <div class="spool-list">${spoolRows}</div>
                 <form class="spool-add-form">
-                    <label>Material<input name="material" value="PLA" maxlength="30" required></label>
+                    <label>Material<input name="material" value="PLA+" maxlength="30" required></label>
                     <label>Brand<input name="brand" maxlength="60" placeholder="Optional"></label>
                     <label>Lot code<input name="lotCode" maxlength="60" placeholder="Optional"></label>
                     <label>Initial grams<input name="initialWeightG" type="number" min="0.01" step="0.01" value="1000" required></label>
