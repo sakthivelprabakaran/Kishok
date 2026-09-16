@@ -8,13 +8,12 @@
     const saveData = Boolean(navigator.connection && navigator.connection.saveData);
     const canAnimate = !reduceMotion && !saveData && 'IntersectionObserver' in window;
     const coordinator = window.__kootzyReelCoordinator || (window.__kootzyReelCoordinator = {
-        activeStop: null,
+        activeStops: new Set(),
         claim(stop) {
-            if (this.activeStop && this.activeStop !== stop) this.activeStop();
-            this.activeStop = stop;
+            this.activeStops.add(stop);
         },
         release(stop) {
-            if (this.activeStop === stop) this.activeStop = null;
+            this.activeStops.delete(stop);
         },
     });
 
@@ -82,7 +81,7 @@
         let running = false;
         let generation = 0;
         let timer = 0;
-        let variantIndex = 0;
+        let variantIndex = Math.floor(Math.random() * manifest.variants.length);
         let activeLayer = -1;
 
         function stop() {

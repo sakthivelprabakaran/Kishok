@@ -43,9 +43,24 @@ assert.equal(manifest.sample.text, 'PRIYA');
 assert.equal(manifest.sample.font, 'Anton');
 assert.equal(manifest.sample.layers, '3L');
 assert.equal(manifest.sample.ringPosition, 'left');
+assert.equal(manifest.sample.ringAnchor, 'center');
 assert.equal(manifest.sample.showFDMTexture, false);
 assert.deepEqual(manifest.frame.angles, [-8, -4, 0, 4, 8]);
 assert.equal(manifest.variants.length, 3);
+assert.deepEqual(
+    manifest.variants.map((variant) => variant.text),
+    ['PRIYA', 'ARUN', 'NITHYA'],
+    'Classic reel must demonstrate different customer names'
+);
+assert.equal(
+    new Set(manifest.variants.map((variant) => variant.font)).size,
+    3,
+    'Classic reel must demonstrate three different fonts'
+);
+assert.ok(
+    manifest.variants.every((variant) => variant.ringAnchor === 'center'),
+    'every Classic reel design must use the vertically centred ring'
+);
 
 let totalBytes = 0;
 for (const variant of manifest.variants) {

@@ -10,11 +10,32 @@ const PRODUCT_CONFIGS = Object.freeze({
         font: 'Anton',
         fontFile: 'Fonts/Anton-Regular.ttf',
         layers: '3L',
-        params: { ringPosition: 'left', ring: { anchor: 'top' }, showFDMTexture: false },
+        params: { ringPosition: 'left', ring: { anchor: 'center' }, showFDMTexture: false },
         variants: [
-            { id: 'orange-white-black', label: 'Orange, White and Black', colors: { base: '#FF9933', font: '#FFFFFF', outline: '#000000', line2: '#FFD700' } },
-            { id: 'purple-white-gold', label: 'Purple, White and Gold', colors: { base: '#7B2FFF', font: '#FFFFFF', outline: '#FFD700', line2: '#FFD700' } },
-            { id: 'blue-gold-black', label: 'Blue, Gold and Black', colors: { base: '#3A88FE', font: '#FFD700', outline: '#000000', line2: '#FFFFFF' } },
+            {
+                id: 'orange-white-black',
+                label: 'PRIYA · Anton · Orange, White and Black',
+                text: 'PRIYA',
+                font: 'Anton',
+                fontFile: 'Fonts/Anton-Regular.ttf',
+                colors: { base: '#FF9933', font: '#FFFFFF', outline: '#000000', line2: '#FFD700' },
+            },
+            {
+                id: 'purple-white-gold',
+                label: 'ARUN · Bagel Fat One · Purple, White and Gold',
+                text: 'ARUN',
+                font: 'Bagel Fat One',
+                fontFile: 'Fonts/BagelFatOne-Regular.ttf',
+                colors: { base: '#7B2FFF', font: '#FFFFFF', outline: '#FFD700', line2: '#FFD700' },
+            },
+            {
+                id: 'blue-gold-black',
+                label: 'NITHYA · Pacifico · Blue, Gold and Black',
+                text: 'NITHYA',
+                font: 'Pacifico',
+                fontFile: 'Fonts/Pacifico-Regular.ttf',
+                colors: { base: '#3A88FE', font: '#FFD700', outline: '#000000', line2: '#FFFFFF' },
+            },
         ],
     },
     wordart: {
@@ -145,14 +166,27 @@ function publish(payload) {
 
 async function buildVariant(viewer, variant) {
     statusEl.textContent = `Rendering ${variant.label}…`;
+    const text = variant.text || product.text;
+    const font = variant.font || product.font;
+    const fontFile = variant.fontFile || product.fontFile;
+    const variantParams = variant.params || {};
+    const params = {
+        ...product.params,
+        ...variantParams,
+        ring: {
+            ...(product.params.ring || {}),
+            ...(variantParams.ring || {}),
+        },
+    };
+    const wordartFonts = variant.wordartFonts || product.wordartFonts;
     await viewer.update(
-        product.text,
-        product.fontFile,
+        text,
+        fontFile,
         variant.colors,
         product.layers,
-        product.params,
+        params,
         requestedProduct,
-        product.wordartFonts
+        wordartFonts
     );
     viewer.setAutoRotate(false);
     const shadowWasVisible = Boolean(viewer.shadowPlane && viewer.shadowPlane.visible);
@@ -201,6 +235,11 @@ async function buildVariant(viewer, variant) {
     return {
         id: variant.id,
         label: variant.label,
+        text,
+        font,
+        fontFile,
+        ringPosition: params.ringPosition,
+        ringAnchor: params.ring?.anchor || 'top',
         colors: variant.colors,
         dimensions,
         spriteWebp: sprite.toDataURL('image/webp', 0.96),
@@ -229,15 +268,17 @@ async function run() {
     statusEl.textContent =
         `Complete · ${dims.width.toFixed(1)} × ${dims.height.toFixed(1)} × ${dims.depth.toFixed(1)} mm`
         + ` · ${ANGLES.length} source angles × ${variants.length} colours`;
+    const firstVariant = variants[0];
     publish({
         version: 2,
         productType: requestedProduct,
         label: product.label,
-        text: product.text,
-        font: product.font,
-        fontFile: product.fontFile,
+        text: firstVariant.text,
+        font: firstVariant.font,
+        fontFile: firstVariant.fontFile,
         layers: product.layers,
-        ringPosition: product.params.ringPosition,
+        ringPosition: firstVariant.ringPosition,
+        ringAnchor: firstVariant.ringAnchor,
         showFDMTexture: false,
         width: WIDTH,
         height: HEIGHT,

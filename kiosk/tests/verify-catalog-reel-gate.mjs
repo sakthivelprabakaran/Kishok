@@ -15,6 +15,7 @@ assert.match(runtime, /wordart/);
 assert.match(runtime, /desk_organizer/);
 assert.doesNotMatch(runtime, /new\s+KeychainViewer/);
 assert.match(runtime, /__kootzyReelCoordinator/);
+assert.match(runtime, /activeStops:\s*new Set/, 'visible catalogue reels must animate independently');
 assert.match(previews, /\['wordart', 'desk_organizer'\]/);
 assert.match(index, /catalog-reel-gate\.js/);
 

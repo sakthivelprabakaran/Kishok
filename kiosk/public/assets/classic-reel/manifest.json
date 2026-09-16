@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T06:52:44.807Z",
-  "sourceHash": "ef164eebfc5cd9a698a8df4b189c380913f5d36db4a7172c61af51404151ab16",
+  "generatedAt": "2026-09-16T07:18:17.655Z",
+  "sourceHash": "64077f3acd2ea6a2d897f57ae7b5f527f30ee5f7b95391c5b0fe58f38f30a0bd",
   "productType": "keychain",
   "sample": {
     "text": "PRIYA",
@@ -9,6 +9,7 @@
     "fontFile": "Fonts/Anton-Regular.ttf",
     "layers": "3L",
     "ringPosition": "left",
+    "ringAnchor": "center",
     "showFDMTexture": false
   },
   "frame": {
@@ -27,7 +28,12 @@
   "variants": [
     {
       "id": "orange-white-black",
-      "label": "Orange, White and Black",
+      "label": "PRIYA · Anton · Orange, White and Black",
+      "text": "PRIYA",
+      "font": "Anton",
+      "fontFile": "Fonts/Anton-Regular.ttf",
+      "ringPosition": "left",
+      "ringAnchor": "center",
       "colors": {
         "base": "#FF9933",
         "font": "#FFFFFF",
@@ -38,13 +44,18 @@
       "poster": "/assets/classic-reel/orange-white-black-poster.webp",
       "dimensions": {
         "width": 50.2,
-        "height": 21.7,
+        "height": 21.5,
         "depth": 6
       }
     },
     {
       "id": "purple-white-gold",
-      "label": "Purple, White and Gold",
+      "label": "ARUN · Bagel Fat One · Purple, White and Gold",
+      "text": "ARUN",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "ringPosition": "left",
+      "ringAnchor": "center",
       "colors": {
         "base": "#7B2FFF",
         "font": "#FFFFFF",
@@ -54,14 +65,19 @@
       "sprite": "/assets/classic-reel/purple-white-gold-orbit.webp",
       "poster": "/assets/classic-reel/purple-white-gold-poster.webp",
       "dimensions": {
-        "width": 50.2,
-        "height": 21.7,
+        "width": 53.3,
+        "height": 17,
         "depth": 6
       }
     },
     {
       "id": "blue-gold-black",
-      "label": "Blue, Gold and Black",
+      "label": "NITHYA · Pacifico · Blue, Gold and Black",
+      "text": "NITHYA",
+      "font": "Pacifico",
+      "fontFile": "Fonts/Pacifico-Regular.ttf",
+      "ringPosition": "left",
+      "ringAnchor": "center",
       "colors": {
         "base": "#3A88FE",
         "font": "#FFD700",
@@ -71,14 +87,14 @@
       "sprite": "/assets/classic-reel/blue-gold-black-orbit.webp",
       "poster": "/assets/classic-reel/blue-gold-black-poster.webp",
       "dimensions": {
-        "width": 50.2,
-        "height": 21.7,
+        "width": 98.4,
+        "height": 27.7,
         "depth": 6
       }
     }
   ],
   "budgets": {
-    "initialPosterBytes": 23742,
-    "totalAssetBytes": 537744
+    "initialPosterBytes": 23440,
+    "totalAssetBytes": 719639
   }
 }

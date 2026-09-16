@@ -13,13 +13,12 @@
     const saveData = Boolean(navigator.connection && navigator.connection.saveData);
     const canAnimate = !reduceMotion && !saveData && 'IntersectionObserver' in window;
     const coordinator = window.__kootzyReelCoordinator || (window.__kootzyReelCoordinator = {
-        activeStop: null,
+        activeStops: new Set(),
         claim(stop) {
-            if (this.activeStop && this.activeStop !== stop) this.activeStop();
-            this.activeStop = stop;
+            this.activeStops.add(stop);
         },
         release(stop) {
-            if (this.activeStop === stop) this.activeStop = null;
+            this.activeStops.delete(stop);
         },
     });
 
@@ -42,7 +41,7 @@
         const stage = document.createElement('div');
         stage.className = 'classic-reel-stage';
         stage.setAttribute('role', 'img');
-        stage.setAttribute('aria-label', 'Exact 3D Classic Keychain preview changing through available filament colours');
+        stage.setAttribute('aria-label', 'Exact 3D Classic Keychain preview changing through names, fonts and filament colours');
 
         const picture = document.createElement('picture');
         picture.className = 'classic-reel-poster';
@@ -86,7 +85,7 @@
 
         let running = false;
         let cycleTimer = 0;
-        let variantIndex = 0;
+        let variantIndex = Math.floor(Math.random() * manifest.variants.length);
         let activeLayer = -1;
         let generation = 0;
 

@@ -264,6 +264,11 @@ const manifestVariants = payload.variants.map((variant, index) => {
     return {
         id: variant.id,
         label: variant.label,
+        text: variant.text,
+        font: variant.font,
+        fontFile: variant.fontFile,
+        ringPosition: variant.ringPosition,
+        ringAnchor: variant.ringAnchor,
         colors: variant.colors,
         sprite: `${assetUrlBase}/${spriteName}`,
         poster: `${assetUrlBase}/${posterName}`,
@@ -295,6 +300,7 @@ const manifest = {
         fontFile: payload.fontFile,
         layers: payload.layers,
         ringPosition: payload.ringPosition,
+        ringAnchor: payload.ringAnchor,
         showFDMTexture: payload.showFDMTexture,
     },
     frame: {

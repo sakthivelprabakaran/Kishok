@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T06:53:30.088Z",
-  "sourceHash": "0eca4670b39187e3d9cc905a533ee537332d1a7841ce5b558535551e53942952",
+  "generatedAt": "2026-09-16T07:19:50.944Z",
+  "sourceHash": "b92789a7d839152804dc48365718d2e3fdae03b1f82d7589703c8fac7638bb23",
   "productType": "desk_organizer",
   "sample": {
     "text": "ALEX",
@@ -9,6 +9,7 @@
     "fontFile": "Fonts/BagelFatOne-Regular.ttf",
     "layers": "3L",
     "ringPosition": "none",
+    "ringAnchor": "top",
     "showFDMTexture": false
   },
   "frame": {
@@ -28,6 +29,11 @@
     {
       "id": "white-pink",
       "label": "White and Pink",
+      "text": "ALEX",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "ringPosition": "none",
+      "ringAnchor": "top",
       "colors": {
         "base": "#FFFFFF",
         "font": "#FF61A6",
@@ -45,6 +51,11 @@
     {
       "id": "white-blue",
       "label": "White and Blue",
+      "text": "ALEX",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "ringPosition": "none",
+      "ringAnchor": "top",
       "colors": {
         "base": "#FFFFFF",
         "font": "#3A88FE",
@@ -62,6 +73,11 @@
     {
       "id": "purple-gold",
       "label": "Purple and Gold",
+      "text": "ALEX",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "ringPosition": "none",
+      "ringAnchor": "top",
       "colors": {
         "base": "#7B2FFF",
         "font": "#FFD700",
