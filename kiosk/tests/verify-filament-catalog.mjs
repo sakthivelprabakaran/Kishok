@@ -10,7 +10,7 @@ import {
 assert.deepEqual(
     FALLBACK_FILAMENT_COLOURS.map(({ name, hex }) => [name, hex]),
     [
-        ['Imperial Red', '#6E0B05'],
+        ['Imperial Red', '#7A414C'],
         ['Water Blue', '#1D7D8D'],
         ['Terracotta Orange', '#D67842'],
         ['Pure White', '#F1ECE1'],
