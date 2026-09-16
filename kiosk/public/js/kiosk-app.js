@@ -13,7 +13,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './filament-catalog.js?v=k1';
+} from './filament-catalog.js?v=k2';
 
 // ===== DATA & CONFIG =====
 
@@ -103,10 +103,10 @@ const state = {
     lang: 'en',
     fontCategory: 'all',
     colors: {
-        base: '#ff9933',
+        base: '#B86848',
         font: '#FFFFFF',
         outline: '#000000',
-        line2: '#FFD700'
+        line2: '#F8C828'
     },
     selectedFont: 'Brandy',
     selectedFontFile: 'Fonts/Brandy.ttf',
@@ -1100,22 +1100,22 @@ function applyProductTypeConstraints() {
             state.selectedFont = 'Super Bubble';
             state.selectedFontFile = 'Fonts/Super Bubble.ttf';
             state.colors.base = '#FFFFFF';    // White base plate & inset floor
-            state.colors.font = '#3A88FE';    // Light blue rim & bubble text
+            state.colors.font = '#187888';    // Water Blue rim & bubble text
             state.colors.outline = '#FFFFFF';
         } else if (isDeskOrganizer) {
             el.nameInput.maxLength = 12;
             state.name = state.name || 'ALEX';
             state.selectedFont = state.selectedFont || 'BagelFatOne';
             state.colors.base = state.colors.base || '#FFFFFF';     // Main box body
-            state.colors.font = state.colors.font || '#FF1F4B';     // Name text color
+            state.colors.font = state.colors.font || '#C83858';     // Imperial Red name
             state.colors.outline = state.colors.outline || '#FFFFFF';
         } else if (isBeads) {
             el.nameInput.maxLength = 10;
             state.name = state.name || 'EMMA';
             state.selectedFont = state.selectedFont || 'Lilita One';
-            state.colors.base = state.colors.base || '#00C8FF';     // Bead Body color
+            state.colors.base = state.colors.base || '#187888';     // Water Blue bead body
             state.colors.font = state.colors.font || '#FFFFFF';     // Embossed letter color
-            state.colors.outline = state.colors.outline || '#00C8FF';
+            state.colors.outline = state.colors.outline || '#187888';
         } else {
             el.nameInput.maxLength = 15;
         }

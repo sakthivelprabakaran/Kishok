@@ -2,9 +2,26 @@ import assert from 'node:assert/strict';
 import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
+    approvedFilamentColours,
     loadFilamentColours,
     normalizeFilamentColours,
 } from '../public/js/filament-catalog.js';
+
+assert.deepEqual(
+    FALLBACK_FILAMENT_COLOURS.map(({ name, hex }) => [name, hex]),
+    [
+        ['Imperial Red', '#C83858'],
+        ['Water Blue', '#187888'],
+        ['Terracotta Orange', '#B86848'],
+        ['Pure White', '#FFFFFF'],
+        ['Pitch Black', '#000000'],
+        ['Forest Green', '#48C888'],
+        ['Army Green', '#788868'],
+        ['Light Beige', '#C8B898'],
+        ['Lemon Yellow', '#F8C828'],
+    ],
+    'fallback selector must contain only the nine approved filament colours'
+);
 
 const normalized = normalizeFilamentColours([
     { id: 1, name: 'Orange', hex: '#ff9933', state: 'available', sortOrder: 20 },
@@ -18,13 +35,23 @@ assert.deepEqual(normalized.map((colour) => colour.name), ['Teal', 'Orange']);
 assert.equal(normalized[0].hex, '#00B5C8');
 assert.equal(normalized[0].notice, MADE_TO_ORDER_NOTICE);
 
+const approved = approvedFilamentColours([
+    { id: 8, name: 'Old Gold', hex: '#FFD700', state: 'available', sortOrder: 1 },
+    { id: 9, name: 'Forest Green', hex: '#48C888', state: 'made_to_order', sortOrder: 60 },
+]);
+assert.equal(approved.length, 9);
+assert(!approved.some((colour) => colour.hex === '#FFD700'));
+assert.equal(approved.find((colour) => colour.hex === '#48C888').notice, MADE_TO_ORDER_NOTICE);
+
 const loaded = await loadFilamentColours(async () => new Response(JSON.stringify({
     colors: [
-        { id: 8, name: 'Gold', hex: '#FFD700', state: 'available', sortOrder: 1 },
+        { id: 8, name: 'Old Gold', hex: '#FFD700', state: 'available', sortOrder: 1 },
+        { id: 9, name: 'Forest Green', hex: '#48C888', state: 'made_to_order', sortOrder: 60 },
     ],
 }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
-assert.equal(loaded.length, 1);
-assert.equal(loaded[0].name, 'Gold');
+assert.equal(loaded.length, 9);
+assert(!loaded.some((colour) => colour.hex === '#FFD700'));
+assert.equal(loaded.find((colour) => colour.hex === '#48C888').state, 'made_to_order');
 
 const fallback = await loadFilamentColours(async () => new Response('{}', { status: 503 }));
 assert.equal(fallback.length, FALLBACK_FILAMENT_COLOURS.length);

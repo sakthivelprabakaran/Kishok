@@ -8,7 +8,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './js/filament-catalog.js?v=k1';
+} from './js/filament-catalog.js?v=k2';
 import {
     STUDIO_PRODUCT_SECTION_IDS,
     getStudioProductProfile,
@@ -190,7 +190,7 @@ const state = {
     selectedFont: null,
     selectedFontIndex: null,
     colors: {
-        base:    '#ff9933',
+        base:    '#B86848',
         font:    '#FFFFFF',
         outline: '#000000',
     },
@@ -2199,15 +2199,15 @@ function ensureDefaultsForProductType() {
             selectFont(idx >= 0 ? idx : 0);
         }
         if (!state._nametagColorsApplied) {
-            state.colors.base = '#F85DE9';
-            state.colors.font = '#F85DE9';
-            state.colors.outline = '#F85DE9';
+            state.colors.base = '#C83858';
+            state.colors.font = '#C83858';
+            state.colors.outline = '#C83858';
             state._nametagColorsApplied = true;
             buildSwatches();
         }
     } else {
         if (state._nametagColorsApplied) {
-            state.colors.base = '#ff9933';
+            state.colors.base = '#B86848';
             state.colors.font = '#FFFFFF';
             state.colors.outline = '#000000';
             state._nametagColorsApplied = false;
@@ -2215,42 +2215,42 @@ function ensureDefaultsForProductType() {
         }
 
         if (state.productType !== 'girly_keychain' && state._girlyColorsApplied) {
-            state.colors.base = '#ff9933';
+            state.colors.base = '#B86848';
             state.colors.font = '#FFFFFF';
             state.colors.outline = '#000000';
             state._girlyColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'bordered_keychain' && state._borderedColorsApplied) {
-            state.colors.base = '#ff9933';
+            state.colors.base = '#B86848';
             state.colors.font = '#FFFFFF';
             state.colors.outline = '#000000';
             state._borderedColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'flower_keychain' && state._flowerColorsApplied) {
-            state.colors.base = '#ff9933';
+            state.colors.base = '#B86848';
             state.colors.font = '#FFFFFF';
             state.colors.outline = '#000000';
             state._flowerColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'led_word_art' && state.productType !== 'led_word_stand' && state._ledColorsApplied) {
-            state.colors.base = '#ff9933';
+            state.colors.base = '#B86848';
             state.colors.font = '#FFFFFF';
             state.colors.outline = '#000000';
             state._ledColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'desk_organizer' && state._organizerColorsApplied) {
-            state.colors.base = '#ff9933';
+            state.colors.base = '#B86848';
             state.colors.font = '#FFFFFF';
             state.colors.outline = '#000000';
             state._organizerColorsApplied = false;
             buildSwatches();
         }
         if (state.productType !== 'name_beads' && state._beadsColorsApplied) {
-            state.colors.base = '#ff9933';
+            state.colors.base = '#B86848';
             state.colors.font = '#FFFFFF';
             state.colors.outline = '#000000';
             state._beadsColorsApplied = false;
@@ -2277,7 +2277,7 @@ function ensureDefaultsForProductType() {
                 selectFont(idx >= 0 ? idx : 0);
             }
             if (!state._girlyColorsApplied) {
-                state.colors.base = '#ff61a6';
+                state.colors.base = '#C83858';
                 state.colors.font = '#FFFFFF';
                 state.colors.outline = '#000000';
                 state._girlyColorsApplied = true;
@@ -2286,14 +2286,14 @@ function ensureDefaultsForProductType() {
         } else if (state.productType === 'bordered_keychain') {
             if (!state._borderedColorsApplied) {
                 state.colors.base = '#000000';
-                state.colors.font = '#7ed957';
+                state.colors.font = '#48C888';
                 state.colors.outline = '#000000';
                 state._borderedColorsApplied = true;
                 buildSwatches();
             }
         } else if (state.productType === 'flower_keychain') {
             if (!state._flowerColorsApplied) {
-                state.colors.base = '#ff61a6';
+                state.colors.base = '#C83858';
                 state.colors.font = '#FFFFFF';
                 state.colors.outline = '#000000';
                 state._flowerColorsApplied = true;
@@ -2302,25 +2302,25 @@ function ensureDefaultsForProductType() {
         } else if (state.productType === 'led_word_art' || state.productType === 'led_word_stand') {
             if (!state._ledColorsApplied) {
                 // Ported from Achuva: dark housing + bright diffuser for LED (2-part)
-                state.colors.base = '#1e293b';
-                state.colors.font = '#38bdf8';
+                state.colors.base = '#000000';
+                state.colors.font = '#187888';
                 state.colors.outline = '#000000';
                 state._ledColorsApplied = true;
                 buildSwatches();
             }
         } else if (state.productType === 'desk_organizer') {
             if (!state._organizerColorsApplied) {
-                state.colors.base = '#2c3e50';
+                state.colors.base = '#000000';
                 state.colors.font = '#FFFFFF';
-                state.colors.outline = '#2c3e50';
+                state.colors.outline = '#000000';
                 state._organizerColorsApplied = true;
                 buildSwatches();
             }
         } else if (state.productType === 'name_beads') {
             if (!state._beadsColorsApplied) {
-                state.colors.base = '#00C8FF';
+                state.colors.base = '#187888';
                 state.colors.font = '#FFFFFF';
-                state.colors.outline = '#00C8FF';
+                state.colors.outline = '#187888';
                 state._beadsColorsApplied = true;
                 buildSwatches();
             }

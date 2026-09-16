@@ -1,15 +1,15 @@
 export const MADE_TO_ORDER_NOTICE = 'Ships in 2–3 days';
 
 export const FALLBACK_FILAMENT_COLOURS = Object.freeze([
-    { name: 'Orange', hex: '#FF9933', state: 'available', sortOrder: 10 },
-    { name: 'Purple', hex: '#7B2FFF', state: 'available', sortOrder: 20 },
-    { name: 'Blue',   hex: '#3A88FE', state: 'available', sortOrder: 30 },
-    { name: 'Red',    hex: '#FF6251', state: 'available', sortOrder: 40 },
-    { name: 'Green',  hex: '#7ED957', state: 'available', sortOrder: 50 },
-    { name: 'Pink',   hex: '#FF61A6', state: 'available', sortOrder: 60 },
-    { name: 'Gold',   hex: '#FFD700', state: 'available', sortOrder: 70 },
-    { name: 'Black',  hex: '#000000', state: 'available', sortOrder: 80 },
-    { name: 'White',  hex: '#FFFFFF', state: 'available', sortOrder: 90 },
+    { name: 'Imperial Red',      hex: '#C83858', state: 'available', sortOrder: 10 },
+    { name: 'Water Blue',        hex: '#187888', state: 'available', sortOrder: 20 },
+    { name: 'Terracotta Orange', hex: '#B86848', state: 'available', sortOrder: 30 },
+    { name: 'Pure White',        hex: '#FFFFFF', state: 'available', sortOrder: 40 },
+    { name: 'Pitch Black',       hex: '#000000', state: 'available', sortOrder: 50 },
+    { name: 'Forest Green',      hex: '#48C888', state: 'available', sortOrder: 60 },
+    { name: 'Army Green',        hex: '#788868', state: 'available', sortOrder: 70 },
+    { name: 'Light Beige',       hex: '#C8B898', state: 'available', sortOrder: 80 },
+    { name: 'Lemon Yellow',      hex: '#F8C828', state: 'available', sortOrder: 90 },
 ]);
 
 const HEX_RE = /^#[0-9A-F]{6}$/;
@@ -47,6 +47,26 @@ export function normalizeFilamentColours(values, { includeUnavailable = false } 
         .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 }
 
+export function approvedFilamentColours(values) {
+    const liveByHex = new Map(
+        normalizeFilamentColours(values, { includeUnavailable: true })
+            .map((colour) => [colour.hex, colour])
+    );
+
+    return FALLBACK_FILAMENT_COLOURS
+        .map((approved) => {
+            const live = liveByHex.get(approved.hex);
+            if (live && live.state === 'unavailable') return null;
+            return {
+                ...approved,
+                id: live ? live.id : null,
+                state: live ? live.state : approved.state,
+                notice: live ? live.notice : '',
+            };
+        })
+        .filter(Boolean);
+}
+
 export async function loadFilamentColours(fetchImpl = fetch) {
     try {
         const response = await fetchImpl('/api/filament-colours', {
@@ -54,10 +74,11 @@ export async function loadFilamentColours(fetchImpl = fetch) {
         });
         if (!response.ok) throw new Error(`Filament catalogue returned ${response.status}`);
         const payload = await response.json();
-        const colours = normalizeFilamentColours(payload && payload.colors);
-        if (colours.length) return colours;
+        if (Array.isArray(payload && payload.colors)) {
+            return approvedFilamentColours(payload.colors);
+        }
     } catch (error) {
         console.warn('Using fallback filament colours:', error.message || error);
     }
-    return FALLBACK_FILAMENT_COLOURS.map((colour) => ({ ...colour, id: null, notice: '' }));
+    return approvedFilamentColours([]);
 }
