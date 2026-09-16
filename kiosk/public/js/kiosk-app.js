@@ -1,4 +1,4 @@
-﻿/* =========================================
+/* =========================================
    KOOTZY KIOSK — MAIN APP LOGIC
    Three.js Integration + Cost Engine + UPI
    ========================================= */
@@ -13,7 +13,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './filament-catalog.js?v=k3';
+} from './filament-catalog.js?v=k4';
 
 // ===== DATA & CONFIG =====
 
@@ -65,7 +65,6 @@ function toPalette(colours) {
         label: colour.name,
         state: colour.state,
         notice: colour.notice || '',
-        approximate: Boolean(colour.approximate),
     }));
 }
 
@@ -104,7 +103,7 @@ const state = {
     lang: 'en',
     fontCategory: 'all',
     colors: {
-        base: '#B86848',
+        base: '#D67842',
         font: '#F1ECE1',
         outline: '#0E0E10',
         line2: '#F9A800'
@@ -1032,9 +1031,8 @@ function renderColorSwatches() {
             swatch.className = `swatch ${color.state === 'made_to_order' ? 'made-to-order' : ''} ${isSelected ? 'selected' : ''}`;
             swatch.style.backgroundColor = color.hex;
             const availability = color.state === 'made_to_order' ? ` — ${MADE_TO_ORDER_NOTICE}` : '';
-            const approximation = color.approximate ? ' — screen preview' : '';
-            swatch.title = color.label + approximation + availability;
-            swatch.setAttribute('aria-label', color.label + approximation + availability);
+            swatch.title = color.label + availability;
+            swatch.setAttribute('aria-label', color.label + availability);
             
             swatch.addEventListener('click', () => {
                 conf.container.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
@@ -1109,22 +1107,22 @@ function applyProductTypeConstraints() {
             state.selectedFont = 'Super Bubble';
             state.selectedFontFile = 'Fonts/Super Bubble.ttf';
             state.colors.base = '#F1ECE1';    // Pure White base plate & inset floor
-            state.colors.font = '#187888';    // Water Blue rim & bubble text
+            state.colors.font = '#1D7D8D';    // Water Blue rim & bubble text
             state.colors.outline = '#F1ECE1';
         } else if (isDeskOrganizer) {
             el.nameInput.maxLength = 12;
             state.name = state.name || 'ALEX';
             state.selectedFont = state.selectedFont || 'BagelFatOne';
             state.colors.base = state.colors.base || '#F1ECE1';     // Main box body
-            state.colors.font = state.colors.font || '#C83858';     // Imperial Red name
+            state.colors.font = state.colors.font || '#6E0B05';     // Imperial Red name
             state.colors.outline = state.colors.outline || '#F1ECE1';
         } else if (isBeads) {
             el.nameInput.maxLength = 10;
             state.name = state.name || 'EMMA';
             state.selectedFont = state.selectedFont || 'Lilita One';
-            state.colors.base = state.colors.base || '#187888';     // Water Blue bead body
+            state.colors.base = state.colors.base || '#1D7D8D';     // Water Blue bead body
             state.colors.font = state.colors.font || '#F1ECE1';     // Embossed letter color
-            state.colors.outline = state.colors.outline || '#187888';
+            state.colors.outline = state.colors.outline || '#1D7D8D';
         } else {
             el.nameInput.maxLength = 15;
         }

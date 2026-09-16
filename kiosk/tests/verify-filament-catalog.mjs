@@ -10,23 +10,19 @@ import {
 assert.deepEqual(
     FALLBACK_FILAMENT_COLOURS.map(({ name, hex }) => [name, hex]),
     [
-        ['Imperial Red', '#C83858'],
-        ['Water Blue', '#187888'],
-        ['Terracotta Orange', '#B86848'],
+        ['Imperial Red', '#6E0B05'],
+        ['Water Blue', '#1D7D8D'],
+        ['Terracotta Orange', '#D67842'],
         ['Pure White', '#F1ECE1'],
         ['Pitch Black', '#0E0E10'],
         ['Forest Green', '#008351'],
         ['Army Green', '#50533C'],
-        ['Light Beige', '#C8B898'],
+        ['Light Beige', '#D7CAAB'],
         ['Lemon Yellow', '#F9A800'],
     ],
     'fallback selector must contain only the nine approved filament colours'
 );
-assert.deepEqual(
-    FALLBACK_FILAMENT_COLOURS.filter((colour) => colour.approximate).map((colour) => colour.name),
-    ['Imperial Red', 'Water Blue', 'Terracotta Orange', 'Light Beige'],
-    'only colours without a published Numakers HEX should be marked approximate'
-);
+assert(FALLBACK_FILAMENT_COLOURS.every((colour) => !colour.approximate));
 
 const normalized = normalizeFilamentColours([
     { id: 1, name: 'Orange', hex: '#ff9933', state: 'available', sortOrder: 20 },
