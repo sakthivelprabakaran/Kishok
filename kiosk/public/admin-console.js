@@ -8,7 +8,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './js/filament-catalog.js?v=k6';
+} from './js/filament-catalog.js?v=k7';
 import {
     STUDIO_PRODUCT_SECTION_IDS,
     getStudioProductProfile,

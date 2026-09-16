@@ -16,7 +16,7 @@ assert.deepEqual(
         ['Pure White', '#F1ECE1'],
         ['Pitch Black', '#0E0E10'],
         ['Forest Green', '#008351'],
-        ['Army Green', '#50533C'],
+        ['Army Green', '#7C8A68'],
         ['Light Beige', '#D7CAAB'],
         ['Lemon Yellow', '#F9A800'],
     ],

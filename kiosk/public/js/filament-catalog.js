@@ -8,7 +8,7 @@ export const FALLBACK_FILAMENT_COLOURS = Object.freeze([
     { name: 'Pure White',        hex: '#F1ECE1', state: 'available', sortOrder: 40 },
     { name: 'Pitch Black',       hex: '#0E0E10', state: 'available', sortOrder: 50 },
     { name: 'Forest Green',      hex: '#008351', state: 'available', sortOrder: 60 },
-    { name: 'Army Green',        hex: '#50533C', state: 'available', sortOrder: 70 },
+    { name: 'Army Green',        hex: '#7C8A68', state: 'available', sortOrder: 70 },
     { name: 'Light Beige',       hex: '#D7CAAB', state: 'available', sortOrder: 80 },
     { name: 'Lemon Yellow',      hex: '#F9A800', state: 'available', sortOrder: 90 },
 ]);

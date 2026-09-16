@@ -13,7 +13,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './filament-catalog.js?v=k6';
+} from './filament-catalog.js?v=k7';
 
 // ===== DATA & CONFIG =====
 
