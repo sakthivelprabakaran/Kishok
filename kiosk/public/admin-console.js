@@ -582,8 +582,18 @@ function setupStudioControlNavigation() {
     });
 }
 
-function showLoading() { loadingEl.style.display = 'flex'; }
-function hideLoading() { loadingEl.style.display = 'none'; }
+function showLoading(message = 'Loading 3D model…') {
+    if (!loadingEl) return;
+    const text = loadingEl.querySelector('[data-loading-text]');
+    if (text) text.textContent = message;
+    loadingEl.style.display = 'flex';
+    viewportEl?.setAttribute('aria-busy', 'true');
+}
+function hideLoading() {
+    if (!loadingEl) return;
+    loadingEl.style.display = 'none';
+    viewportEl?.removeAttribute('aria-busy');
+}
 
 // ===== BUILD FONT CHIPS =====
 
@@ -706,13 +716,16 @@ function buildSwatches() {
         container.innerHTML = '';
 
         COLOR_PALETTES[type].forEach(item => {
-            const swatch = document.createElement('div');
+            const swatch = document.createElement('button');
+            swatch.type = 'button';
             const currentColor = (state.colors[type] || '').toUpperCase();
             swatch.className = 'ctrl-swatch'
                 + (item.state === 'made_to_order' ? ' made-to-order' : '')
                 + (item.state === 'unavailable' ? ' historical-colour' : '')
                 + (currentColor === item.hex.toUpperCase() ? ' active' : '');
             swatch.style.backgroundColor = item.hex;
+            swatch.dataset.colorRole = type;
+            swatch.dataset.colorHex = item.hex.toUpperCase();
             swatch.title = item.label
                 + (item.state === 'made_to_order' ? ` — ${MADE_TO_ORDER_NOTICE}` : '')
                 + (item.state === 'unavailable' ? ' — hidden from new storefront designs' : '');
@@ -722,11 +735,18 @@ function buildSwatches() {
                 swatch.style.boxShadow = 'inset 0 0 0 1.5px rgba(200,200,200,0.6)';
             }
 
+            swatch.setAttribute('aria-label', swatch.title);
+            swatch.setAttribute('aria-pressed', String(currentColor === item.hex.toUpperCase()));
+
             swatch.addEventListener('click', () => {
                 state.colors[type] = item.hex;
                 if (type === 'outline') state.colors.line2 = item.hex; // sync line2 with outline for wordart
-                container.querySelectorAll('.ctrl-swatch').forEach(s => s.classList.remove('active'));
+                container.querySelectorAll('.ctrl-swatch').forEach(s => {
+                    s.classList.remove('active');
+                    s.setAttribute('aria-pressed', 'false');
+                });
                 swatch.classList.add('active');
+                swatch.setAttribute('aria-pressed', 'true');
                 updateViewer();
             });
 
@@ -769,7 +789,9 @@ function syncWordartBaseUI() {
     const toggle = $('adminWordartBaseToggle');
     if (toggle) {
         toggle.querySelectorAll('.wa-base-opt').forEach(o => {
-            o.classList.toggle('active', o.dataset.mode === state.wordartBase);
+            const selected = o.dataset.mode === state.wordartBase;
+            o.classList.toggle('active', selected);
+            o.setAttribute('aria-selected', String(selected));
         });
     }
     const hint = $('adminWordartHint');
@@ -796,11 +818,17 @@ function initWordartBaseToggle() {
         const btn = e.target.closest('.wa-base-opt');
         if (!btn || !btn.dataset.mode) return;
         state.wordartBase = btn.dataset.mode;
+        toggle.querySelectorAll('.wa-base-opt').forEach((option) => {
+            option.setAttribute('aria-selected', String(option === btn));
+        });
         syncWordartBaseUI();
         // Backing changes which Word Art depth controls affect geometry.
         syncStandardSectionRelevance();
         renderStudioProductContext();
         refreshThicknessUI();
+        if (state.wordartBase === 'hollow') {
+            showLoading('Building hollow Word Art…');
+        }
         updateViewer();
     });
 }
@@ -1623,7 +1651,11 @@ async function _runUpdateViewer() {
     _updateViewerRunning = true;
     _updateViewerDirty   = false;
 
-    showLoading();
+    showLoading(
+        state.productType === 'wordart' && state.wordartBase === 'hollow'
+            ? 'Building hollow Word Art…'
+            : 'Loading 3D model…'
+    );
     try {
         const params = collectParams();
         renderPrintCheck(params);
@@ -1639,8 +1671,6 @@ async function _runUpdateViewer() {
     } catch(err) {
         console.error('Admin console 3D viewer error:', err);
     }
-    hideLoading();
-
     // Save state
     try {
         localStorage.setItem('adminConsoleState', JSON.stringify({
@@ -1659,6 +1689,8 @@ async function _runUpdateViewer() {
     if (_updateViewerDirty) {
         _updateViewerDirty = false;
         _updateViewerTimer = setTimeout(_runUpdateViewer, 0);
+    } else {
+        hideLoading();
     }
 }
 

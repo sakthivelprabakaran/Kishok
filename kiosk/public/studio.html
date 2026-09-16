@@ -155,7 +155,7 @@
 <div class="viewportHint">Drag to rotate · Scroll to zoom</div>
 <div class="admin-loading" id="adminLoading" style="display: none;">
 <div class="admin-spinner"></div>
-<span>Loading 3D model…</span>
+<span data-loading-text aria-live="polite">Loading 3D model…</span>
 </div>
 </div>
 <div class="controlsPanel">
@@ -232,9 +232,9 @@
 </div><div class="ctrlSection" id="adminWordartSection" style="display: none;">
 <div class="ctrlSectionTitle">🧱 Word Art Backing</div>
 <div class="wa-base-toggle" id="adminWordartBaseToggle">
-<button class="wa-base-opt active" data-mode="none" title="Letters only — no backing (original look)">None</button>
-<button class="wa-base-opt" data-mode="solid" title="Filled plaque behind the letters">Solid</button>
-<button class="wa-base-opt" data-mode="hollow" title="Walls + 2mm front cover — free-standing standee, no infill">Hollow</button>
+<button class="wa-base-opt active" data-mode="none" role="tab" aria-selected="true" title="Letters only — no backing (original look)">None</button>
+<button class="wa-base-opt" data-mode="solid" role="tab" aria-selected="false" title="Filled plaque behind the letters">Solid</button>
+<button class="wa-base-opt" data-mode="hollow" role="tab" aria-selected="false" title="Walls + 2mm front cover — free-standing standee, no infill">Hollow</button>
 </div>
 <div class="ctrlHint" id="adminWordartHint" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
 Letters only — the word itself is the whole structure.
@@ -1461,6 +1461,6 @@ Letters only — the word itself is the whole structure.
   boot();
 })();
 </script>
-<script src="admin-console.js?v=43" type="module"></script>
+<script src="admin-console.js?v=44" type="module"></script>
 </body>
 </html>

@@ -151,6 +151,7 @@ const el = {};
 function cacheElements() {
     el.viewerCanvas    = document.getElementById('viewer3dCanvas');
     el.viewerLoading   = document.getElementById('viewerLoading');
+    el.viewerLoadingText = el.viewerLoading && el.viewerLoading.querySelector('[data-loading-text]');
     el.dragHint        = document.getElementById('dragHint');
     el.customerSizeChip = document.getElementById('customerSizeChip');
     el.customerSizeValue = document.getElementById('customerSizeValue');
@@ -290,6 +291,49 @@ let kiriBenchmarkProgressValue = 0;
 function init3DViewer() {
     if (!viewer) {
         viewer = new KeychainViewer(el.viewerCanvas);
+        if (new URLSearchParams(window.location.search).get('functionalTest') === '1') {
+            window.__kootzyViewer = viewer;
+            window.__kootzyCustomizer = {
+            snapshot() {
+                const visibleColorRoles = ['base', 'font', 'outline', 'line2'].filter((role) => {
+                    const row = el[`${role}ColorRow`];
+                    return row && getComputedStyle(row).display !== 'none';
+                });
+                return {
+                    productType: state.productType,
+                    colors: { ...state.colors },
+                    renderedColors: {
+                        base: viewer?._lastBaseColor || null,
+                        font: viewer?._lastFontColor || null,
+                        outline: viewer?._lastOutlineColor || null,
+                        line2: viewer?._lastParams?.lineColors?.[1] || null,
+                    },
+                    visibleColorRoles,
+                    wordartBase: state.wordartBase,
+                    layers: state.layers,
+                    loadingVisible: Boolean(el.viewerLoading && getComputedStyle(el.viewerLoading).display !== 'none'),
+                    loadingText: el.viewerLoadingText?.textContent || '',
+                    idle: !_update3DRunning && !_update3DTimer && !_update3DDirty,
+                    dimensions: state.dims ? { ...state.dims } : null,
+                };
+            },
+            waitForIdle(timeoutMs = 30000) {
+                const started = performance.now();
+                return new Promise((resolve, reject) => {
+                    const poll = () => {
+                        if (!_update3DRunning && !_update3DTimer && !_update3DDirty) {
+                            resolve(this.snapshot());
+                        } else if (performance.now() - started > timeoutMs) {
+                            reject(new Error('Customizer did not become idle before timeout.'));
+                        } else {
+                            setTimeout(poll, 25);
+                        }
+                    };
+                    poll();
+                });
+            },
+            };
+        }
         viewer.container.addEventListener('viewermetricschange', (event) => {
             state.dims = event.detail.dimensions;
             renderCustomerDimensions(event.detail);
@@ -329,15 +373,35 @@ var _update3DTimer   = null;
 var _update3DRunning = false;
 var _update3DDirty   = false;
 
-function update3DModel() {
+function showViewerLoading(message) {
+    if (!el.viewerLoading) return;
+    if (el.viewerLoadingText && message) el.viewerLoadingText.textContent = message;
+    el.viewerLoading.style.display = 'flex';
+    el.viewerCanvas?.setAttribute('aria-busy', 'true');
+}
+
+function hideViewerLoading() {
+    if (!el.viewerLoading) return;
+    el.viewerLoading.style.display = 'none';
+    el.viewerCanvas?.removeAttribute('aria-busy');
+}
+
+function update3DModel(options = {}) {
+    if (options.showLoading) {
+        showViewerLoading(options.loadingMessage || 'Updating 3D preview…');
+    }
     if (_update3DRunning) { _update3DDirty = true; return; }
     clearTimeout(_update3DTimer);
-    _update3DTimer = setTimeout(_runUpdate3D, 180);
+    _update3DTimer = setTimeout(() => {
+        _update3DTimer = null;
+        _runUpdate3D();
+    }, 180);
 }
 
 // Force an immediate rebuild with no debounce (used on init / product switch).
 function update3DModelNow() {
     clearTimeout(_update3DTimer);
+    _update3DTimer = null;
     if (_update3DRunning) { _update3DDirty = true; return; }
     _runUpdate3D();
 }
@@ -348,7 +412,11 @@ async function _runUpdate3D() {
     _update3DRunning = true;
     _update3DDirty = false;
 
-    el.viewerLoading.style.display = 'flex';
+    showViewerLoading(
+        state.productType === 'wordart' && state.wordartBase === 'hollow'
+            ? 'Building hollow Word Art…'
+            : 'Generating 3D Studio Preview…'
+    );
 
     const isWordart = state.productType === 'wordart';
     const isLoveSeries = state.productType === 'loveseries';
@@ -444,12 +512,16 @@ async function _runUpdate3D() {
     } catch (err) {
         console.error('Failed to update 3D model:', err);
     } finally {
-        el.viewerLoading.style.display = 'none';
         _update3DRunning = false;
         // Coalesced changes arrived mid-build → run exactly one more rebuild.
         if (_update3DDirty) {
             _update3DDirty = false;
-            _update3DTimer = setTimeout(_runUpdate3D, 0);
+            _update3DTimer = setTimeout(() => {
+                _update3DTimer = null;
+                _runUpdate3D();
+            }, 0);
+        } else {
+            hideViewerLoading();
         }
     }
 }
@@ -1027,20 +1099,28 @@ function renderColorSwatches() {
 
         conf.palette.forEach(color => {
             const isSelected = (state.colors[conf.key] || '').toLowerCase() === color.hex.toLowerCase();
-            const swatch = document.createElement('div');
+            const swatch = document.createElement('button');
+            swatch.type = 'button';
             swatch.className = `swatch ${color.state === 'made_to_order' ? 'made-to-order' : ''} ${isSelected ? 'selected' : ''}`;
             swatch.style.backgroundColor = color.hex;
+            swatch.dataset.colorRole = conf.key;
+            swatch.dataset.colorHex = color.hex.toUpperCase();
             const availability = color.state === 'made_to_order' ? ` — ${MADE_TO_ORDER_NOTICE}` : '';
             swatch.title = color.label + availability;
             swatch.setAttribute('aria-label', color.label + availability);
+            swatch.setAttribute('aria-pressed', String(isSelected));
+            if (['#F1ECE1', '#D7CAAB', '#F9A800'].includes(color.hex.toUpperCase())) {
+                swatch.classList.add('light-swatch');
+            }
             
             swatch.addEventListener('click', () => {
-                conf.container.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+                conf.container.querySelectorAll('.swatch').forEach(s => {
+                    s.classList.remove('selected');
+                    s.setAttribute('aria-pressed', 'false');
+                });
                 swatch.classList.add('selected');
+                swatch.setAttribute('aria-pressed', 'true');
                 state.colors[conf.key] = color.hex;
-                if (conf.key === 'base') {
-                    state.colors.outline = color.hex;
-                }
                 if (conf.badge) {
                     conf.badge.textContent = color.label;
                 }
@@ -1582,6 +1662,14 @@ function setInputValuePreservingCaret(input, next) {
 // ===== EVENT BINDINGS =====
 
 function setupEvents() {
+    if (el.customerDimensionsBtn) {
+        el.customerDimensionsBtn.addEventListener('click', () => {
+            if (!viewer) return;
+            const currentlyVisible = el.customerDimensionsBtn.getAttribute('aria-pressed') === 'true';
+            viewer.setDimensionOverlayVisible(!currentlyVisible);
+        });
+    }
+
     if (el.kiriBenchmarkBtn) {
         el.kiriBenchmarkBtn.addEventListener('click', () => {
             kiriBenchmarkEnabled = true;
@@ -1807,7 +1895,10 @@ function setupEvents() {
                         WORDART_BACKING_HINTS[state.wordartBase] || WORDART_BACKING_HINTS.none;
                 }
                 applyProductTypeConstraints();
-                update3DModel();   // rebuild -> new volume -> calculatePricing() reprices
+                update3DModel({
+                    showLoading: state.wordartBase === 'hollow',
+                    loadingMessage: 'Building hollow Word Art…',
+                });   // rebuild -> new volume -> calculatePricing() reprices
             });
         });
     }
