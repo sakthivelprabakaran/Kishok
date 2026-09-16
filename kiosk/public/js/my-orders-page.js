@@ -8,7 +8,7 @@
 import { bootAuthUi } from './auth-ui.js?v=auth1';
 import { mountProfileChip } from './profile-chip.js?v=k1';
 import * as Cart from './cart.js?v=k1';
-import { PRODUCT_LABELS } from './product-labels.js?v=k1';
+import { PRODUCT_LABELS } from './product-labels.js?v=k2';
 import { metaFor, flowFor } from './order-status.js?v=k1';
 
 const $ = (id) => document.getElementById(id);

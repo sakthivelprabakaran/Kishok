@@ -120,6 +120,7 @@
 <option value="led_word_stand">💡 LED Word Stand</option>
 <option value="led_word_art">💡 LED Word Art</option>
 <option value="name_beads">📿 Custom Name Beads</option>
+<option value="fidget_clicker">⌨️ MX Fidget Clicker</option>
 </select>
 <div class="presetGroup" id="adminPresetsSection">
 <button class="preset-btn" data-preset="standard">Standard</button>
@@ -1074,6 +1075,207 @@ Letters only — the word itself is the whole structure.
 <span class="valSuffix">mm</span>
 </div>
 </div>
+</div><div class="ctrlSection" id="adminClickerSection" style="display: none;">
+<div class="ctrlSectionTitle">⌨️ MX Fidget Clicker — real switch</div>
+<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;line-height:1.4;">Needs a real Cherry MX-style switch. The latch ledge is what stops the switch pulling out — keep it at 1.5mm. Scale is forced to 1x because the switch is a physical part.</div>
+<div class="sliderRow">
+<span class="sliderLabel">Layout</span>
+<select id="adminClickerLayout" style="flex:1;">
+<option value="bar">Letter Bar — one switch per character</option>
+<option value="border" selected="selected">Border — body follows the letters</option>
+<option value="disk">Disk</option>
+<option value="roundsq">Round square</option>
+<option value="hex">Six-side</option>
+<option value="heart">Heart</option>
+<option value="pill">Pill</option>
+</select>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Longest Side</span>
+<input class="sliderRange" id="adminClickerSize" max="90" min="24" step="1" type="range" value="38"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerSizeNum" max="90" min="24" step="1" type="number" value="38"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Border Width</span>
+<input class="sliderRange" id="adminClickerBorder" max="8" min="1.5" step="0.1" type="range" value="3"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerBorderNum" max="8" min="1.5" step="0.1" type="number" value="3"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Corner Radius</span>
+<input class="sliderRange" id="adminClickerCornerR" max="14" min="1" step="0.5" type="range" value="6"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerCornerRNum" max="14" min="1" step="0.5" type="number" value="6"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Cap Face</span>
+<input class="sliderRange" id="adminClickerDeck" max="3.5" min="1.2" step="0.05" type="range" value="1.65"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerDeckNum" max="3.5" min="1.2" step="0.05" type="number" value="1.65"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Artwork Relief</span>
+<input class="sliderRange" id="adminClickerRelief" max="2.4" min="0" step="0.05" type="range" value="0.75"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerReliefNum" max="2.4" min="0" step="0.05" type="number" value="0.75"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Artwork Lift</span>
+<input class="sliderRange" id="adminClickerLift" max="2.4" min="0" step="0.8" type="range" value="0"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerLiftNum" max="2.4" min="0" step="0.8" type="number" value="0"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Cap Slide Gap</span>
+<input class="sliderRange" id="adminClickerCapGap" max="0.6" min="0.15" step="0.01" type="range" value="0.32"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerCapGapNum" max="0.6" min="0.15" step="0.01" type="number" value="0.32"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Keychain Hook</span>
+<select id="adminClickerTab" style="flex:1;">
+<option value="no" selected="selected">No hook</option>
+<option value="left">External hook — left corner</option>
+<option value="right">External hook — right corner</option>
+<option value="tunnel-left">Corner tunnel — left</option>
+<option value="tunnel-right">Corner tunnel — right</option>
+</select>
+</div>
+<div class="sliderRow" style="display:none;">
+<span class="sliderLabel">Tab Bearing</span>
+<input class="sliderRange" id="adminClickerTabBearing" max="360" min="0" step="5" type="range" value="90"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerTabBearingNum" max="360" min="0" step="5" type="number" value="90"/>
+<span class="valSuffix">°</span>
+</div>
+</div>
+<div class="sliderRow" style="display:none;">
+<span class="sliderLabel">Tab Slide</span>
+<input class="sliderRange" id="adminClickerTabSlide" max="12" min="-12" step="0.5" type="range" value="0"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerTabSlideNum" max="12" min="-12" step="0.5" type="number" value="0"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow" style="display:none;">
+<span class="sliderLabel">Tab Hole</span>
+<input class="sliderRange" id="adminClickerTabHole" max="9" min="3" step="0.2" type="range" value="6"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerTabHoleNum" max="9" min="3" step="0.2" type="number" value="6"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Plate Thickness</span>
+<input class="sliderRange" id="adminClickerPlateThk" max="5" min="2" step="0.1" type="range" value="3"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerPlateThkNum" max="5" min="2" step="0.1" type="number" value="3"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Latch Ledge</span>
+<input class="sliderRange" id="adminClickerLatchLedge" max="2.5" min="1" step="0.1" type="range" value="1.5"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerLatchLedgeNum" max="2.5" min="1" step="0.1" type="number" value="1.5"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Below-Plate Depth</span>
+<input class="sliderRange" id="adminClickerBodyDepth" max="8" min="5" step="0.1" type="range" value="5"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerBodyDepthNum" max="8" min="5" step="0.1" type="number" value="5"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Pin Clearance</span>
+<input class="sliderRange" id="adminClickerPinClearance" max="6" min="3.3" step="0.1" type="range" value="3.5"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerPinClearanceNum" max="6" min="3.3" step="0.1" type="number" value="3.5"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Floor Thickness</span>
+<input class="sliderRange" id="adminClickerFloorThk" max="4" min="1" step="0.1" type="range" value="1.6"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerFloorThkNum" max="4" min="1" step="0.1" type="number" value="1.6"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Wall Thickness</span>
+<input class="sliderRange" id="adminClickerWall" max="5" min="1.2" step="0.1" type="range" value="2.4"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerWallNum" max="5" min="1.2" step="0.1" type="number" value="2.4"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Keycap Size</span>
+<input class="sliderRange" id="adminClickerCapSize" max="19" min="14" step="0.1" type="range" value="17.5"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerCapSizeNum" max="19" min="14" step="0.1" type="number" value="17.5"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Keycap Face</span>
+<input class="sliderRange" id="adminClickerCapThk" max="4" min="1.2" step="0.1" type="range" value="2.4"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerCapThkNum" max="4" min="1.2" step="0.1" type="number" value="2.4"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Stem Socket Depth</span>
+<input class="sliderRange" id="adminClickerStemDepth" max="4.5" min="2.5" step="0.1" type="range" value="3.6"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerStemDepthNum" max="4.5" min="2.5" step="0.1" type="number" value="3.6"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Glyph Relief</span>
+<input class="sliderRange" id="adminClickerLetterDepth" max="2.5" min="0" step="0.1" type="range" value="1.2"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerLetterDepthNum" max="2.5" min="0" step="0.1" type="number" value="1.2"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Fit Tolerance</span>
+<input class="sliderRange" id="adminClickerTolerance" max="0.35" min="0.1" step="0.01" type="range" value="0.15"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerToleranceNum" max="0.35" min="0.1" step="0.01" type="number" value="0.15"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
+<div class="sliderRow">
+<span class="sliderLabel">Explode Keycaps</span>
+<input class="sliderRange" id="adminClickerExplode" max="30" min="0" step="1" type="range" value="0"/>
+<div class="sliderVal">
+<input class="sliderNum" id="adminClickerExplodeNum" max="30" min="0" step="1" type="number" value="0"/>
+<span class="valSuffix">mm</span>
+</div>
+</div>
 </div><div class="ctrlSection" id="adminBeadsSection" style="display: none;">
 <div class="ctrlSectionTitle">📿 Name Beads — Jackson's Generator (SCAD)</div>
 <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px;line-height:1.4;">Bead on elastic cord. Top-face letter. 2-part hollow? No — single bead with hole & raised letter.</div>
@@ -1186,6 +1388,7 @@ Letters only — the word itself is the whole structure.
 <div class="print-check" id="adminPrintCheck" data-state="ok" aria-live="polite"></div>
 <div class="exportBtns">
 <button class="exportBtn" id="adminExportSTL">🖨️ Download STL</button>
+<button class="exportBtn" id="adminExport3MF">🎨 Download 3MF (colour)</button>
 <button class="exportBtn exportBtnSecondary" id="adminResetBtn">↺ Reset</button>
 </div>
 </div>
@@ -1258,6 +1461,6 @@ Letters only — the word itself is the whole structure.
   boot();
 })();
 </script>
-<script src="admin-console.js?v=30" type="module"></script>
+<script src="admin-console.js?v=43" type="module"></script>
 </body>
 </html>

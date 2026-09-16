@@ -19,4 +19,5 @@ export const PRODUCT_LABELS = {
     led_word_stand: 'LED Word Stand',
     led_word_art: 'LED Word Art',
     name_beads: 'Custom Name Beads',
+    fidget_clicker: 'MX Fidget Clicker',
 };

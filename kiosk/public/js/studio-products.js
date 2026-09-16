@@ -189,6 +189,7 @@ const PROFILE_LIST = [
         baseControl: 'none',
         controlSections: [
             { id: 'adminLedBackSection', label: 'Housing' },
+            { id: 'adminLedStandSection', label: 'Stand hardware' },
             { id: 'adminLedCapSection', label: 'Diffuser' },
         ],
     },
@@ -220,6 +221,23 @@ const PROFILE_LIST = [
         ringControl: false,
         baseControl: 'none',
         controlSections: [{ id: 'adminBeadsSection', label: 'Bead geometry' }],
+    },
+    {
+        type: 'fidget_clicker',
+        label: 'MX Fidget Clicker',
+        description: 'Housing and keycaps built around a real Cherry MX-style switch. '
+            + 'One switch per character, so a name becomes a multi-switch bar. '
+            + 'Scale is fixed at 1x because the switch is a physical part.',
+        scaleMode: 'whole',
+        scaleLabel: 'Whole model scale — keep at 1x',
+        scaleHelp: 'Leave this at 1x. The clicker mates with a real MX switch, so scaling '
+            + 'resizes the 14mm plate opening and the switch stops fitting. Printability '
+            + 'validation reports an error for any other value.',
+        standardStack: false,
+        supportsLayers: false,
+        ringControl: false,
+        baseControl: 'none',
+        controlSections: [{ id: 'adminClickerSection', label: 'Switch & keycap geometry' }],
     },
 ];
 

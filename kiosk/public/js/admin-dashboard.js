@@ -229,6 +229,7 @@ const P_LABELS = {
     supported_text: 'Supported Nameplate', wordart: 'Word Art', loveseries: 'LOVE Stand',
     desk_organizer: 'Desk Organizer',
     name_beads: 'Name Beads',
+    fidget_clicker: 'MX Fidget Clicker',
     bubble_keychain: 'Bubble Badge',
     led_word_art: 'LED Word Art',
     led_word_stand: 'LED Word Stand',

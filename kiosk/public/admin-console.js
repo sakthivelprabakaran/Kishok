@@ -1,9 +1,9 @@
-/* =========================================
+﻿/* =========================================
    KOOTZY — ADMIN CONSOLE JS (ES Module)
    Full-screen STL Generation Console
    ========================================= */
 
-import { KeychainViewer } from './js/viewer3d.js?v=wa19';
+import { KeychainViewer } from './js/viewer3d.js?v=wa44';
 import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
@@ -12,7 +12,7 @@ import {
 import {
     STUDIO_PRODUCT_SECTION_IDS,
     getStudioProductProfile,
-} from './js/studio-products.js?v=s5';
+} from './js/studio-products.js?v=s6';
 
 // ===== FONT & COLOR DATA (mirrors script.js) =====
 
@@ -446,6 +446,31 @@ const SLIDER_MAP = {
     bead_spacing:       { range: 'adminBeadSpacing',      num: 'adminBeadSpacingNum' },
     bead_letter_height: { range: 'adminBeadLetterHeight', num: 'adminBeadLetterHeightNum' },
 
+    // MX Fidget Clicker — geometry is constrained by the real switch
+    clicker_plate_thk:    { range: 'adminClickerPlateThk',    num: 'adminClickerPlateThkNum' },
+    clicker_latch_ledge:  { range: 'adminClickerLatchLedge',  num: 'adminClickerLatchLedgeNum' },
+    clicker_body_depth:   { range: 'adminClickerBodyDepth',   num: 'adminClickerBodyDepthNum' },
+    clicker_pin_clearance:{ range: 'adminClickerPinClearance', num: 'adminClickerPinClearanceNum' },
+    clicker_floor_thk:    { range: 'adminClickerFloorThk',    num: 'adminClickerFloorThkNum' },
+    clicker_wall:         { range: 'adminClickerWall',        num: 'adminClickerWallNum' },
+    clicker_cap_size:     { range: 'adminClickerCapSize',     num: 'adminClickerCapSizeNum' },
+    clicker_cap_thk:      { range: 'adminClickerCapThk',      num: 'adminClickerCapThkNum' },
+    clicker_stem_depth:   { range: 'adminClickerStemDepth',   num: 'adminClickerStemDepthNum' },
+    clicker_letter_depth: { range: 'adminClickerLetterDepth', num: 'adminClickerLetterDepthNum' },
+    clicker_tolerance:    { range: 'adminClickerTolerance',   num: 'adminClickerToleranceNum' },
+    clicker_explode:      { range: 'adminClickerExplode',     num: 'adminClickerExplodeNum' },
+    // Puck layouts (border / disk / round sq. / six-side / heart / pill)
+    clicker_size:         { range: 'adminClickerSize',        num: 'adminClickerSizeNum' },
+    clicker_border:       { range: 'adminClickerBorder',      num: 'adminClickerBorderNum' },
+    clicker_corner_r:     { range: 'adminClickerCornerR',     num: 'adminClickerCornerRNum' },
+    clicker_deck:         { range: 'adminClickerDeck',        num: 'adminClickerDeckNum' },
+    clicker_relief:       { range: 'adminClickerRelief',      num: 'adminClickerReliefNum' },
+    clicker_lift:         { range: 'adminClickerLift',        num: 'adminClickerLiftNum' },
+    clicker_cap_gap:      { range: 'adminClickerCapGap',      num: 'adminClickerCapGapNum' },
+    clicker_tab_bearing:  { range: 'adminClickerTabBearing',  num: 'adminClickerTabBearingNum' },
+    clicker_tab_slide:    { range: 'adminClickerTabSlide',    num: 'adminClickerTabSlideNum' },
+    clicker_tab_hole:     { range: 'adminClickerTabHole',     num: 'adminClickerTabHoleNum' },
+
     // Bubble Keychain Sliders
     bubble_text_size:   { range: 'adminBubbleTextSize',   num: 'adminBubbleTextSizeNum' },
     bubble_halo_pad:    { range: 'adminBubbleHaloPad',    num: 'adminBubbleHaloPadNum' },
@@ -468,6 +493,8 @@ for (const key in SLIDER_MAP) {
 
 function initViewer() {
     viewer = new KeychainViewer(viewportEl);
+    // Exposed for the headless harnesses and for debugging in the console.
+    window.__kootzyViewer = viewer;
     viewer.container.addEventListener('viewermetricschange', (event) => {
         updateDimensions(event.detail.dimensions);
         renderPrinterFit(event.detail.fit, event.detail.printBedVisible);
@@ -1038,6 +1065,43 @@ function collectParams() {
         p.led_channel_w = parseFloat(sliders.led_channel_w.range.value);
         p.cable_hole_d = parseFloat(sliders.led_cable_hole.range.value);
         p.cover_insert_clearance = parseFloat(sliders.led_insert_clearance.range.value);
+    }
+
+    // MX Fidget Clicker — layout picks the product shape; the rest is geometry
+    // constrained by the real switch.
+    if (sliders.clicker_plate_thk) {
+        const layoutEl = $('adminClickerLayout');
+        p.clicker_layout = layoutEl ? layoutEl.value : 'bar';
+
+        p.clicker_plate_thk    = parseFloat(sliders.clicker_plate_thk.range.value);
+        p.clicker_latch_ledge  = parseFloat(sliders.clicker_latch_ledge.range.value);
+        p.clicker_body_depth   = parseFloat(sliders.clicker_body_depth.range.value);
+        p.clicker_pin_clearance = parseFloat(sliders.clicker_pin_clearance.range.value);
+        p.clicker_floor_thk    = parseFloat(sliders.clicker_floor_thk.range.value);
+        p.clicker_wall         = parseFloat(sliders.clicker_wall.range.value);
+        p.clicker_stem_depth   = parseFloat(sliders.clicker_stem_depth.range.value);
+        p.clicker_tolerance    = parseFloat(sliders.clicker_tolerance.range.value);
+        p.clicker_explode      = parseFloat(sliders.clicker_explode.range.value);
+
+        // Bar layout only.
+        p.clicker_cap_size     = parseFloat(sliders.clicker_cap_size.range.value);
+        p.clicker_cap_thk      = parseFloat(sliders.clicker_cap_thk.range.value);
+        p.clicker_letter_depth = parseFloat(sliders.clicker_letter_depth.range.value);
+
+        // Puck layouts only.
+        p.clicker_size   = parseFloat(sliders.clicker_size.range.value);
+        p.clicker_border = parseFloat(sliders.clicker_border.range.value);
+        p.clicker_deck   = parseFloat(sliders.clicker_deck.range.value);
+        p.clicker_relief = parseFloat(sliders.clicker_relief.range.value);
+        p.clicker_lift   = parseFloat(sliders.clicker_lift.range.value);
+        p.clicker_cap_gap = parseFloat(sliders.clicker_cap_gap.range.value);
+        p.clicker_corner_r = parseFloat(sliders.clicker_corner_r.range.value);
+
+        const tabEl = $('adminClickerTab');
+        p.clicker_tab = tabEl ? tabEl.value : 'no';
+        p.clicker_tab_bearing = parseFloat(sliders.clicker_tab_bearing.range.value);
+        p.clicker_tab_slide   = parseFloat(sliders.clicker_tab_slide.range.value);
+        p.clicker_tab_hole    = parseFloat(sliders.clicker_tab_hole.range.value);
     }
 
     // Name Beads — Jackson's Custom Bead Generator (SCAD)
@@ -1968,6 +2032,36 @@ function initPresets() {
 
 function initExportReset() {
     if (!exportBtn) return;
+
+    // Export 3MF — keeps the colour assignment. An STL is a bare triangle soup, so
+    // a multi-colour cap arrives in the slicer as one grey lump; 3MF carries each
+    // colour as its own object bound to a material, which Bambu Studio / Orca /
+    // PrusaSlicer map onto filament slots on import.
+    const export3mfBtn = $('adminExport3MF');
+    if (export3mfBtn) {
+        export3mfBtn.addEventListener('click', async () => {
+            if (!viewer) return;
+            if (_printCheckHasErrors) {
+                alert('This model has printability errors and would fail on the printer. Fix them before exporting.');
+                return;
+            }
+            const baseName = (filenameInput.value.trim() || 'kootzy_clicker');
+            export3mfBtn.disabled = true;
+            const label = export3mfBtn.textContent;
+            export3mfBtn.textContent = 'Writing 3MF…';
+            try {
+                const result = await viewer.exportThreeMF(baseName + '.3mf');
+                if (!result) alert('Nothing to export yet — build a model first.');
+            } catch (err) {
+                console.error('3MF export failed:', err);
+                alert('3MF export failed: ' + err.message);
+            } finally {
+                export3mfBtn.disabled = false;
+                export3mfBtn.textContent = label;
+            }
+        });
+    }
+
     // Export STL — for LED Word Art (2-part: Back Panel + CAP) we export two files
     // (ported from Achuva's box/cover dual-download pattern)
     exportBtn.addEventListener('click', () => {
@@ -2650,6 +2744,18 @@ async function init() {
     const beadDirSelect = $('adminBeadDirection');
     if (beadDirSelect) {
         beadDirSelect.addEventListener('change', () => debouncedRebuild());
+    }
+
+    // Bind MX Fidget Clicker layout + hang tab. Layout switches the whole product
+    // shape (letter bar vs single-switch puck), so rebuild immediately rather than
+    // debounced — the same reasoning as the product-type select.
+    const clickerLayoutSelect = $('adminClickerLayout');
+    if (clickerLayoutSelect) {
+        clickerLayoutSelect.addEventListener('change', () => updateViewerNow());
+    }
+    const clickerTabSelect = $('adminClickerTab');
+    if (clickerTabSelect) {
+        clickerTabSelect.addEventListener('change', () => debouncedRebuild());
     }
 
     // Bind Desk Organizer layout & Supported/Bordered/Flower selects that affect rebuild

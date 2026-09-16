@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-16T06:53:08.794Z",
+  "sourceHash": "68f87809b1794a7b32a8a34d0fb18f8995bc09a57aa22996ddee5a4ee745aac4",
+  "productType": "wordart",
+  "sample": {
+    "text": "Vivi\nSAKTHI",
+    "font": "Brandy / CANAVAR",
+    "fontFile": "Fonts/Brandy.ttf",
+    "layers": "3L",
+    "ringPosition": "none",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/wordart/teal-red-gold-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/wordart/poster.png",
+  "variants": [
+    {
+      "id": "teal-red-gold",
+      "label": "Teal, Red and Gold",
+      "colors": {
+        "base": "#0FB9B1",
+        "font": "#FF2D78",
+        "outline": "#172B35",
+        "line2": "#FFD700"
+      },
+      "sprite": "/assets/catalog-reels/wordart/teal-red-gold-orbit.webp",
+      "poster": "/assets/catalog-reels/wordart/teal-red-gold-poster.webp",
+      "dimensions": {
+        "width": 119.6,
+        "height": 29,
+        "depth": 3
+      }
+    },
+    {
+      "id": "purple-gold-white",
+      "label": "Purple, Gold and White",
+      "colors": {
+        "base": "#7B2FFF",
+        "font": "#FFD700",
+        "outline": "#172B35",
+        "line2": "#FFFFFF"
+      },
+      "sprite": "/assets/catalog-reels/wordart/purple-gold-white-orbit.webp",
+      "poster": "/assets/catalog-reels/wordart/purple-gold-white-poster.webp",
+      "dimensions": {
+        "width": 119.6,
+        "height": 29,
+        "depth": 3
+      }
+    },
+    {
+      "id": "blue-white-gold",
+      "label": "Blue, White and Gold",
+      "colors": {
+        "base": "#3A88FE",
+        "font": "#FFFFFF",
+        "outline": "#172B35",
+        "line2": "#FFD700"
+      },
+      "sprite": "/assets/catalog-reels/wordart/blue-white-gold-orbit.webp",
+      "poster": "/assets/catalog-reels/wordart/blue-white-gold-poster.webp",
+      "dimensions": {
+        "width": 119.6,
+        "height": 29,
+        "depth": 3
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 32860,
+    "totalAssetBytes": 648288
+  }
+}

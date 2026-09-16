@@ -1,4 +1,4 @@
-/* =========================================
+﻿/* =========================================
    KOOTZY — 3D KEYCHAIN VIEWER
    Three.js + opentype.js
    ========================================= */
@@ -135,7 +135,7 @@ function polyTreeToShapes(polyTree, scale) {
     return shapes;
 }
 
-function subtractShapes(subjShapes, clipShapes) {
+function subtractShapes(subjShapes, clipShapes, allowEmpty) {
     if (typeof ClipperLib === 'undefined') {
         console.warn('ClipperLib not loaded yet, skipping subtraction.');
         return subjShapes;
@@ -164,7 +164,12 @@ function subtractShapes(subjShapes, clipShapes) {
     );
     
     const result = polyTreeToShapes(polyTree, scale);
-    return (result && result.length > 0) ? result : subjShapes;
+    if (result && result.length > 0) return result;
+    // Falling back to the subject on an empty result is a safety net for the
+    // engraving paths, where a vanished body means a bad cut and showing the
+    // uncut shape is the lesser evil. Painter's-order artwork resolution needs
+    // the opposite: a fill completely covered by one above it must disappear.
+    return allowEmpty ? [] : subjShapes;
 }
 
 function unionShapes(subjShapes, clipShapes) {
@@ -191,12 +196,47 @@ function unionShapes(subjShapes, clipShapes) {
     return polyTreeToShapes(polyTree, scale);
 }
 
-function offsetShapes(shapes, delta) {
+function intersectShapes(subjShapes, clipShapes) {
+    if (typeof ClipperLib === 'undefined') {
+        return subjShapes;
+    }
+    const scale = 100000;
+    const clipper = new ClipperLib.Clipper();
+    for (let i = 0; i < subjShapes.length; i++) {
+        clipper.AddPaths(shapeToClipperPaths(subjShapes[i], scale), ClipperLib.PolyType.ptSubject, true);
+    }
+    for (let i = 0; i < clipShapes.length; i++) {
+        clipper.AddPaths(shapeToClipperPaths(clipShapes[i], scale), ClipperLib.PolyType.ptClip, true);
+    }
+    const polyTree = new ClipperLib.PolyTree();
+    clipper.Execute(
+        ClipperLib.ClipType.ctIntersection,
+        polyTree,
+        ClipperLib.PolyFillType.pftNonZero,
+        ClipperLib.PolyFillType.pftNonZero
+    );
+    return polyTreeToShapes(polyTree, scale);
+}
+
+/**
+ * Offset a set of shapes outward (positive) or inward (negative).
+ *
+ * `arcToleranceMm` controls how finely round joins are subdivided. Clipper's
+ * default is 0.25 in *scaled* units, which at scale 100000 means 0.0000025mm —
+ * round corners come back with thousands of points, and everything downstream
+ * (extrusion, boolean, export) pays for it. Callers that care can pass a real
+ * millimetre tolerance; omitting it preserves the original behaviour so existing
+ * products are untouched.
+ */
+function offsetShapes(shapes, delta, arcToleranceMm) {
     if (typeof ClipperLib === 'undefined' || delta === 0) {
         return shapes;
     }
     const scale = 100000;
     const co = new ClipperLib.ClipperOffset();
+    if (Number.isFinite(arcToleranceMm) && arcToleranceMm > 0) {
+        co.ArcTolerance = arcToleranceMm * scale;
+    }
     for (let i = 0; i < shapes.length; i++) {
         const paths = shapeToClipperPaths(shapes[i], scale);
         co.AddPaths(paths, ClipperLib.JoinType.jtRound, ClipperLib.EndType.etClosedPolygon);
@@ -281,6 +321,90 @@ function clipperUnionAndOffset(baseShapes, padding, wallThk, isHollow) {
         console.error('clipperUnionAndOffset failed:', err);
         return null;
     }
+}
+
+/**
+ * Parts that meet on exactly coplanar faces make for a fragile union: whether
+ * they fuse into one solid can depend on mesh density rather than on intent.
+ * Where a union is unavoidable, overlap the parts by this much instead.
+ */
+const CLICKER_OVERLAP = 0.5;
+
+/**
+ * Arc tolerance for the clicker's Clipper offsets, in millimetres.
+ *
+ * Clipper's default is 0.25 in scaled units, which at scale 100000 is 0.0000025mm
+ * — round joins come back with thousands of points and a 38mm part exported to
+ * 134MB of 3MF. 0.05mm is well below what any FDM printer resolves and cuts the
+ * point count by orders of magnitude.
+ */
+const CLICKER_ARC_TOL = 0.05;
+
+/* ── Colour contrast ──
+   Imported artwork brings its own colours, and those colours know nothing about
+   the cap they will sit on. Black artwork on a black cap is invisible in the
+   preview and, more importantly, invisible in the print — a genuine defect, not
+   just a display quirk. These two helpers let the builder notice the collision.
+
+   WCAG relative luminance and ratio. Not because this is a web accessibility
+   problem, but because the formula is a well-tested model of perceived
+   lightness difference and filament reads much the same way.
+*/
+function srgbLuminance(hex) {
+    var c = new THREE.Color(hex);
+    var lin = function (v) {
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+}
+
+function contrastRatio(hexA, hexB) {
+    var a = srgbLuminance(hexA);
+    var b = srgbLuminance(hexB);
+    var hi = Math.max(a, b), lo = Math.min(a, b);
+    return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * Union a set of glyph shapes into one continuous footprint and expand it by a
+ * uniform border.
+ *
+ * This is what makes a letter-shaped object: fill the counters (the holes inside
+ * O, A, P) so the footprint is solid, union everything, then offset outward so
+ * adjacent letters merge into a single silhouette with an even border all round.
+ *
+ * Shared deliberately. The Word Art backing plate and the Border-outline fidget
+ * clicker are the same operation, and when this lived only inside
+ * _buildWordartBackplate the clicker had to copy it — two copies that would
+ * inevitably drift.
+ */
+function letterSilhouette(shapes, padding, arcToleranceMm) {
+    if (!shapes || shapes.length === 0) return [];
+
+    var solid = [];
+    for (var i = 0; i < shapes.length; i++) {
+        var copy = shapes[i].clone();
+        copy.holes = [];
+        solid.push(copy);
+    }
+
+    var outer = offsetShapes(solid, padding, arcToleranceMm);
+    if (!outer || outer.length === 0) outer = unionShapes(solid, []);
+    if (!outer || outer.length === 0) return [];
+
+    // Kill any internal pinholes so the border reads as one clean edge.
+    for (var o = 0; o < outer.length; o++) outer[o].holes = [];
+    return outer;
+}
+
+/** Mirror an outline about the X axis, for moving between Y-up and Y-down space. */
+function mirrorShapeY(shape, segments) {
+    var pts = shape.extractPoints(segments || 16).shape;
+    var flipped = [];
+    for (var i = 0; i < pts.length; i++) {
+        flipped.push(new THREE.Vector2(pts[i].x, -pts[i].y));
+    }
+    return new THREE.Shape(flipped);
 }
 
 // ===================================================================
@@ -401,6 +525,15 @@ export class KeychainViewer {
     _animate() {
         if (this.disposed) return;
         requestAnimationFrame(() => this._animate());
+
+        // Studio builds the viewer during init, but keeps the whole console inside
+        // a display:none subtree until the PIN gate is cleared. Rendering a
+        // shadow-mapped WebGL scene at 60fps into a canvas with no layout box is
+        // pure waste, and it is enough for Firefox to warn that the page is
+        // slowing down while the user is still looking at the password field.
+        // Same guard as _onResize uses: no width or height means nothing to draw.
+        if (this.container.clientWidth === 0 || this.container.clientHeight === 0) return;
+
         if (this.controls.update()) this._sceneAidsDirty = true;
         if (this._sceneAidsDirty) {
             this._updateDimensionOverlay();
@@ -887,23 +1020,9 @@ export class KeychainViewer {
                 ? Number(p.base.bevelThickness)
                 : 2.2);
 
-        // Fill letter counters (holes inside 'O', 'A', etc.) so backplate is a continuous solid backing footprint
-        var solidShapes = [];
-        for (var i = 0; i < shapes.length; i++) {
-            var copy = shapes[i].clone();
-            copy.holes = [];
-            solidShapes.push(copy);
-        }
-
-        // 1. Union and expand by padding to get the smooth outer envelope
-        var outerShapes = offsetShapes(solidShapes, padding);
-        if (!outerShapes || outerShapes.length === 0) {
-            outerShapes = unionShapes(solidShapes, []);
-        }
-        // Ensure outer boundary has no internal pinholes / crevices
-        for (var os = 0; os < outerShapes.length; os++) {
-            outerShapes[os].holes = [];
-        }
+        // Union the glyphs into one bordered silhouette. Shared with the
+        // Border-outline fidget clicker, which needs the identical footprint.
+        var outerShapes = letterSilhouette(shapes, padding);
 
         if (!outerShapes || outerShapes.length === 0) {
             console.warn('Word-art backplate skipped: offset failed (is ClipperLib loaded?).');
@@ -1259,7 +1378,10 @@ export class KeychainViewer {
                 // bubble_keychain has always called scale.setScalar() but was missing
                 // here, so its thicknesses were validated as absolute mm. Desk
                 // organizer and name beads now honour the scale slider too.
-                'bubble_keychain', 'desk_organizer', 'name_beads'];
+                'bubble_keychain', 'desk_organizer', 'name_beads',
+                // Built in absolute mm then scaled as a whole, like the beads and
+                // organizer, so its constants are scale-dependent for validation.
+                'fidget_clicker'];
     }
 
     static validatePrintability(params, productType) {
@@ -1491,6 +1613,75 @@ export class KeychainViewer {
                     warnings.push('Cord hole is ' + cordHole.toFixed(2) + 'mm — most elastic cord '
                         + 'needs 2mm or more, and small holes close up as the layers cool.');
                 }
+            } else if (type === 'fidget_clicker') {
+                // This product mates with a REAL switch, so unlike every other
+                // scaled product its dimensions are not free. Scaling the model
+                // scales the 14x14 opening too and the switch stops fitting —
+                // there is no way to "print it smaller" and keep it working.
+                var MX = KeychainViewer.MX_SPEC;
+                if (Math.abs(scale - 1) > 0.02) {
+                    warnings.push('Scale is set to ' + scale + 'x but this product ignores it and '
+                        + 'always builds at 1x, because the ' + MX.CUTOUT + 'mm plate opening has to '
+                        + 'match a real switch.');
+                }
+
+                var plateThk   = num(p.clicker_plate_thk, MX.LATCH_LEDGE * 2);
+                var latchLedge = num(p.clicker_latch_ledge, MX.LATCH_LEDGE);
+                var floorThk   = num(p.clicker_floor_thk, 1.6);
+                var wallThk    = num(p.clicker_wall, 2.4);
+                var capThk     = num(p.clicker_cap_thk, 2.4);
+                var stemDepth  = num(p.clicker_stem_depth, MX.STEM_DEPTH);
+                var letterDep  = num(p.clicker_letter_depth, 1.2);
+                var tolerance  = num(p.clicker_tolerance, 0.15);
+
+                // The latch ledge IS the retention. Too thin and the clips shear
+                // it off on first insertion, leaving a switch that falls out.
+                checkFeature('Latch ledge', latchLedge,
+                    { min: L.SAFE_FEATURE, safe: 1.5 });
+                if (latchLedge >= plateThk) {
+                    errors.push('Latch ledge (' + latchLedge.toFixed(2) + 'mm) must be thinner than '
+                        + 'the plate (' + plateThk.toFixed(2) + 'mm), or there is no relief left '
+                        + 'for the switch clips to spring into.');
+                }
+                checkFeature('Switch plate', plateThk, { min: L.SAFE_FEATURE, safe: 3.0 });
+                checkFeature('Housing floor', floorThk);
+                checkFeature('Housing wall', wallThk);
+                checkFeature('Keycap face', capThk);
+                checkFeature('Keycap stem wall', (MX.STEM_L - MX.STEM_W) / 2);
+                if (letterDep > 0) checkFeature('Keycap glyph relief', letterDep);
+
+                if (stemDepth < 3.0) {
+                    warnings.push('Stem socket is ' + stemDepth.toFixed(1) + 'mm deep. Under 3mm the '
+                        + 'keycap works loose with repeated pressing; 3.6mm is the standard.');
+                }
+                if (tolerance < 0.1) {
+                    errors.push('Tolerance of ' + tolerance.toFixed(2) + 'mm will fuse on an FDM '
+                        + 'printer and the switch will not go in. Use 0.10mm or more.');
+                } else if (tolerance > 0.3) {
+                    warnings.push('Tolerance of ' + tolerance.toFixed(2) + 'mm is loose — the switch '
+                        + 'will rattle in the plate.');
+                }
+
+                // Pins hang free above a solid floor, so the well has to be deeper
+                // than the switch body or the switch will not seat flat.
+                var pinClear = num(p.clicker_pin_clearance, 3.5);
+                checkFeature('Pin clearance', pinClear, { min: MX.PIN_LEN, safe: MX.PIN_LEN + 0.2 });
+                if (pinClear < MX.PIN_LEN) {
+                    errors.push('Pin clearance is ' + pinClear.toFixed(1) + 'mm but the switch pins '
+                        + 'stick out ' + MX.PIN_LEN + 'mm. They would bottom out on the floor and '
+                        + 'hold the switch proud of the plate.');
+                }
+
+                var belowPlate = num(p.clicker_body_depth, MX.BODY_DEPTH);
+                if (belowPlate < MX.PLATE_TO_PCB) {
+                    errors.push('Below-plate depth is ' + belowPlate.toFixed(1) + 'mm. Plate-mount '
+                        + 'fixes the switch body at ' + MX.PLATE_TO_PCB + 'mm below the plate, so '
+                        + 'anything less and the switch will not seat.');
+                }
+
+                var totalDepth = floorThk + belowPlate + pinClear + plateThk
+                    + MX.ABOVE_PLATE + capThk;
+                features.push({ label: 'Assembled height', mm: Math.round(totalDepth * 100) / 100 });
             } else {
                 // Every scaled builder's thinnest constant sits around 1.2mm, so
                 // anything much under 0.7x starts crossing the 0.8mm floor.
@@ -1709,6 +1900,14 @@ export class KeychainViewer {
         var isTileKey   = p.productType === 'tilekey';
         var isLinkedInitials = p.productType === 'linked_initials';
 
+        // Imported artwork replaces the typed text entirely, and the text path
+        // below is built around glyph metrics that a logo does not have. Branch
+        // early, the same way the tile keychain does.
+        if (this._artwork && this._artwork.length
+            && (p.productType === 'keychain' || p.productType === 'wordart')) {
+            if (this._buildArtworkKeychain(baseColor, outlineColor, p)) return;
+        }
+
         // Tile keychain takes a totally different geometry path. Branch early.
         if (isTileKey) {
             this._buildTileKeychain(text, font, baseColor, fontColor, outlineColor, p);
@@ -1772,6 +1971,12 @@ export class KeychainViewer {
         var isNameBeads = p.productType === 'name_beads';
         if (isNameBeads) {
             this._buildNameBeads(text, font, baseColor, fontColor, outlineColor, p);
+            return;
+        }
+
+        var isFidgetClicker = p.productType === 'fidget_clicker';
+        if (isFidgetClicker) {
+            this._buildFidgetClicker(text, font, baseColor, fontColor, outlineColor, p);
             return;
         }
 
@@ -4911,6 +5116,1198 @@ export class KeychainViewer {
         this._lastParams = p;
     }
 
+    /* ── MX SWITCH FIDGET CLICKER ──
+       Uses a REAL Cherry MX-style switch. The click is the switch's own
+       mechanism, not printed geometry, so it feels and sounds like a keyboard.
+
+       The part that matters is the plate opening. A plain 14x14 hole holds a
+       switch by friction only and it pulls straight back out. A real plate
+       opening is a two-level negative:
+
+         top    1.5mm : clean 14x14 land  <- the switch clips latch UNDER this
+         bottom 1.5mm : 14 x (14+2*0.6) in a 5mm central band
+                        + 0.8mm side reliefs so the latches can splay
+
+       Pressing the switch in compresses its clips against the 14mm land; once
+       they clear it they spring outward into the deeper bottom relief and hook
+       under the ledge. That is what stops pull-out, and it leaves the switch
+       fully reusable in a keyboard afterwards.
+
+       Dimensions follow the published MX interface (14x14 plate cutout,
+       4.1 x 1.17mm cross stem, 19.05mm pitch). One switch is generated per
+       character, so "WASD" produces a four-switch bar.
+    */
+
+    static get MX_SPEC() {
+        return {
+            CUTOUT:        14.0,   // core plate opening, both axes
+            PITCH:         19.05,  // key centre to key centre
+            BODY:          15.8,   // switch upper-housing footprint
+            BODY_DEPTH:     5.0,   // body below the plate (plate-to-PCB distance)
+            RELIEF_DEPTH:  0.8,    // side relief past the cutout, for the latches
+            RELIEF_SPAN:   3.5,    // length of that relief along the edge
+            RELIEF_INSET:  1.0,    // how far the relief sits in from the corner
+            TAB_WIDTH:     5.0,    // central latch channel width
+            TAB_DEPTH:     0.6,    // how far it undercuts past the cutout
+            LATCH_LEDGE:   1.5,    // clean land the clips grab; do not go thinner
+            CHAMFER:       0.4,    // insertion lead-in
+            STEM_L:        4.1,    // cross stem long axis
+            STEM_W:        1.17,   // cross stem short axis
+            STEM_DEPTH:    3.6,    // socket depth in the keycap
+            // Vertical split, derived from Cherry's own figures rather than
+            // guessed. Cherry specifies "desktop profile, 0.60 inch (15.2 mm)
+            // from PCB (no keycap)", and plate-mount fixes the plate 5.0 mm above
+            // the PCB. So:
+            //     below the plate  = 5.0 mm of switch body
+            //     above the plate  = 15.2 - 5.0 = 10.2 mm up to the stem top
+            // The stem itself is ~3.7 mm of that, sitting on a platform that
+            // descends inside the housing, which is how 4 mm of travel fits.
+            TOTAL_FROM_PCB: 15.2,
+            PLATE_TO_PCB:   5.0,
+            ABOVE_PLATE:   10.2,
+            STEM_H:         3.7,
+            TRAVEL:         4.0,
+            // Metal contact pins stick out below the switch base. There is no PCB
+            // in a fidget, so the housing just needs this much clearance under
+            // the plate on top of PLATE_TO_PCB, and the floor stays solid.
+            PIN_LEN:        3.3,
+        };
+    }
+
+    _buildFidgetClicker(text, font, baseColor, fontColor, outlineColor, p) {
+        this._clearKeychain();
+        this.keychainGroup = new THREE.Group();
+
+        var MX = KeychainViewer.MX_SPEC;
+        function num(v, dflt) {
+            var n = Number(v);
+            return Number.isFinite(n) ? n : dflt;
+        }
+
+        // Layout picks the product shape. 'bar' is the multi-switch letter bar
+        // (one switch per character). Everything else is the single-switch puck
+        // with a full-face cap, which is the PrintPal shape family.
+        var layout = p.clicker_layout || 'bar';
+        if (layout !== 'bar') {
+            if (this._buildClickerPuck(text, font, baseColor, fontColor, outlineColor, p, layout)) {
+                this._lastText = text;
+                this._lastFont = font;
+                this._lastBaseColor = baseColor;
+                this._lastFontColor = fontColor;
+                this._lastOutlineColor = outlineColor;
+                this._lastParams = p;
+                return;
+            }
+            console.warn('Clicker puck build failed; falling back to the bar layout.');
+        }
+
+        // ── Parameters ──
+        var plateThk    = num(p.clicker_plate_thk, MX.LATCH_LEDGE * 2);
+        var latchLedge  = Math.min(num(p.clicker_latch_ledge, MX.LATCH_LEDGE), plateThk - 0.4);
+        var bodyDepth   = num(p.clicker_body_depth, MX.BODY_DEPTH);
+        var floorThk    = num(p.clicker_floor_thk, 1.6);
+        var wall        = num(p.clicker_wall, 2.4);
+        var pitch       = num(p.clicker_pitch, MX.PITCH);
+        var cornerR     = num(p.clicker_corner_r, 3.0);
+        var capThk      = num(p.clicker_cap_thk, 2.4);
+        var capSize     = num(p.clicker_cap_size, 17.5);
+        var stemDepth   = num(p.clicker_stem_depth, MX.STEM_DEPTH);
+        var letterDepth = num(p.clicker_letter_depth, 1.2);
+        var tol         = num(p.clicker_tolerance, 0.15);
+        var pinClear    = num(p.clicker_pin_clearance, 3.5);
+        var explode     = num(p.clicker_explode, 0);
+
+        // Scale is FORCED to 1. Every other product is free to scale, but this one
+        // mates with a real switch: at the studio-wide default of 0.5 the 14mm
+        // plate opening becomes 7mm and no switch on earth fits it. The engine
+        // already forces geometry per product (Classic Keychain pins its 6mm
+        // stack the same way), so do it here rather than trusting the slider.
+        var scale = 1;
+
+        // One switch per character. Blank input still yields a single clicker.
+        var raw = (text || '').replace(/[\r\n]/g, '').toUpperCase().slice(0, 8);
+        var chars = raw.length ? raw.split('') : [' '];
+        var count = chars.length;
+
+        var spanX = (count - 1) * pitch;
+        var startX = -spanX / 2;
+
+        // Outer footprint: one pitch per switch plus a wall all round.
+        var outerW = count * pitch + wall * 2;
+        var outerH = pitch + wall * 2;
+
+        // ── Materials (engine house style: physical + clearcoat) ──
+        var matBody = new THREE.MeshPhysicalMaterial({
+            color:              new THREE.Color(baseColor),
+            roughness:          0.34,
+            metalness:          0.0,
+            clearcoat:          0.85,
+            clearcoatRoughness: 0.12,
+            side:               THREE.DoubleSide,
+        });
+        this._applyFDMTexture(matBody, p);
+
+        var matCap = new THREE.MeshPhysicalMaterial({
+            color:              new THREE.Color(outlineColor || baseColor),
+            roughness:          0.30,
+            metalness:          0.0,
+            clearcoat:          0.92,
+            clearcoatRoughness: 0.10,
+            side:               THREE.DoubleSide,
+        });
+        this._applyFDMTexture(matCap, p);
+
+        // Small raised glyphs use an unlit material so saturated filament
+        // colours stay true instead of darkening to near-black under ACES.
+        var matLetter = new THREE.MeshBasicMaterial({
+            color:      new THREE.Color(fontColor),
+            side:       THREE.DoubleSide,
+            toneMapped: false,
+        });
+
+        // ── Helpers ──
+        function roundedRect(cx, cy, w, h, r) {
+            var s = new THREE.Shape();
+            var hw = w / 2, hh = h / 2;
+            var rr = Math.max(0, Math.min(r, hw, hh));
+            s.moveTo(cx - hw + rr, cy - hh);
+            s.lineTo(cx + hw - rr, cy - hh);
+            s.quadraticCurveTo(cx + hw, cy - hh, cx + hw, cy - hh + rr);
+            s.lineTo(cx + hw, cy + hh - rr);
+            s.quadraticCurveTo(cx + hw, cy + hh, cx + hw - rr, cy + hh);
+            s.lineTo(cx - hw + rr, cy + hh);
+            s.quadraticCurveTo(cx - hw, cy + hh, cx - hw, cy + hh - rr);
+            s.lineTo(cx - hw, cy - hh + rr);
+            s.quadraticCurveTo(cx - hw, cy - hh, cx - hw + rr, cy - hh);
+            return s;
+        }
+        function rect(cx, cy, w, h) { return roundedRect(cx, cy, w, h, 0); }
+
+        var cut = MX.CUTOUT + tol;      // core opening with print tolerance
+        var half = cut / 2;
+
+        // Switch centre X for each position.
+        var centres = [];
+        for (var i = 0; i < count; i++) centres.push(startX + i * pitch);
+
+        // ── Plate negatives ──
+        // Upper land: the clean cutout only. This is the ledge the clips hook under.
+        var upperCuts = [];
+        // Lower relief: cutout + central latch channel + side reliefs.
+        var lowerCuts = [];
+        for (var c = 0; c < count; c++) {
+            var x = centres[c];
+            upperCuts.push(rect(x, 0, cut, cut));
+
+            lowerCuts.push(rect(x, 0, cut, cut));
+            // Central channel undercutting both Y edges: where the clips land.
+            lowerCuts.push(rect(x, 0, MX.TAB_WIDTH, cut + MX.TAB_DEPTH * 2));
+            // Side reliefs give the latches room to splay on the way in.
+            var reliefOff = half - MX.RELIEF_INSET - MX.RELIEF_SPAN / 2;
+            lowerCuts.push(rect(x, reliefOff, cut + MX.RELIEF_DEPTH * 2, MX.RELIEF_SPAN));
+            lowerCuts.push(rect(x, -reliefOff, cut + MX.RELIEF_DEPTH * 2, MX.RELIEF_SPAN));
+        }
+
+        var outer = [roundedRect(0, 0, outerW, outerH, cornerR)];
+
+        var upperShapes = subtractShapes(outer, upperCuts);
+        var lowerShapes = subtractShapes(outer, lowerCuts);
+
+        // ── Housing: floor, switch well walls, then the two plate layers ──
+        // Kept in its own group so exportSTL('housing') can target it directly,
+        // the same way the LED builders separate housing from cover.
+        var housingGroup = new THREE.Group();
+        var z = 0;
+
+        // Floor: SOLID. A fidget clicker has no PCB and no wiring, so nothing has
+        // to pass through the bottom. The switch pins are given room by making the
+        // well deeper than the switch body instead of drilling the outer face,
+        // which keeps the visible back panel clean.
+        var floorGeo = new THREE.ExtrudeGeometry(outer, {
+            depth: floorThk, bevelEnabled: true,
+            bevelThickness: 0.4, bevelSize: 0.4, bevelSegments: 3, curveSegments: 12,
+        });
+        housingGroup.add(new THREE.Mesh(floorGeo, matBody));
+        z += floorThk;
+
+        // Switch well: perimeter wall with a cavity per switch. Depth covers the
+        // switch body PLUS the pins that stick out under it, so they hang in free
+        // air above the floor.
+        var wellDepth = bodyDepth + pinClear;
+        var wellCuts = [];
+        for (var c3 = 0; c3 < count; c3++) {
+            wellCuts.push(rect(centres[c3], 0, MX.BODY + tol * 2, MX.BODY + tol * 2));
+        }
+        var wellShapes = subtractShapes(outer, wellCuts);
+        var wellGeo = new THREE.ExtrudeGeometry(wellShapes, {
+            depth: wellDepth, bevelEnabled: false, curveSegments: 12,
+        });
+        wellGeo.translate(0, 0, z);
+        housingGroup.add(new THREE.Mesh(wellGeo, matBody));
+        z += wellDepth;
+
+        // Plate, lower half: the deeper latch relief.
+        var lowerThk = plateThk - latchLedge;
+        if (lowerThk > 0.05) {
+            var lowerGeo = new THREE.ExtrudeGeometry(lowerShapes, {
+                depth: lowerThk, bevelEnabled: false, curveSegments: 12,
+            });
+            lowerGeo.translate(0, 0, z);
+            housingGroup.add(new THREE.Mesh(lowerGeo, matBody));
+            z += lowerThk;
+        }
+
+        // Plate, upper land: the clean 14x14 the clips latch under.
+        var upperGeo = new THREE.ExtrudeGeometry(upperShapes, {
+            depth: latchLedge, bevelEnabled: true,
+            bevelThickness: MX.CHAMFER, bevelSize: MX.CHAMFER,
+            bevelSegments: 2, curveSegments: 12,
+        });
+        upperGeo.translate(0, 0, z);
+        housingGroup.add(new THREE.Mesh(upperGeo, matBody));
+        var plateTopZ = z + latchLedge;
+
+        this.keychainGroup.add(housingGroup);
+        this._clickerHousing = housingGroup;
+
+        // ── Keycaps: one per switch, with a cross-stem socket and a glyph ──
+        // Sits on the switch stem, which protrudes above the plate. The gap is
+        // the switch's own travel, so the cap is drawn resting at the top.
+        var capGroup = new THREE.Group();
+        // Stem top sits 10.2mm above the plate (Cherry: 15.2mm from PCB, plate at
+        // 5.0mm). The keycap socket swallows the last 3.7mm of that.
+        var stemStandoff = MX.ABOVE_PLATE + 0.3;
+        var capBottomZ = plateTopZ + stemStandoff + explode;
+
+        for (var k = 0; k < count; k++) {
+            var kx = centres[k];
+
+            // Socket negative: two crossed slots.
+            var sw = MX.STEM_W + tol * 2;
+            var sl = MX.STEM_L + tol * 2;
+            var socket = unionShapes(
+                [rect(kx, 0, sw, sl)],
+                [rect(kx, 0, sl, sw)]
+            );
+
+            var capOuter = [roundedRect(kx, 0, capSize, capSize, Math.min(2.6, capSize * 0.2))];
+
+            // Lower cap section carries the socket; upper section is solid so the
+            // glyph has material to sit on.
+            var skirtShapes = subtractShapes(capOuter, socket);
+            var skirtGeo = new THREE.ExtrudeGeometry(skirtShapes, {
+                depth: stemDepth, bevelEnabled: false, curveSegments: 12,
+            });
+            skirtGeo.translate(0, 0, capBottomZ);
+            capGroup.add(new THREE.Mesh(skirtGeo, matCap));
+
+            var topGeo = new THREE.ExtrudeGeometry(capOuter, {
+                depth: capThk, bevelEnabled: true,
+                bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 3, curveSegments: 12,
+            });
+            topGeo.translate(0, 0, capBottomZ + stemDepth);
+            capGroup.add(new THREE.Mesh(topGeo, matCap));
+
+            // Glyph on the keycap face.
+            var ch = chars[k];
+            if (ch && ch !== ' ' && letterDepth > 0) {
+                var upm = font.unitsPerEm || 1000;
+                var capRatio = (font.ascender || 700) / upm;
+                var glyphTarget = capSize * 0.52;
+                var fs = glyphTarget / (capRatio || 0.7);
+                if (!isFinite(fs) || fs <= 0) fs = capSize * 0.7;
+
+                var gp = font.getPath(ch, 0, 0, fs);
+                var gb = gp.getBoundingBox();
+                var gcx = (gb.x1 + gb.x2) / 2;
+                var gcy = (gb.y1 + gb.y2) / 2;
+                var centred = font.getPath(ch, -gcx, -gcy, fs);
+                var glyphShapes = this._pathDataToShapes(centred.toPathData(3));
+                if (glyphShapes && glyphShapes.length) {
+                    var glyphGeo = new THREE.ExtrudeGeometry(glyphShapes, {
+                        depth: letterDepth, bevelEnabled: false, curveSegments: 12,
+                    });
+                    // opentype is Y-down; mirroring reverses winding, so normals
+                    // must be recomputed or DoubleSide lighting reads the visible
+                    // faces as backfaces and the glyph goes black.
+                    glyphGeo.scale(1, -1, 1);
+                    glyphGeo.computeVertexNormals();
+                    glyphGeo.translate(kx, 0, capBottomZ + stemDepth + capThk);
+                    capGroup.add(new THREE.Mesh(glyphGeo, matLetter));
+                }
+            }
+        }
+
+        this.keychainGroup.add(capGroup);
+        this._clickerCaps = capGroup;
+
+        // ── Finalise: scale, centre, shadows, camera (engine convention) ──
+        if (scale !== 1) this.keychainGroup.scale.setScalar(scale);
+
+        var box = new THREE.Box3().setFromObject(this.keychainGroup);
+        var centre = box.getCenter(new THREE.Vector3());
+        var size = box.getSize(new THREE.Vector3());
+        this.keychainGroup.position.sub(centre);
+
+        this.keychainGroup.traverse(function (child) {
+            if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+        });
+        if (this.shadowPlane) {
+            this.shadowPlane.position.y = -size.y / 2 - 0.15;
+        }
+
+        this.scene.add(this.keychainGroup);
+
+        var maxDim = Math.max(size.x, size.y, size.z);
+        this.camera.position.set(0, -maxDim * 0.75, maxDim * 1.35);
+        this.camera.near = Math.max(0.1, maxDim * 0.01);
+        this.camera.far = maxDim * 12;
+        this.camera.updateProjectionMatrix();
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+
+        this._lastText = text;
+        this._lastFont = font;
+        this._lastBaseColor = baseColor;
+        this._lastFontColor = fontColor;
+        this._lastOutlineColor = outlineColor;
+        this._lastParams = p;
+    }
+
+    /* ── Puck clicker: one switch, full-face cap ──
+       This is the shape family from PrintPal's Build-from-Scratch mode. Three
+       stacked pieces sharing one outline:
+
+           artwork  (colors.font)     raised letters
+           cap      (colors.outline)  full-face plate, inset inside the rim
+           housing  (colors.base)     hollow body, switch seat, optional hang tab
+
+       Six outlines. 'border' unions the glyphs and offsets outward so the body
+       is letter-shaped; the rest are preset silhouettes.
+
+       Built in opentype Y-down space and flipped once at the end via
+       keychainGroup.scale.y = -1, matching Word Art. Doing it per-mesh instead
+       would mean mirroring every glyph and recomputing normals.
+    */
+    _buildClickerPuck(text, font, baseColor, fontColor, outlineColor, p, layout) {
+        var MX = KeychainViewer.MX_SPEC;
+        function num(v, d) { var n = Number(v); return Number.isFinite(n) ? n : d; }
+
+        var size      = num(p.clicker_size, 38);
+        var border    = num(p.clicker_border, 3);
+        var wall      = num(p.clicker_wall, 2.4);
+        var floorThk  = num(p.clicker_floor_thk, 1.6);
+        var plateThk  = num(p.clicker_plate_thk, 3);
+        var latch     = Math.min(num(p.clicker_latch_ledge, MX.LATCH_LEDGE), plateThk - 0.4);
+        var bodyDepth = num(p.clicker_body_depth, MX.BODY_DEPTH);
+        var pinClear  = num(p.clicker_pin_clearance, 3.5);
+        var deck      = num(p.clicker_deck, 1.65);
+        var relief    = num(p.clicker_relief, 0.75);
+        // Artwork lift out of flush, in 0.8mm steps. 0 = inlaid flush, which is
+        // what makes the face-down print come out clean.
+        var lift      = Math.max(0, num(p.clicker_lift, 0));
+        var capGap    = num(p.clicker_cap_gap, 0.32);
+        var tol       = num(p.clicker_tolerance, 0.15);
+        var stemDepth = num(p.clicker_stem_depth, MX.STEM_DEPTH);
+        var cornerR   = num(p.clicker_corner_r, 6);
+        var explode   = num(p.clicker_explode, 0);
+        var seatWall  = 2.0;
+        var q         = 96;
+
+        // Keep the attachment as simple as the Classic keychain: no arbitrary
+        // angle or slide controls, just a fixed-strength hook on either corner.
+        // Older saved designs used true/yes, which migrate to the left hook.
+        var tabValue = p.clicker_tab;
+        var supportedTabs = ['left', 'right', 'tunnel-left', 'tunnel-right'];
+        var tabPosition = supportedTabs.indexOf(tabValue) !== -1
+            ? tabValue
+            : ((tabValue === true || tabValue === 'true' || tabValue === 'yes') ? 'left' : 'no');
+        var useTunnel = tabPosition === 'tunnel-left' || tabPosition === 'tunnel-right';
+        var useExternalHook = tabPosition === 'left' || tabPosition === 'right';
+        var attachmentSide = tabPosition.endsWith('right') ? 'right' : 'left';
+        var hookOuter = 5.5;
+        var hookInner = 3.0;
+        var hookClearance = 0.8;
+        var hookNeckWidth = 3.2;
+        var hookNeckInset = 1.5;
+        var tunnelRadius = 1.5;  // 3mm diameter
+        var tunnelLength = 20;
+
+        // ── Artwork: imported SVG/PNG if present, otherwise the typed text ──
+        // Imported artwork already arrives centred and scaled in millimetres with
+        // its own colours, so it bypasses the type-fitting entirely.
+        var artBodies = this._artwork;
+        var usingArt = !!(artBodies && artBodies.length);
+
+        var raw = (text || 'PRINT').replace(/\r/g, '');
+        if (!raw.trim()) raw = 'PRINT';
+
+        // Face available for artwork once the switch keepout and walls are taken
+        // out. PrintPal's own note: below about 28mm there is not much left.
+        var faceSpan = size - 2 * (wall + capGap);
+        var fitSpan  = Math.max(6, faceSpan * 0.82);
+        var isBorder = (layout === 'border');
+
+        // The switch seat has to fit inside the body. Requiring the full seat plus
+        // a wall each side is too greedy: the seat tower is clipped to the shell
+        // interior anyway, so its own wall can merge into the housing wall. What
+        // genuinely must fit is the switch body plus the housing wall.
+        var needSpan = MX.BODY + tol * 2 + wall * 2;
+
+        function boundsOf(list) {
+            var b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+            for (var i = 0; i < list.length; i++) {
+                var pts = list[i].extractPoints(10).shape;
+                for (var j = 0; j < pts.length; j++) {
+                    if (pts[j].x < b.minX) b.minX = pts[j].x;
+                    if (pts[j].x > b.maxX) b.maxX = pts[j].x;
+                    if (pts[j].y < b.minY) b.minY = pts[j].y;
+                    if (pts[j].y > b.maxY) b.maxY = pts[j].y;
+                }
+            }
+            return b;
+        }
+
+        var movedLetters = [];
+        var shiftGeo = { x: 0, y: 0 };
+        var fontSize = 30;
+
+        if (usingArt) {
+            // Flatten every colour body into one set of shapes for the silhouette.
+            for (var ab = 0; ab < artBodies.length; ab++) {
+                for (var as = 0; as < artBodies[ab].shapes.length; as++) {
+                    movedLetters.push(artBodies[ab].shapes[as]);
+                }
+            }
+            if (!movedLetters.length) return false;
+        } else {
+            var letterShapes = this._textToShapes(font, raw, fontSize, 1.05);
+            if (!letterShapes || letterShapes.length === 0) return false;
+
+            var b0 = boundsOf(letterShapes);
+            var w0 = Math.max(0.01, b0.maxX - b0.minX);
+            var h0 = Math.max(0.01, b0.maxY - b0.minY);
+
+            var fit;
+            if (isBorder) {
+                // Border mode follows the letters, so the letters themselves have to
+                // be tall enough for the switch. Sizing by width instead made a long
+                // name produce ~4mm letters, which then had to be dilated ~15mm to
+                // fit the seat — and repeated round offsetting is a morphological
+                // dilation, so every concavity washed out and it came back a pill.
+                var minLetterH = Math.max(1, needSpan - border * 2);
+                fit = Math.max(fitSpan / w0, minLetterH / h0);
+            } else {
+                fit = Math.min(fitSpan / w0, (fitSpan * 0.55) / h0);
+            }
+            fontSize = Math.max(6, fontSize * fit);
+            letterShapes = this._textToShapes(font, raw, fontSize, 1.05);
+            if (!letterShapes || letterShapes.length === 0) return false;
+
+            var b1 = boundsOf(letterShapes);
+            shiftGeo = { x: -(b1.minX + b1.maxX) / 2, y: -(b1.minY + b1.maxY) / 2 };
+
+            // Letters in their final position. Needed twice: to build the Border
+            // silhouette, and to cut the inlay pocket out of the cap face.
+            for (var mi = 0; mi < letterShapes.length; mi++) {
+                var mpts = letterShapes[mi].extractPoints(14);
+                var mv = [];
+                for (var mj = 0; mj < mpts.shape.length; mj++) {
+                    mv.push(new THREE.Vector2(mpts.shape[mj].x + shiftGeo.x,
+                                              mpts.shape[mj].y + shiftGeo.y));
+                }
+                var movedShape = new THREE.Shape(mv);
+                // Keep counters (the hole in an O or A) so the inlay reads correctly.
+                if (mpts.holes && mpts.holes.length) {
+                    for (var mh = 0; mh < mpts.holes.length; mh++) {
+                        var hv = [];
+                        for (var hk = 0; hk < mpts.holes[mh].length; hk++) {
+                            hv.push(new THREE.Vector2(mpts.holes[mh][hk].x + shiftGeo.x,
+                                                      mpts.holes[mh][hk].y + shiftGeo.y));
+                        }
+                        movedShape.holes.push(new THREE.Path(hv));
+                    }
+                }
+                movedLetters.push(movedShape);
+            }
+        }
+
+        // ── Outline ──
+        var outerShapes;
+        if (isBorder) {
+            outerShapes = letterSilhouette(movedLetters, border, CLICKER_ARC_TOL);
+        } else {
+            outerShapes = [this._clickerOutlineShape(layout, size, cornerR, q)];
+        }
+        if (!outerShapes || outerShapes.length === 0) return false;
+
+        // ── Guarantee the body can actually contain the switch ──
+        // Preset outlines (disk, pill, heart...) do not follow the text, so if the
+        // requested size is too small they get grown here.
+        //
+        // Border mode is deliberately NOT grown. Its type was already sized so the
+        // switch fits, and offsetting a letter silhouette outward is a
+        // morphological dilation: it erases the concavities between letters, so a
+        // few millimetres of growth turns "SAKTHIVEL" into a plain capsule.
+        var grew = 0;
+        if (!isBorder) {
+            for (var attempt = 0; attempt < 12; attempt++) {
+                var ob0 = boundsOf(outerShapes);
+                var span = Math.min(ob0.maxX - ob0.minX, ob0.maxY - ob0.minY);
+                if (span >= needSpan - 0.01) break;
+                var bump = Math.max(0.4, (needSpan - span) / 2);
+                grew += bump;
+                var grown = offsetShapes(outerShapes, bump, CLICKER_ARC_TOL);
+                if (!grown || grown.length === 0) break;
+                for (var gi = 0; gi < grown.length; gi++) grown[gi].holes = [];
+                outerShapes = grown;
+            }
+            if (grew > 0) {
+                console.info('Clicker outline grown by ' + grew.toFixed(1)
+                    + 'mm so the ' + MX.BODY + 'mm switch fits inside the body.');
+            }
+        } else {
+            var obB = boundsOf(outerShapes);
+            var spanB = Math.min(obB.maxX - obB.minX, obB.maxY - obB.minY);
+            if (spanB < needSpan - 0.5) {
+                console.warn('Border silhouette is ' + spanB.toFixed(1)
+                    + 'mm across its narrow axis but the switch needs '
+                    + needSpan.toFixed(1) + 'mm — increase the border width.');
+            }
+        }
+
+        // ── Keychain attachment anchor ──
+        // The external hook follows the generated outline. The corner tunnel is
+        // a 20mm horizontal bore centred on the rounded corner's arc centre, so
+        // its 45-degree axis exits through both adjacent housing walls.
+        var hookCentre = null;
+        var hookAnchor = null;
+        var hookNormal = null;
+        var tunnelSpec = null;
+        if (useExternalHook || useTunnel) {
+            var ob = boundsOf(outerShapes);
+            var mx = (ob.minX + ob.maxX) / 2;
+            var my = (ob.minY + ob.maxY) / 2;
+            if (useExternalHook) {
+                // The whole clicker is flipped on Y at finalisation, so minY is
+                // the visual top edge in the finished model. Find the silhouette's
+                // true support point along that corner diagonal; nearest-to-bounds
+                // can select a flat edge and bury most of the ring in rounded forms.
+                var cornerDirX = attachmentSide === 'right' ? 1 : -1;
+                var cornerDirY = -1;
+                var best = null;
+                var bestScore = -Infinity;
+                for (var hs = 0; hs < outerShapes.length; hs++) {
+                    var hookPts = outerShapes[hs].extractPoints(24).shape;
+                    for (var hp = 0; hp < hookPts.length; hp++) {
+                        var supportScore =
+                            (hookPts[hp].x - mx) * cornerDirX
+                            + (hookPts[hp].y - my) * cornerDirY;
+                        if (supportScore > bestScore) {
+                            bestScore = supportScore;
+                            best = hookPts[hp];
+                        }
+                    }
+                }
+                if (best) {
+                    var cornerDirLength = Math.sqrt(
+                        cornerDirX * cornerDirX + cornerDirY * cornerDirY
+                    );
+                    var normX = cornerDirX / cornerDirLength;
+                    var normY = cornerDirY / cornerDirLength;
+                    // Put the complete opening beyond the bevelled body, then
+                    // reconnect it with a reinforced neck into the silhouette.
+                    var push = hookOuter + hookClearance;
+                    hookCentre = {
+                        x: best.x + normX * push,
+                        y: best.y + normY * push,
+                    };
+                    hookAnchor = {
+                        x: best.x - normX * hookNeckInset,
+                        y: best.y - normY * hookNeckInset,
+                    };
+                    hookNormal = { x: normX, y: normY };
+                }
+            } else {
+                var spanW = ob.maxX - ob.minX;
+                var spanH = ob.maxY - ob.minY;
+                var cornerInset = Math.min(
+                    Math.max(tunnelRadius + wall, cornerR),
+                    spanW * 0.25,
+                    spanH * 0.25
+                );
+                tunnelSpec = {
+                    x: attachmentSide === 'right'
+                        ? ob.maxX - cornerInset
+                        : ob.minX + cornerInset,
+                    y: ob.minY + cornerInset,
+                    axisX: attachmentSide === 'right' ? -1 : 1,
+                    axisY: -1,
+                };
+            }
+        }
+
+        // ── Materials ──
+        var matHousing = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(baseColor), roughness: 0.34, metalness: 0.0,
+            clearcoat: 0.85, clearcoatRoughness: 0.12, side: THREE.DoubleSide,
+        });
+        this._applyFDMTexture(matHousing, p);
+        // Imported artwork carries colours from the file that know nothing about the
+        // cap they land on, so check they can be seen before committing.
+        var capHex = outlineColor || baseColor;
+        if (usingArt) {
+            var pickedCap = KeychainViewer._capForArtwork(capHex, artBodies);
+            if (pickedCap !== capHex) {
+                console.info('[clicker] cap ' + capHex + ' clashes with imported artwork; using '
+                    + pickedCap + ' so the graphic reads.');
+                capHex = pickedCap;
+            }
+        }
+        var matCap = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(capHex), roughness: 0.30,
+            metalness: 0.0, clearcoat: 0.92, clearcoatRoughness: 0.10, side: THREE.DoubleSide,
+        });
+        this._applyFDMTexture(matCap, p);
+        var matArt = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(fontColor), side: THREE.DoubleSide, toneMapped: false,
+        });
+
+        // ── Height chain, all from the verified switch geometry ──
+        // Under the plate: the 5.0mm body plus the pins, so the pins hang free
+        // above a solid floor. Above the plate: 10.2mm to the stem top, of which
+        // the last 3.7mm is the stem the cap socket swallows.
+        var towerH     = bodyDepth + pinClear;
+        var plateTopZ  = floorThk + towerH + plateThk;
+        var stemTopZ   = plateTopZ + MX.ABOVE_PLATE;
+        // Cap deck underside sits just above the stem top; the socket cut into the
+        // boss beneath it takes the stem.
+        var capUnderZ  = stemTopZ + 0.3 + explode;
+        // Keep the moving cap visibly proud of the fixed housing. Flush faces
+        // made the clicker read as one sealed box and hid the button travel.
+        var capReveal  = 0.8;
+        var housingH   = capUnderZ + deck - capReveal;
+
+        var housingGroup = new THREE.Group();
+
+        // Floor.
+        var floorGeo = new THREE.ExtrudeGeometry(outerShapes, {
+            depth: floorThk, bevelEnabled: true, bevelThickness: 0.4,
+            bevelSize: 0.4, bevelSegments: 3, curveSegments: 12,
+        });
+        housingGroup.add(new THREE.Mesh(floorGeo, matHousing));
+
+        // Keep the floor solid. The optional tunnel is subtracted only from the
+        // perimeter wall, leaving a protected base beneath the horizontal bore.
+        var innerBore = offsetShapes(outerShapes, -wall, CLICKER_ARC_TOL);
+        var ringShapes = (innerBore && innerBore.length)
+            ? subtractShapes(outerShapes, innerBore) : outerShapes;
+        var ringGeo = new THREE.ExtrudeGeometry(ringShapes, {
+            depth: Math.max(0.2, housingH - floorThk), bevelEnabled: false, curveSegments: 12,
+        });
+        ringGeo.translate(0, 0, floorThk);
+        var ringMesh = null;
+        if (tunnelSpec) {
+            try {
+                var tunnelGeo = new THREE.CylinderGeometry(
+                    tunnelRadius,
+                    tunnelRadius,
+                    tunnelLength,
+                    32,
+                    1,
+                    false
+                );
+                var tunnelAxis = new THREE.Vector3(
+                    tunnelSpec.axisX,
+                    tunnelSpec.axisY,
+                    0
+                ).normalize();
+                tunnelGeo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(
+                    new THREE.Vector3(0, 1, 0),
+                    tunnelAxis
+                ));
+                tunnelGeo.translate(
+                    tunnelSpec.x,
+                    tunnelSpec.y,
+                    floorThk + tunnelRadius + 1.4
+                );
+
+                var wallBrush = new Brush(ringGeo, matHousing);
+                var tunnelBrush = new Brush(tunnelGeo, matHousing);
+                wallBrush.updateMatrixWorld(true);
+                tunnelBrush.updateMatrixWorld(true);
+                var tunnelEvaluator = new Evaluator();
+                var tunnelResult = tunnelEvaluator.evaluate(
+                    wallBrush,
+                    tunnelBrush,
+                    SUBTRACTION
+                );
+                ringMesh = new THREE.Mesh(tunnelResult.geometry, matHousing);
+                tunnelGeo.dispose();
+            } catch (tunnelError) {
+                console.warn('[clicker] corner tunnel subtraction failed:', tunnelError);
+                ringMesh = new THREE.Mesh(ringGeo, matHousing);
+            }
+        } else {
+            ringMesh = new THREE.Mesh(ringGeo, matHousing);
+        }
+        housingGroup.add(ringMesh);
+
+        // Fixed 6mm opening with a 2.5mm radial wall, matching the Classic
+        // keychain ring. A short 3.2mm neck keeps the complete opening clear of
+        // rounded/bevelled bodies without weakening its connection to the shell.
+        if (hookCentre) {
+            var hookDisc = new THREE.Shape();
+            hookDisc.absarc(hookCentre.x, hookCentre.y, hookOuter, 0, Math.PI * 2, false);
+            var hookSolid = [hookDisc];
+            if (hookAnchor && hookNormal) {
+                var hookPerpX = -hookNormal.y;
+                var hookPerpY = hookNormal.x;
+                var hookHalfNeck = hookNeckWidth / 2;
+                var hookNeck = new THREE.Shape();
+                hookNeck.moveTo(
+                    hookCentre.x + hookPerpX * hookHalfNeck,
+                    hookCentre.y + hookPerpY * hookHalfNeck
+                );
+                hookNeck.lineTo(
+                    hookCentre.x - hookPerpX * hookHalfNeck,
+                    hookCentre.y - hookPerpY * hookHalfNeck
+                );
+                hookNeck.lineTo(
+                    hookAnchor.x - hookPerpX * hookHalfNeck,
+                    hookAnchor.y - hookPerpY * hookHalfNeck
+                );
+                hookNeck.lineTo(
+                    hookAnchor.x + hookPerpX * hookHalfNeck,
+                    hookAnchor.y + hookPerpY * hookHalfNeck
+                );
+                hookNeck.closePath();
+                var joinedHook = unionShapes(hookSolid, [hookNeck]);
+                if (joinedHook && joinedHook.length) hookSolid = joinedHook;
+            }
+            var hookHole = new THREE.Shape();
+            hookHole.absarc(hookCentre.x, hookCentre.y, hookInner, 0, Math.PI * 2, false);
+            var printableHook = subtractShapes(hookSolid, [hookHole]);
+            if (!printableHook || !printableHook.length) printableHook = hookSolid;
+            var hookGeo = new THREE.ExtrudeGeometry(printableHook, {
+                depth: 3.0,
+                bevelEnabled: true,
+                bevelThickness: 0.25,
+                bevelSize: 0.25,
+                bevelSegments: 2,
+                curveSegments: 24,
+            });
+            housingGroup.add(new THREE.Mesh(hookGeo, matHousing));
+        }
+
+        // Switch seat: a square tower standing on the floor, capped by the
+        // two-level latch plate. The tower is what holds the switch at the right
+        // height without a full-depth well.
+        var seatOut = MX.BODY + tol * 2 + seatWall * 2;
+        var seatIn  = MX.BODY + tol * 2;
+        function sq(w) {
+            var s = new THREE.Shape();
+            s.moveTo(-w / 2, -w / 2); s.lineTo(w / 2, -w / 2);
+            s.lineTo(w / 2, w / 2);   s.lineTo(-w / 2, w / 2);
+            s.lineTo(-w / 2, -w / 2); return s;
+        }
+        var towerRing = subtractShapes([sq(seatOut)], [sq(seatIn)]);
+        // Belt and braces: even after the outline has been grown, clip the seat to
+        // the shell interior so it can never burst through the body wall.
+        if (innerBore && innerBore.length) {
+            var towerClipped = intersectShapes(towerRing, innerBore);
+            if (towerClipped && towerClipped.length) towerRing = towerClipped;
+        }
+        var towerGeo = new THREE.ExtrudeGeometry(towerRing, {
+            depth: towerH, bevelEnabled: false, curveSegments: 4,
+        });
+        towerGeo.translate(0, 0, floorThk);
+        housingGroup.add(new THREE.Mesh(towerGeo, matHousing));
+
+        // Latch plate — identical two-level negative to the bar layout.
+        var cut = MX.CUTOUT + tol;
+        var half = cut / 2;
+        var seatPad = [sq(seatOut)];
+        if (innerBore && innerBore.length) {
+            var padClipped = intersectShapes(seatPad, innerBore);
+            if (padClipped && padClipped.length) seatPad = padClipped;
+        }
+        var upperCut = [sq(cut)];
+        var reliefOff = half - MX.RELIEF_INSET - MX.RELIEF_SPAN / 2;
+        function rc(w, h, oy) {
+            var s = new THREE.Shape();
+            s.moveTo(-w / 2, oy - h / 2); s.lineTo(w / 2, oy - h / 2);
+            s.lineTo(w / 2, oy + h / 2);  s.lineTo(-w / 2, oy + h / 2);
+            s.lineTo(-w / 2, oy - h / 2); return s;
+        }
+        var lowerCut = [
+            sq(cut),
+            rc(MX.TAB_WIDTH, cut + MX.TAB_DEPTH * 2, 0),
+            rc(cut + MX.RELIEF_DEPTH * 2, MX.RELIEF_SPAN, reliefOff),
+            rc(cut + MX.RELIEF_DEPTH * 2, MX.RELIEF_SPAN, -reliefOff),
+        ];
+        var lowerThk = plateThk - latch;
+        if (lowerThk > 0.05) {
+            var lowGeo = new THREE.ExtrudeGeometry(subtractShapes(seatPad, lowerCut), {
+                depth: lowerThk, bevelEnabled: false, curveSegments: 4,
+            });
+            lowGeo.translate(0, 0, floorThk + towerH);
+            housingGroup.add(new THREE.Mesh(lowGeo, matHousing));
+        }
+        var upGeo = new THREE.ExtrudeGeometry(subtractShapes(seatPad, upperCut), {
+            depth: latch, bevelEnabled: true, bevelThickness: MX.CHAMFER,
+            bevelSize: MX.CHAMFER, bevelSegments: 2, curveSegments: 4,
+        });
+        upGeo.translate(0, 0, floorThk + towerH + lowerThk);
+        housingGroup.add(new THREE.Mesh(upGeo, matHousing));
+
+        this.keychainGroup.add(housingGroup);
+        this._clickerHousing = housingGroup;
+
+        // ── Cap: full-face plate inset inside the rim ──
+        var capGroup = new THREE.Group();
+        var capOuter = offsetShapes(outerShapes, -(wall + capGap), CLICKER_ARC_TOL);
+        if (!capOuter || capOuter.length === 0) capOuter = outerShapes;
+
+        // ── Cap face with the artwork INLAID, not sitting on top ──
+        // The artwork occupies the same Z band as the cap's top layers, as a
+        // separate solid body beside the cap colour. That is what lets the cap be
+        // printed face-down: the colour change happens once, at a layer boundary,
+        // with no stepping across the graphic and no overhang under the letters.
+        //
+        // 'Lift' raises the artwork out of flush in 0.8mm steps, matching the
+        // Raise control in the reference tool (and Kishok's own lift step).
+        var inlay = Math.max(0, Math.min(relief, deck - 0.4));
+        var bandZ = capUnderZ + deck - inlay;
+
+        if (deck - inlay > 0.05) {
+            var plateGeo = new THREE.ExtrudeGeometry(capOuter, {
+                depth: deck - inlay, bevelEnabled: true, bevelThickness: 0.3,
+                bevelSize: 0.3, bevelSegments: 2, curveSegments: 12,
+            });
+            plateGeo.translate(0, 0, capUnderZ);
+            capGroup.add(new THREE.Mesh(plateGeo, matCap));
+        }
+
+        if (inlay > 0.05 && movedLetters.length) {
+            // Top band in the cap colour, with the artwork pocket removed.
+            var bandShapes = subtractShapes(capOuter, movedLetters);
+            if (bandShapes && bandShapes.length) {
+                var bandGeo = new THREE.ExtrudeGeometry(bandShapes, {
+                    depth: inlay, bevelEnabled: false, curveSegments: 12,
+                });
+                bandGeo.translate(0, 0, bandZ);
+                capGroup.add(new THREE.Mesh(bandGeo, matCap));
+            }
+
+            if (usingArt) {
+                // One mesh per imported colour, each with its own material, so the
+                // 3MF export gives the slicer a filament slot per colour rather
+                // than one merged body.
+                for (var ai = 0; ai < artBodies.length; ai++) {
+                    var body = artBodies[ai];
+                    if (!body.shapes || !body.shapes.length) continue;
+                    var bodyMat = new THREE.MeshBasicMaterial({
+                        color: new THREE.Color(body.color),
+                        side: THREE.DoubleSide,
+                        toneMapped: false,
+                    });
+                    var bodyGeo = new THREE.ExtrudeGeometry(body.shapes, {
+                        depth: inlay + lift, bevelEnabled: false, curveSegments: 12,
+                    });
+                    bodyGeo.translate(0, 0, bandZ);
+                    capGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+                }
+            } else {
+                // The typed text filling that pocket, flush with the face.
+                var artGeo = new THREE.ExtrudeGeometry(movedLetters, {
+                    depth: inlay + lift, bevelEnabled: false, curveSegments: 12,
+                });
+                artGeo.translate(0, 0, bandZ);
+                capGroup.add(new THREE.Mesh(artGeo, matArt));
+            }
+        } else {
+            // No artwork: plain cap face.
+            var soloGeo = new THREE.ExtrudeGeometry(capOuter, {
+                depth: Math.max(0.4, inlay), bevelEnabled: false, curveSegments: 12,
+            });
+            soloGeo.translate(0, 0, bandZ);
+            capGroup.add(new THREE.Mesh(soloGeo, matCap));
+        }
+
+        // Stem socket in a boss under the deck.
+        var bossH = stemDepth + 1.2;
+        var bossD = MX.STEM_L + 3.4;
+        var sw = MX.STEM_W + tol * 2;
+        var sl = MX.STEM_L + tol * 2;
+        var socket = unionShapes([rc(sw, sl, 0)], [rc(sl, sw, 0)]);
+        var bossRing = subtractShapes([sq(bossD)], socket);
+        var bossGeo = new THREE.ExtrudeGeometry(bossRing, {
+            depth: bossH, bevelEnabled: false, curveSegments: 4,
+        });
+        bossGeo.translate(0, 0, capUnderZ - bossH);
+        capGroup.add(new THREE.Mesh(bossGeo, matCap));
+
+        // Anti-tip skirt. Without it a 4.1mm stem is the only thing locating a
+        // 38mm cap and it rocks under a thumb.
+        var skirtOut = offsetShapes(capOuter, -0.2, CLICKER_ARC_TOL);
+        var skirtIn = (skirtOut && skirtOut.length) ? offsetShapes(skirtOut, -1.4, CLICKER_ARC_TOL) : null;
+        if (skirtOut && skirtOut.length && skirtIn && skirtIn.length) {
+            // Long enough to stay engaged through the full 4mm of travel, so the
+            // cap cannot rock at the bottom of the stroke.
+            var skirtH = Math.min(MX.TRAVEL + 2.5, 6.5);
+            if (skirtH > 1) {
+                var skirtShapes = subtractShapes(skirtOut, skirtIn);
+                var skirtGeo = new THREE.ExtrudeGeometry(skirtShapes, {
+                    depth: skirtH + CLICKER_OVERLAP, bevelEnabled: false, curveSegments: 12,
+                });
+                skirtGeo.translate(0, 0, capUnderZ - skirtH);
+                capGroup.add(new THREE.Mesh(skirtGeo, matCap));
+            }
+        }
+
+        this.keychainGroup.add(capGroup);
+        this._clickerCaps = capGroup;
+
+        // ── Finalise (engine convention: single Y flip, centre, frame) ──
+        this.keychainGroup.scale.y = -1;
+
+        var box = new THREE.Box3().setFromObject(this.keychainGroup);
+        var ctr = box.getCenter(new THREE.Vector3());
+        var sz = box.getSize(new THREE.Vector3());
+        this.keychainGroup.position.sub(ctr);
+
+        this.keychainGroup.traverse(function (c) {
+            if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+        });
+        if (this.shadowPlane) this.shadowPlane.position.y = -sz.y / 2 - 0.15;
+
+        this.scene.add(this.keychainGroup);
+
+        var maxDim = Math.max(sz.x, sz.y, sz.z);
+        this.camera.position.set(0, maxDim * 0.55, maxDim * 1.85);
+        this.camera.near = Math.max(0.1, maxDim * 0.01);
+        this.camera.far = maxDim * 12;
+        this.camera.updateProjectionMatrix();
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+        return true;
+    }
+
+    /* ── Artwork keychain ──
+       A keychain whose graphic is an imported logo instead of typed text.
+
+       This reuses the letter-silhouette machinery rather than inventing a second
+       one: the operation that turns "SAKTHIVEL" into a single bordered outline is
+       the same operation that turns a logo's colour regions into a plate which
+       follows its shape. Union the regions, fill the counters, offset outward.
+
+       The stack deliberately matches Classic Keychain's fixed 6mm — 3mm base,
+       1.5mm rim, 1.5mm artwork — so it prints on the same profile the operator
+       already has dialled in. Artwork sits proud here rather than flush, which is
+       the opposite of the clicker cap: the cap is printed face-down so a flush
+       inlay gives one clean colour change, whereas a keychain prints face-up and
+       raised artwork needs no colour change mid-layer at all.
+    */
+    _buildArtworkKeychain(baseColor, outlineColor, p) {
+        function num(v, d) { var n = Number(v); return Number.isFinite(n) ? n : d; }
+
+        var bodies = this._artwork;
+        if (!bodies || !bodies.length) return false;
+
+        var all = [];
+        for (var bi = 0; bi < bodies.length; bi++) {
+            var bs = bodies[bi].shapes || [];
+            for (var si = 0; si < bs.length; si++) all.push(bs[si]);
+        }
+        if (!all.length) return false;
+
+        var border  = num(p.artwork_border, 3.0);
+        var baseD   = num(p.base && p.base.depth, 3.0);
+        var rimD    = num(p.outline && p.outline.depth, 1.5);
+        var artD    = num(p.font && p.font.depth, 1.5);
+
+        // Plate that follows the logo, with an even border all round.
+        var plate = letterSilhouette(all, border, CLICKER_ARC_TOL);
+        if (!plate || !plate.length) return false;
+
+        var baseMat = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(baseColor), roughness: 0.32, metalness: 0.0,
+            clearcoat: 0.85, clearcoatRoughness: 0.12, side: THREE.DoubleSide,
+        });
+        this._applyFDMTexture(baseMat, p);
+        var rimMat = new THREE.MeshPhysicalMaterial({
+            color: new THREE.Color(outlineColor || baseColor), roughness: 0.30,
+            metalness: 0.0, clearcoat: 0.9, clearcoatRoughness: 0.1, side: THREE.DoubleSide,
+        });
+        this._applyFDMTexture(rimMat, p);
+
+        // Base plate.
+        var baseGeo = new THREE.ExtrudeGeometry(plate, {
+            depth: baseD, bevelEnabled: false, curveSegments: 12,
+        });
+        this.keychainGroup.add(new THREE.Mesh(baseGeo, baseMat));
+
+        // Rim: the same plate slightly inset, so the base reads as an edge round it.
+        var inset = offsetShapes(plate, -0.8, CLICKER_ARC_TOL);
+        var rimShapes = (inset && inset.length) ? inset : plate;
+        var rimGeo = new THREE.ExtrudeGeometry(rimShapes, {
+            depth: rimD, bevelEnabled: false, curveSegments: 12,
+        });
+        rimGeo.translate(0, 0, baseD);
+        this.keychainGroup.add(new THREE.Mesh(rimGeo, rimMat));
+
+        // Artwork, one mesh per colour so 3MF hands the slicer a filament slot each.
+        // Basic material for the same reason the small raised glyphs use it: under
+        // ACES tone mapping a saturated filament colour darkens towards black.
+        for (var ai = 0; ai < bodies.length; ai++) {
+            var body = bodies[ai];
+            if (!body.shapes || !body.shapes.length) continue;
+            var artGeo = new THREE.ExtrudeGeometry(body.shapes, {
+                depth: artD, bevelEnabled: false, curveSegments: 12,
+            });
+            artGeo.translate(0, 0, baseD + rimD);
+            this.keychainGroup.add(new THREE.Mesh(artGeo, new THREE.MeshBasicMaterial({
+                color: new THREE.Color(body.color),
+                side: THREE.DoubleSide,
+                toneMapped: false,
+            })));
+        }
+
+        // ── Hang ring ──
+        // Placed against the plate's own outline rather than its bounding box, so
+        // it meets solid material on a concave silhouette instead of floating off
+        // a corner. Walk the plate points and take the one nearest the top-left.
+        var ringOuter = num(p.ring && p.ring.outerRadius, 5.5);
+        var ringInner = num(p.ring && p.ring.innerRadius, 3.0);
+        var pb = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+        var pts = [];
+        for (var pi = 0; pi < plate.length; pi++) {
+            var pp = plate[pi].extractPoints(12).shape;
+            for (var pj = 0; pj < pp.length; pj++) {
+                pts.push(pp[pj]);
+                if (pp[pj].x < pb.minX) pb.minX = pp[pj].x;
+                if (pp[pj].x > pb.maxX) pb.maxX = pp[pj].x;
+                if (pp[pj].y < pb.minY) pb.minY = pp[pj].y;
+                if (pp[pj].y > pb.maxY) pb.maxY = pp[pj].y;
+            }
+        }
+        // Y-down space, so the visual top of the model is minY.
+        var anchor = (p.ringPosition === 'right')
+            ? { x: pb.maxX, y: pb.minY }
+            : { x: pb.minX, y: pb.minY };
+        var best = null, bestD = Infinity;
+        for (var qi = 0; qi < pts.length; qi++) {
+            var dx = pts[qi].x - anchor.x, dy = pts[qi].y - anchor.y;
+            var d2 = dx * dx + dy * dy;
+            if (d2 < bestD) { bestD = d2; best = pts[qi]; }
+        }
+        if (best) {
+            var ringShape = new THREE.Shape();
+            ringShape.absarc(0, 0, ringOuter, 0, Math.PI * 2, false);
+            var hole = new THREE.Path();
+            hole.absarc(0, 0, ringInner, 0, Math.PI * 2, true);
+            ringShape.holes.push(hole);
+            var ringGeo = new THREE.ExtrudeGeometry(ringShape, {
+                depth: baseD, bevelEnabled: false, curveSegments: 24,
+            });
+            // Pull the ring inward along the diagonal so it overlaps the plate and
+            // fuses to it instead of touching at a tangent point.
+            var cx = (pb.minX + pb.maxX) / 2, cy = (pb.minY + pb.maxY) / 2;
+            var vx = cx - best.x, vy = cy - best.y;
+            var vl = Math.max(0.001, Math.sqrt(vx * vx + vy * vy));
+            var pull = ringOuter * 0.55;
+            ringGeo.translate(best.x + (vx / vl) * pull, best.y + (vy / vl) * pull, 0);
+            this.keychainGroup.add(new THREE.Mesh(ringGeo, baseMat));
+        }
+
+        // ── Finalise (engine convention: single Y flip, centre, frame) ──
+        this.keychainGroup.scale.y = -1;
+
+        var box = new THREE.Box3().setFromObject(this.keychainGroup);
+        var ctr = box.getCenter(new THREE.Vector3());
+        var sz = box.getSize(new THREE.Vector3());
+        this.keychainGroup.position.sub(ctr);
+
+        this.keychainGroup.traverse(function (c) {
+            if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+        });
+        if (this.shadowPlane) this.shadowPlane.position.y = -sz.y / 2 - 0.15;
+
+        this.scene.add(this.keychainGroup);
+
+        var maxDim = Math.max(sz.x, sz.y, sz.z);
+        this.camera.position.set(0, maxDim * 0.35, maxDim * 1.9);
+        this.camera.near = Math.max(0.1, maxDim * 0.01);
+        this.camera.far = maxDim * 12;
+        this.camera.updateProjectionMatrix();
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+        return true;
+    }
+
+    /** Preset puck silhouettes, in opentype Y-down space. */
+    _clickerOutlineShape(layout, size, cornerR, q) {
+        var r = size / 2;
+        if (layout === 'disk') {
+            // Explicit polygon rather than absarc: this way the smoothness is set
+            // here and does not depend on each extrude's curveSegments.
+            var dpts = [];
+            var dn = Math.max(48, q);
+            for (var di = 0; di < dn; di++) {
+                var da = (di / dn) * Math.PI * 2;
+                dpts.push(new THREE.Vector2(Math.cos(da) * r, Math.sin(da) * r));
+            }
+            return new THREE.Shape(dpts);
+        }
+        if (layout === 'hex') {
+            var pts = [];
+            for (var i = 0; i < 6; i++) {
+                var a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+                pts.push(new THREE.Vector2(Math.cos(a) * r, Math.sin(a) * r));
+            }
+            return new THREE.Shape(pts);
+        }
+        if (layout === 'heart') {
+            // makeHeartShape is already authored in the Y-down space used by the
+            // clicker builder. The final group flip turns that into an upright
+            // heart while also making the font readable. It is wider than it is
+            // tall (about 22:16), so normalise it or a 38mm "longest side" would
+            // come out 53mm across.
+            var raw = KeychainViewer.makeHeartShape(0, -size / 2, size);
+            var hp = raw.extractPoints(28).shape;
+            var hminX = Infinity, hmaxX = -Infinity, hminY = Infinity, hmaxY = -Infinity;
+            for (var hi = 0; hi < hp.length; hi++) {
+                if (hp[hi].x < hminX) hminX = hp[hi].x;
+                if (hp[hi].x > hmaxX) hmaxX = hp[hi].x;
+                if (hp[hi].y < hminY) hminY = hp[hi].y;
+                if (hp[hi].y > hmaxY) hmaxY = hp[hi].y;
+            }
+            var hw = hmaxX - hminX, hh = hmaxY - hminY;
+            var k = size / Math.max(hw, hh, 0.001);
+            var hcx = (hminX + hmaxX) / 2, hcy = (hminY + hmaxY) / 2;
+            var norm = [];
+            for (var hj = 0; hj < hp.length; hj++) {
+                norm.push(new THREE.Vector2((hp[hj].x - hcx) * k, (hp[hj].y - hcy) * k));
+            }
+            return new THREE.Shape(norm);
+        }
+        var w = size;
+        var h = (layout === 'pill') ? size * 0.55 : size;
+        var rr = (layout === 'pill') ? h / 2 : Math.max(0.5, Math.min(cornerR, w / 2, h / 2));
+        var s = new THREE.Shape();
+        s.moveTo(-w / 2 + rr, -h / 2);
+        s.lineTo(w / 2 - rr, -h / 2);
+        s.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + rr);
+        s.lineTo(w / 2, h / 2 - rr);
+        s.quadraticCurveTo(w / 2, h / 2, w / 2 - rr, h / 2);
+        s.lineTo(-w / 2 + rr, h / 2);
+        s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - rr);
+        s.lineTo(-w / 2, -h / 2 + rr);
+        s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + rr, -h / 2);
+        return s;
+    }
+
     calculateMeshVolume(mesh) {
         mesh.updateMatrixWorld(true);
         var geometry = mesh.geometry;
@@ -5098,6 +6495,324 @@ export class KeychainViewer {
         document.body.removeChild(a);
     }
 
+    /* ── Artwork import: SVG or raster → flat colour bodies ──
+       Both routes land on the same shape:
+
+           [{ color: '#RRGGBB', shapes: THREE.Shape[] }, ...]
+
+       ordered dominant colour first, so the clicker cap, the keychain layers and
+       the 3MF filament slots all consume one representation.
+
+       SVG keeps its own fills and needs no tracing — it is already vector, which
+       is why icons come out crisp. Raster has to be quantised and traced, which
+       is why flat art works and photographs do not.
+    */
+    static async artworkFromFile(file, targetMm = 30, colourCount = 4, themeHex = null) {
+        const name = (file && file.name ? file.name : '').toLowerCase();
+        const isSvg = name.endsWith('.svg') || (file && file.type === 'image/svg+xml');
+        return isSvg
+            ? KeychainViewer._artworkFromSVGText(await file.text(), targetMm, themeHex)
+            : KeychainViewer._artworkFromRaster(file, targetMm, colourCount);
+    }
+
+    /** SVG path data is already vector; group by fill colour and keep the curves. */
+    static _artworkFromSVGText(svgText, targetMm, themeHex) {
+        const loader = new SVGLoader();
+        const data = loader.parse(svgText);
+
+        // Keep document order. SVG paints back-to-front, so a path later in the
+        // file covers the ones before it. Grouping by colour up front would throw
+        // that ordering away, and the ordering is exactly what resolves overlaps.
+        const layers = [];
+        for (const path of data.paths) {
+            const style = path.userData && path.userData.style ? path.userData.style : {};
+            const rawFill = String(style.fill == null ? '' : style.fill).trim();
+            // A path with fill 'none' is a stroke-only outline; there is nothing to
+            // extrude from it, so skip rather than emit a zero-area body.
+            if (rawFill === 'none') continue;
+            const shapes = SVGLoader.createShapes(path);
+            if (!shapes.length) continue;
+            layers.push({
+                color: KeychainViewer._normaliseHex(rawFill, themeHex),
+                shapes,
+            });
+        }
+        if (!layers.length) return [];
+
+        // ── Resolve overlaps in painter's order ──
+        // On screen an SVG can happily stack a yellow circle over a blue square:
+        // the top one simply wins. A print cannot — two solids would occupy the
+        // same millimetres, which shows up as z-fighting in the preview and as a
+        // coin-flip between colours in the slicer. Subtracting everything painted
+        // above each layer makes the bodies mutually exclusive, which is what the
+        // raster path already gets for free from per-pixel quantisation.
+        for (let i = 0; i < layers.length - 1; i++) {
+            let remaining = layers[i].shapes;
+            for (let j = i + 1; j < layers.length && remaining.length; j++) {
+                remaining = subtractShapes(remaining, layers[j].shapes, true);
+            }
+            layers[i].shapes = remaining;
+        }
+
+        // Merge same-coloured layers only now, because one filament slot should be
+        // one body regardless of how many separate paths contributed to it.
+        const byColour = new Map();
+        for (const layer of layers) {
+            if (!layer.shapes.length) continue;
+            if (!byColour.has(layer.color)) byColour.set(layer.color, []);
+            byColour.get(layer.color).push(...layer.shapes);
+        }
+        if (!byColour.size) return [];
+
+        const bodies = [...byColour.entries()].map(([color, shapes]) => ({ color, shapes }));
+        return KeychainViewer._fitArtwork(bodies, targetMm);
+    }
+
+    /** Raster → quantise → trace → contours → shapes. */
+    static async _artworkFromRaster(file, targetMm, colourCount) {
+        const { traceImage, fitRegionsToSize } = await import('./artwork.js?v=a3');
+
+        const bitmap = await createImageBitmap(file);
+        // Cap the working resolution: tracing cost is per-pixel and a phone photo
+        // at full size buys nothing but seconds.
+        const maxSide = 512;
+        const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+        const w = Math.max(1, Math.round(bitmap.width * scale));
+        const h = Math.max(1, Math.round(bitmap.height * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(bitmap, 0, 0, w, h);
+        const { data } = ctx.getImageData(0, 0, w, h);
+        if (bitmap.close) bitmap.close();
+
+        const traced = traceImage(data, w, h, { colourCount });
+        if (!traced.length) return [];
+        const mm = fitRegionsToSize(traced, w, h, targetMm);
+
+        return mm.map((body) => ({
+            color: body.color,
+            shapes: body.regions.map((region) => {
+                const shape = new THREE.Shape(
+                    region.outer.map(([x, y]) => new THREE.Vector2(x, y))
+                );
+                for (const hole of region.holes) {
+                    shape.holes.push(new THREE.Path(
+                        hole.map(([x, y]) => new THREE.Vector2(x, y))
+                    ));
+                }
+                return shape;
+            }),
+        }));
+    }
+
+    /* Pick a cap colour that the imported artwork can actually be seen against.
+
+       Typed text uses the artwork colour slot, so the user picking black text on a
+       black cap is their own decision. Imported artwork is different: the colours
+       come out of the file, the user never chose them, and a black icon dropped on
+       a black cap silently disappears — in the preview and in the print.
+
+       Only overridden when the contrast is genuinely too low to read. Above the
+       threshold the user's cap choice stands untouched.
+    */
+    static _capForArtwork(capHex, bodies) {
+        if (!bodies || !bodies.length) return capHex;
+
+        const MIN_RATIO = 1.6;
+        let worst = Infinity;
+        for (const body of bodies) {
+            const r = contrastRatio(capHex, body.color);
+            if (r < worst) worst = r;
+        }
+        if (worst >= MIN_RATIO) return capHex;
+
+        // Something clashes. Choose whichever neutral is furthest from the artwork
+        // as a whole, so a mostly-dark icon gets a light cap and vice versa.
+        const mean = bodies.reduce((sum, b) => sum + srgbLuminance(b.color), 0) / bodies.length;
+        return mean < 0.35 ? '#F2F2F2' : '#1A1A1A';
+    }
+
+    /* Resolve an SVG fill to a concrete hex.
+
+       'currentColor' is the interesting case. It defers to the CSS cascade, which
+       does not exist outside a browser layout — and it is not an edge case: Feather,
+       Lucide and Bootstrap Icons use it on every path, because it is how a
+       monochrome icon lets its consumer choose the colour. THREE.Color does not
+       recognise the keyword and silently yields white, which is both wrong and
+       invisible on a light cap. Since it means 'the consumer picks', the honest
+       resolution is the artwork colour slot the user already chose.
+    */
+    static _normaliseHex(fill, themeHex) {
+        const raw = String(fill == null ? '' : fill).trim();
+        const deferred = !raw
+            || raw === 'currentColor'
+            || raw === 'inherit'
+            || raw === 'context-fill'
+            || raw === 'transparent';
+        const source = deferred ? (themeHex || '#202020') : raw;
+
+        let c;
+        try {
+            c = new THREE.Color(source);
+        } catch (e) {
+            // Unknown keyword or malformed function notation. Fall back rather than
+            // let one bad path abort the whole import.
+            c = new THREE.Color(themeHex || '#202020');
+        }
+        return '#' + c.getHexString().toUpperCase();
+    }
+
+    /** Centre artwork on the origin and scale its longest side to targetMm. */
+    static _fitArtwork(bodies, targetMm) {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const body of bodies) {
+            for (const shape of body.shapes) {
+                for (const p of shape.extractPoints(10).shape) {
+                    if (p.x < minX) minX = p.x;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y < minY) minY = p.y;
+                    if (p.y > maxY) maxY = p.y;
+                }
+            }
+        }
+        if (!Number.isFinite(minX)) return bodies;
+
+        const w = Math.max(0.001, maxX - minX);
+        const h = Math.max(0.001, maxY - minY);
+        const k = targetMm / Math.max(w, h);
+        const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+
+        const remap = (pts) => pts.map((p) => new THREE.Vector2((p.x - cx) * k, (p.y - cy) * k));
+        return bodies.map((body) => ({
+            color: body.color,
+            shapes: body.shapes.map((shape) => {
+                const pts = shape.extractPoints(12);
+                const out = new THREE.Shape(remap(pts.shape));
+                for (const hole of (pts.holes || [])) {
+                    out.holes.push(new THREE.Path(remap(hole)));
+                }
+                return out;
+            }),
+        }));
+    }
+
+    /** Attach imported artwork; pass null to go back to text. */
+    setArtwork(bodies) {
+        this._artwork = (bodies && bodies.length) ? bodies : null;
+        return this._artwork;
+    }
+
+    getArtwork() {
+        return this._artwork || null;
+    }
+
+    /* ── Export 3MF with colour data ──
+       STL discards colour, so a multi-colour cap arrives in the slicer as one grey
+       lump the operator has to reassign by hand. 3MF keeps each colour as its own
+       object tagged with a material, which Bambu Studio / Orca / PrusaSlicer map
+       straight onto filament slots.
+
+       Bodies are grouped by material, because that is what a filament slot is.
+    */
+    async exportThreeMF(filename) {
+        if (!this.keychainGroup) return null;
+        this.scene.updateMatrixWorld(true);
+
+        const { buildThreeMF } = await import('./threemf.js?v=t2');
+
+        // Group meshes by material colour; each group becomes one filament slot.
+        const groups = new Map();
+        this.keychainGroup.traverse((child) => {
+            if (!child.isMesh || !child.geometry) return;
+            if (child.userData && child.userData.isPreviewOnly) return;
+            const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+            const hex = mat && mat.color ? '#' + mat.color.getHexString().toUpperCase() : '#CCCCCC';
+            if (!groups.has(hex)) groups.set(hex, []);
+            groups.get(hex).push(child);
+        });
+        if (!groups.size) return null;
+
+        // Name the slots after the role each colour plays, so the slicer's part
+        // list is readable rather than "Part 1 / Part 2 / Part 3".
+        const roleFor = (hex) => {
+            if (this._lastBaseColor && hex === '#' + new THREE.Color(this._lastBaseColor).getHexString().toUpperCase()) return 'Housing';
+            if (this._lastOutlineColor && hex === '#' + new THREE.Color(this._lastOutlineColor).getHexString().toUpperCase()) return 'Cap';
+            if (this._lastFontColor && hex === '#' + new THREE.Color(this._lastFontColor).getHexString().toUpperCase()) return 'Artwork';
+            return 'Part';
+        };
+
+        const bodies = [];
+        let n = 0;
+        for (const [hex, meshes] of groups) {
+            n++;
+            const role = roleFor(hex);
+            const geom = KeychainViewer._collectWorldTriangles(meshes);
+            if (!geom.triangles.length) continue;
+            bodies.push({
+                name: role === 'Part' ? `Part ${n}` : role,
+                color: hex,
+                positions: geom.positions,
+                triangles: geom.triangles,
+            });
+        }
+        if (!bodies.length) return null;
+
+        const bytes = buildThreeMF(bodies);
+        const blob = new Blob([bytes], { type: 'model/3mf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename || 'kootzy-clicker.3mf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        return { slots: bodies.map((b) => ({ name: b.name, color: b.color })), bytes: bytes.length };
+    }
+
+    /**
+     * Flatten a set of meshes into world-space vertices and triangle indices.
+     *
+     * The viewer flips the whole model with scale.y = -1, which inverts triangle
+     * winding. Slicers read winding to tell inside from outside, so any mesh whose
+     * world matrix has a negative determinant needs two corners swapped back or
+     * the exported solid reads inside-out.
+     */
+    static _collectWorldTriangles(meshes) {
+        const positions = [];
+        const triangles = [];
+        const v = new THREE.Vector3();
+
+        for (const mesh of meshes) {
+            mesh.updateMatrixWorld(true);
+            const geom = mesh.geometry;
+            const attr = geom && geom.attributes ? geom.attributes.position : null;
+            if (!attr) continue;
+
+            const flip = mesh.matrixWorld.determinant() < 0;
+            const base = positions.length / 3;
+
+            for (let i = 0; i < attr.count; i++) {
+                v.fromBufferAttribute(attr, i).applyMatrix4(mesh.matrixWorld);
+                positions.push(v.x, v.y, v.z);
+            }
+
+            const index = geom.index;
+            const count = index ? index.count : attr.count;
+            for (let i = 0; i < count; i += 3) {
+                let a = index ? index.getX(i) : i;
+                let b = index ? index.getX(i + 1) : i + 1;
+                let c = index ? index.getX(i + 2) : i + 2;
+                if (flip) { const t = b; b = c; c = t; }
+                triangles.push(base + a, base + b, base + c);
+            }
+        }
+        return { positions, triangles };
+    }
+
     /* ── Download STL (For 3D Printing) ── */
     // Return the exact printable Classic Keychain STL without triggering a
     // download. The local Kiri:Moto benchmark consumes this binary directly.
@@ -5143,6 +6858,14 @@ export class KeychainViewer {
         }
 
         let target = this.keychainGroup;
+        if (part && this._lastParams && this._lastParams.productType === 'fidget_clicker') {
+            // Housing and keycaps print as separate parts; the switch goes between.
+            if ((part === 'housing' || part === 'back' || part === 'box') && this._clickerHousing) {
+                target = this._clickerHousing;
+            } else if ((part === 'cap' || part === 'caps' || part === 'cover') && this._clickerCaps) {
+                target = this._clickerCaps;
+            }
+        }
         if (part && this._lastParams && (this._lastParams.productType === 'led_word_art' || this._lastParams.productType === 'led_word_stand')) {
             if ((part === 'back' || part === 'housing' || part === 'box') && this._ledBackPanel) {
                 target = this._ledBackPanel;

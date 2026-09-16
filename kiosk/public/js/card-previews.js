@@ -321,7 +321,11 @@
 
     function init() {
         var cards = document.querySelectorAll('.product-card[data-type]');
+        var reelMode = new URLSearchParams(window.location.search).get('previewReel');
+        var classicReelPilot = reelMode === 'classic' || reelMode === 'all';
         cards.forEach(function (card) {
+            if (classicReelPilot && card.dataset.type === 'keychain') return;
+            if (reelMode === 'all' && ['wordart', 'desk_organizer'].includes(card.dataset.type)) return;
             var cfg = CONFIG[card.dataset.type];
             if (!cfg) return;
             loadLineFonts(cfg.fonts)

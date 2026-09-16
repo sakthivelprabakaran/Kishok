@@ -174,6 +174,7 @@ const sizeSlidersByType = {
   flower_keychain: ['adminScaleFactor','adminFlowerBaseRadius','adminFlowerNumPetals','adminFlowerRingOuterD'],
   desk_organizer:  ['adminScaleFactor','adminOrganizerWidth','adminOrganizerDepth','adminOrganizerHeight','adminOrganizerWallThk'],
   name_beads:      ['adminScaleFactor','adminBeadSize','adminBeadHole','adminBeadSpacing','adminBeadLetterHeight'],
+  fidget_clicker:  ['adminClickerSize','adminClickerBorder','adminClickerPlateThk','adminClickerLatchLedge','adminClickerBodyDepth','adminClickerPinClearance','adminClickerFloorThk','adminClickerWall','adminClickerDeck','adminClickerRelief','adminClickerCapGap','adminClickerStemDepth','adminClickerTolerance'],
   bubble_keychain: ['adminScaleFactor'],
   tilekey:         ['adminScaleFactor'],
   linked_initials:['adminScaleFactor'],

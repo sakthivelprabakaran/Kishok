@@ -1,9 +1,9 @@
-/* =========================================
+﻿/* =========================================
    KOOTZY KIOSK — MAIN APP LOGIC
    Three.js Integration + Cost Engine + UPI
    ========================================= */
 
-import { KeychainViewer } from './viewer3d.js?v=wa19';
+import { KeychainViewer } from './viewer3d.js?v=wa37';
 import * as Cart from './cart.js?v=k1';
 import * as Pricing from './pricing.js?v=k1';
 import * as BatchOffers from './batch-offers.js?v=k1';

@@ -26,7 +26,7 @@ const el = {
     error:    document.getElementById('coError'),
 };
 
-import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=k1';
+import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=k2';
 
 const rupees = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 const digits = (s) => String(s || '').replace(/\D/g, '');

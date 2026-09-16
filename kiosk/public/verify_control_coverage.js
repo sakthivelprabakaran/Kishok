@@ -88,6 +88,7 @@ const BUILDER = {
   led_word_stand:    '_buildLedWordStand',
   led_word_art:      '_buildLedWordArt',
   name_beads:        '_buildNameBeads',
+  fidget_clicker:    '_buildFidgetClicker',
 };
 
 /* ---------- 1. product list is complete ---------- */

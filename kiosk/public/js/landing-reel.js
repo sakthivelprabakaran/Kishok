@@ -1,11 +1,11 @@
-/* =========================================================
+﻿/* =========================================================
    KOOTZY — Landing demo reel (REAL 3D)
    Loads the actual KeychainViewer (Three.js) used by the
    customizer and auto-plays sample designs through it, while
    a mock customizer UI animates alongside. Honours
    prefers-reduced-motion (renders one static design, no loop).
    ========================================================= */
-import { KeychainViewer } from './viewer3d.js?v=wa19';
+import { KeychainViewer } from './viewer3d.js?v=wa37';
 
 (function () {
   'use strict';
