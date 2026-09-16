@@ -2,7 +2,7 @@
     'use strict';
 
     const params = new URLSearchParams(window.location.search);
-    if (!['classic', 'all'].includes(params.get('previewReel'))) return;
+    if (params.get('previewReel') === 'off') return;
 
     const card = document.querySelector('.product-card[data-type="keychain"]');
     const wrap = card && card.querySelector('.card-img-wrap');

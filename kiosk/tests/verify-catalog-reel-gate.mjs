@@ -10,7 +10,7 @@ const runtime = read('public/js/catalog-reel-gate.js');
 const previews = read('public/js/card-previews.js');
 const index = read('public/index.html');
 
-assert.match(runtime, /previewReel'\) !== 'all'/);
+assert.match(runtime, /previewReel'\)\s*===\s*'off'/);
 assert.match(runtime, /wordart/);
 assert.match(runtime, /desk_organizer/);
 assert.doesNotMatch(runtime, /new\s+KeychainViewer/);

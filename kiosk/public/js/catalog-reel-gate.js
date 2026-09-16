@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    if (new URLSearchParams(location.search).get('previewReel') !== 'all') return;
+    if (new URLSearchParams(location.search).get('previewReel') === 'off') return;
 
     const productTypes = ['wordart', 'desk_organizer'];
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;

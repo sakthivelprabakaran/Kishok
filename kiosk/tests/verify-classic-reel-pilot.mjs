@@ -13,11 +13,11 @@ const previews = read('public/js/card-previews.js');
 const css = read('public/css/kiosk.css');
 const manifestPath = path.join(root, 'public/assets/classic-reel/manifest.json');
 
-assert.match(index, /classic-reel-pilot\.js/, 'index must load the query-gated Classic reel pilot');
-assert.match(runtime, /\['classic', 'all'\]/, 'pilot must be disabled outside explicit reel modes');
+assert.match(index, /classic-reel-pilot\.js/, 'index must load the Classic reel');
+assert.match(runtime, /previewReel'\)\s*===\s*'off'/, 'Classic reel must be enabled by default with an off switch');
 assert.match(runtime, /data-type="keychain"/, 'pilot must target only the Classic Keychain card');
 assert.doesNotMatch(runtime, /new\s+KeychainViewer/, 'catalogue pilot must not create a live 3D viewer');
-assert.match(previews, /previewReel.*classic/s, 'the SVG preview dispatcher must skip Classic only in pilot mode');
+assert.match(previews, /reelsEnabled\s*=\s*reelMode\s*!==\s*'off'/, 'the SVG preview dispatcher must yield to default-enabled reels');
 assert.match(css, /\.classic-reel-stage/, 'pilot stage styles must exist');
 assert.ok(fs.existsSync(manifestPath), 'generated Classic reel manifest is missing');
 
