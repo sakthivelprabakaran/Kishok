@@ -11,6 +11,12 @@ const state = {
     orders: [],
     batches: [],
     filaments: [],
+    products: [],
+    storeStatus: {
+        acceptingOrders: true,
+        pauseMessage: '',
+        resumeAt: null,
+    },
     knownIds: new Set(),   // for reliable new-order detection
     filter: '',            // search text
     statusFilter: 'all',   // all | Pending | Verified | Printed | PickedUp
@@ -33,6 +39,10 @@ function cacheEls() {
         'queueList','searchInput','statusFilter','sortOrder','btnSummary','summaryBox',
         'loginGate','pinInput','btnLogin','loginError','adminMain',
         'btnFilamentsRefresh','filamentMessage','filamentColourForm','filamentList',
+        'btnProductsRefresh','productAdminMessage','productAdminList',
+        'btnStoreStatusRefresh','btnSaveStoreStatus','storeAcceptingOrders',
+        'storePauseMessage','storeResumeAt','storeOperationalLabel','storeAdminMessage',
+        'storeHeaderStatus','storeHeaderStatusText',
         'newFilamentName','newFilamentHex','newFilamentState','newFilamentSort',
         'customersList','customersRangeLabel','dateRangeFilter','dateFrom','dateTo',
         'customFromField','customToField','btnApplyDateRange','fulfilmentFilter',
@@ -167,6 +177,150 @@ async function loadFilaments() {
         showFilamentMessage(err.message, true);
         if (el.filamentList) el.filamentList.innerHTML =
             '<div class="empty-state">Inventory is unavailable. Apply migration 004 and refresh.</div>';
+    }
+}
+
+function showProductMessage(message, isError = false) {
+    if (!el.productAdminMessage) return;
+    el.productAdminMessage.hidden = !message;
+    el.productAdminMessage.textContent = message || '';
+    el.productAdminMessage.classList.toggle('error', isError);
+}
+
+async function productRequest(method = 'GET', body) {
+    const res = await fetch(`/api/admin/products${method === 'GET' ? `?t=${Date.now()}` : ''}`, {
+        method,
+        headers: authHeaders(method !== 'GET'),
+        body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (res.status === 401) {
+        alert('Session expired — re-enter PIN.');
+        location.reload();
+        return null;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Product catalogue request failed');
+    return data;
+}
+
+async function loadProducts() {
+    try {
+        const data = await productRequest();
+        if (!data) return;
+        state.products = Array.isArray(data.products) ? data.products : [];
+        renderProducts();
+        showProductMessage('');
+    } catch (err) {
+        showProductMessage(err.message, true);
+    }
+}
+
+function showStoreMessage(message, isError = false) {
+    if (!el.storeAdminMessage) return;
+    el.storeAdminMessage.hidden = !message;
+    el.storeAdminMessage.textContent = message || '';
+    el.storeAdminMessage.classList.toggle('error', isError);
+}
+
+async function storeStatusRequest(method = 'GET', body) {
+    const res = await fetch(`/api/admin/store-status${method === 'GET' ? `?t=${Date.now()}` : ''}`, {
+        method,
+        headers: authHeaders(method !== 'GET'),
+        body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (res.status === 401) {
+        alert('Session expired — re-enter PIN.');
+        location.reload();
+        return null;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Store status request failed');
+    return data;
+}
+
+function localDateTimeValue(iso) {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '';
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function renderStoreStatus() {
+    const status = state.storeStatus || {};
+    const accepting = status.acceptingOrders !== false;
+    if (el.storeAcceptingOrders) el.storeAcceptingOrders.checked = accepting;
+    if (el.storePauseMessage) el.storePauseMessage.value = status.pauseMessage || '';
+    if (el.storeResumeAt) el.storeResumeAt.value = localDateTimeValue(status.resumeAt);
+    if (el.storeOperationalLabel) {
+        el.storeOperationalLabel.textContent = accepting ? 'Accepting new orders' : 'New orders paused';
+    }
+    if (el.storeHeaderStatusText) {
+        el.storeHeaderStatusText.textContent = accepting ? 'Orders Open' : 'Orders Paused';
+    }
+    if (el.storeHeaderStatus) el.storeHeaderStatus.classList.toggle('paused', !accepting);
+}
+
+async function loadStoreStatus() {
+    try {
+        const data = await storeStatusRequest();
+        if (!data) return;
+        state.storeStatus = data.storeStatus || state.storeStatus;
+        renderStoreStatus();
+        showStoreMessage('');
+    } catch (err) {
+        showStoreMessage(err.message, true);
+    }
+}
+
+async function saveStoreStatus() {
+    if (el.btnSaveStoreStatus) el.btnSaveStoreStatus.disabled = true;
+    try {
+        showStoreMessage('Saving…');
+        const acceptingOrders = Boolean(el.storeAcceptingOrders?.checked);
+        const rawResume = el.storeResumeAt?.value || '';
+        const data = await storeStatusRequest('PATCH', {
+            acceptingOrders,
+            pauseMessage: el.storePauseMessage?.value || '',
+            resumeAt: rawResume ? new Date(rawResume).toISOString() : null,
+        });
+        if (!data) return;
+        state.storeStatus = data.storeStatus || state.storeStatus;
+        renderStoreStatus();
+        showStoreMessage(acceptingOrders
+            ? 'New orders are open across every customer flow.'
+            : 'New orders are paused across every customer flow.');
+    } catch (err) {
+        showStoreMessage(err.message, true);
+    } finally {
+        if (el.btnSaveStoreStatus) el.btnSaveStoreStatus.disabled = false;
+    }
+}
+
+async function saveProduct(card) {
+    const productType = card.dataset.productType;
+    const button = card.querySelector('[data-action="save-product"]');
+    if (button) button.disabled = true;
+    try {
+        showProductMessage('Saving…');
+        const data = await productRequest('PATCH', {
+            productType,
+            displayName: card.querySelector('.product-display-name').value,
+            lifecycleState: card.querySelector('.product-lifecycle').value,
+            category: card.querySelector('.product-category').value,
+            sortOrder: Number(card.querySelector('.product-sort').value),
+            displayTimeMinutes: Number(card.querySelector('.product-time').value),
+            badge: card.querySelector('.product-badge').value,
+            pauseMessage: card.querySelector('.product-pause-message').value,
+            isFeatured: card.querySelector('.product-featured').checked,
+        });
+        state.products = data.products || [];
+        renderProducts();
+        showProductMessage('Product catalogue updated.');
+    } catch (err) {
+        showProductMessage(err.message, true);
+    } finally {
+        if (button) button.disabled = false;
     }
 }
 
@@ -609,7 +763,7 @@ function renderCustomers() {
 }
 
 function setAdminTab(tab) {
-    const allowed = new Set(['overview', 'orders', 'production', 'filament', 'batches', 'customers']);
+    const allowed = new Set(['overview', 'store', 'orders', 'production', 'products', 'filament', 'batches', 'customers']);
     state.activeTab = allowed.has(tab) ? tab : 'overview';
     sessionStorage.setItem('ygAdminTab', state.activeTab);
     document.querySelectorAll('[data-admin-panel]').forEach((panel) => {
@@ -620,6 +774,43 @@ function setAdminTab(tab) {
         button.classList.toggle('active', active);
         button.setAttribute('aria-current', active ? 'page' : 'false');
     });
+}
+
+function renderProducts() {
+    if (!el.productAdminList) return;
+    if (!state.products.length) {
+        el.productAdminList.innerHTML = '<div class="empty-state">No product catalogue rows found. Apply the product catalogue migration.</div>';
+        return;
+    }
+    el.productAdminList.innerHTML = state.products.map((product) => `
+        <article class="product-admin-card" data-product-type="${esc(product.productType)}">
+            <div class="product-admin-head">
+                <div>
+                    <strong>${esc(product.displayName)}</strong>
+                    <span>${esc(product.productType)}</span>
+                </div>
+                <span class="product-state-chip ${esc(product.lifecycleState)}">${esc(product.lifecycleState)}</span>
+            </div>
+            <div class="product-admin-grid">
+                <label>Name<input class="product-display-name" maxlength="80" value="${esc(product.displayName)}"></label>
+                <label>State<select class="product-lifecycle">
+                    ${['draft','active','paused','hidden','retired'].map((value) =>
+                        `<option value="${value}" ${product.lifecycleState === value ? 'selected' : ''}>${value[0].toUpperCase() + value.slice(1)}</option>`
+                    ).join('')}
+                </select></label>
+                <label>Category<select class="product-category">
+                    <option value="keychain" ${product.category === 'keychain' ? 'selected' : ''}>Keychain</option>
+                    <option value="desk" ${product.category === 'desk' ? 'selected' : ''}>Desk</option>
+                </select></label>
+                <label>Sort<input class="product-sort" type="number" min="0" max="100000" value="${esc(product.sortOrder)}"></label>
+                <label>Approx. minutes<input class="product-time" type="number" min="0" max="10000" value="${esc(product.displayTimeMinutes)}"></label>
+                <label>Badge<input class="product-badge" maxlength="40" value="${esc(product.badge)}" placeholder="Optional"></label>
+                <label class="product-message-field">Pause message<input class="product-pause-message" maxlength="180" value="${esc(product.pauseMessage)}" placeholder="Why ordering is paused"></label>
+                <label class="product-feature-toggle"><input class="product-featured" type="checkbox" ${product.isFeatured ? 'checked' : ''}> Featured</label>
+                <button class="add-batch-btn" type="button" data-action="save-product">Save product</button>
+            </div>
+        </article>
+    `).join('');
 }
 
 /* ---------- batches ---------- */
@@ -903,6 +1094,19 @@ function setupEvents() {
 
     el.btnRefresh && el.btnRefresh.addEventListener('click', () => { loadOrders(); loadBatches(); });
     el.btnFilamentsRefresh && el.btnFilamentsRefresh.addEventListener('click', loadFilaments);
+    el.btnProductsRefresh && el.btnProductsRefresh.addEventListener('click', loadProducts);
+    el.btnStoreStatusRefresh && el.btnStoreStatusRefresh.addEventListener('click', loadStoreStatus);
+    el.btnSaveStoreStatus && el.btnSaveStoreStatus.addEventListener('click', saveStoreStatus);
+    el.storeAcceptingOrders && el.storeAcceptingOrders.addEventListener('change', () => {
+        if (el.storeOperationalLabel) {
+            el.storeOperationalLabel.textContent = el.storeAcceptingOrders.checked
+                ? 'Accepting new orders' : 'New orders paused';
+        }
+    });
+    el.productAdminList && el.productAdminList.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-action="save-product"]');
+        if (button) saveProduct(button.closest('.product-admin-card'));
+    });
     el.btnAddBatch && el.btnAddBatch.addEventListener('click', () => {
         saveBatch(el.batchBaseColor.value, el.batchFontColor.value, parseInt(el.batchSizeCount.value) || 5);
     });
@@ -955,6 +1159,8 @@ function startDashboard() {
     loadOrders(true);
     loadBatches();
     loadFilaments();
+    loadProducts();
+    loadStoreStatus();
     setInterval(() => loadOrders(), 8000);
 }
 

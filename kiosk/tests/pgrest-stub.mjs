@@ -13,6 +13,7 @@
  * Functions use, and throws loudly on anything unrecognised so a new query
  * shape fails the suite instead of silently returning nonsense.
  */
+import { PRODUCT_DEFINITIONS } from '../public/js/product-registry.js';
 
 export const ENV = {
     SUPABASE_URL: 'https://stub.supabase.co',
@@ -30,6 +31,26 @@ export function makeStub() {
         batches: [],
         filament_colours: [],
         filament_spools: [],
+        product_catalog: PRODUCT_DEFINITIONS.map((product) => ({
+            product_type: product.type,
+            display_name: product.label,
+            category: product.category,
+            lifecycle_state: product.defaultState || 'active',
+            sort_order: product.sortOrder,
+            display_time_minutes: product.displayTimeMinutes,
+            badge: '',
+            pause_message: '',
+            resume_at: null,
+            is_featured: false,
+        })),
+        storefront_settings: [{
+            id: 1,
+            accepting_orders: true,
+            pause_message: '',
+            resume_at: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        }],
     };
     const tokens = new Map();     // jwt -> { id, email }
     let nextId = 1;

@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/kiosk.css?v=kootzy1">
-    <link rel="stylesheet" href="css/admin.css?v=admin6">
+    <link rel="stylesheet" href="css/admin.css?v=admin7">
 </head>
 <body>
     <!-- PIN LOGIN GATE -->
@@ -35,17 +35,19 @@
                 <img src="brand/icon-mark.svg" alt="" width="24" height="24" decoding="async">
                 <span>Kootzy Admin</span>
             </div>
-            <div class="status-indicator">
+            <div class="status-indicator" id="storeHeaderStatus">
                 <span class="pulse-dot"></span>
-                <span>Kiosk Online</span>
+                <span id="storeHeaderStatusText">Loading store status</span>
             </div>
         </header>
 
         <nav class="admin-tabs" aria-label="Admin sections">
             <button class="admin-tab active" data-admin-tab="overview">Overview</button>
+            <button class="admin-tab" data-admin-tab="store">Store Controls</button>
             <button class="admin-tab" data-admin-tab="orders">Orders</button>
             <button class="admin-tab" data-admin-tab="production">Production</button>
             <a class="admin-tab admin-tab-link" href="/studio.html">Design</a>
+            <button class="admin-tab" data-admin-tab="products">Products</button>
             <button class="admin-tab" data-admin-tab="filament">Filament</button>
             <button class="admin-tab" data-admin-tab="batches">Batch Offers</button>
             <button class="admin-tab" data-admin-tab="customers">Customers</button>
@@ -67,6 +69,42 @@
             </div>
         </section>
 
+        <section class="store-controls-section" data-admin-panel="store" hidden>
+            <div class="panel-header-row">
+                <div>
+                    <h3>Global Order Controls</h3>
+                    <p class="panel-desc">Pause new orders across the homepage, cart, checkout and kiosk quick-order flow.</p>
+                </div>
+                <button class="refresh-btn" id="btnStoreStatusRefresh" type="button">Refresh status</button>
+            </div>
+            <div class="store-control-status">
+                <label class="store-order-toggle">
+                    <input id="storeAcceptingOrders" type="checkbox" checked>
+                    <span>
+                        <strong id="storeOperationalLabel">Accepting new orders</strong>
+                        <small>Existing orders and production remain unaffected.</small>
+                    </span>
+                </label>
+            </div>
+            <div class="store-control-grid">
+                <label>
+                    Customer message
+                    <textarea id="storePauseMessage" maxlength="240"
+                        placeholder="Example: We are completing today’s production queue. New orders reopen tomorrow."></textarea>
+                    <small>Shown only while ordering is paused.</small>
+                </label>
+                <label>
+                    Expected reopening
+                    <input id="storeResumeAt" type="datetime-local">
+                    <small>Optional information for customers; reopening is still controlled by the switch.</small>
+                </label>
+            </div>
+            <div class="store-control-actions">
+                <button class="add-batch-btn" id="btnSaveStoreStatus" type="button">Save store status</button>
+            </div>
+            <div class="product-admin-message" id="storeAdminMessage" hidden></div>
+        </section>
+
         <!-- Production Queue grouped by colour combo -->
         <section class="queue-section" data-admin-panel="production" hidden>
             <div class="panel-header-row">
@@ -76,6 +114,24 @@
             <div class="summary-box" id="summaryBox" style="display:none;"></div>
             <div class="queue-list" id="queueList">
                 <div class="empty-state" style="padding:1rem;font-size:.78rem;">Loading queue…</div>
+            </div>
+        </section>
+
+        <section class="products-section" data-admin-panel="products" hidden>
+            <div class="panel-header-row">
+                <div>
+                    <h3>Product Catalogue</h3>
+                    <p class="panel-desc">Pause or hide products without deleting geometry or historical orders.</p>
+                </div>
+                <button class="refresh-btn" id="btnProductsRefresh">Refresh products</button>
+            </div>
+            <div class="product-state-guide">
+                <b>Active</b> visible + orderable · <b>Paused</b> visible but ordering blocked ·
+                <b>Hidden/Draft/Retired</b> removed from new customer orders.
+            </div>
+            <div class="product-admin-message" id="productAdminMessage" hidden></div>
+            <div class="product-admin-list" id="productAdminList">
+                <div class="empty-state">Loading product catalogue…</div>
             </div>
         </section>
 
@@ -237,6 +293,6 @@
     <!-- Hidden Audio element for chime -->
     <audio id="orderChime" src="https://assets.mixkit.co/active_storage/sfx/911/911-200.wav" preload="auto"></audio>
 
-    <script type="module" src="js/admin-dashboard.js?v=admin10"></script>
+    <script type="module" src="js/admin-dashboard.js?v=admin12"></script>
 </body>
 </html>

@@ -105,6 +105,20 @@ module.exports = function mountCustomerRoutes(app, deps) {
     try { return JSON.parse(raw); } catch (_) { return null; }
   }
 
+  async function requireOrderable(productType) {
+    const helpers = await import('./shared/product-catalog.js');
+    return helpers.requireOrderableProduct({
+      select: (_table, query) => supabaseAdmin('GET', `product_catalog?${query}`),
+    }, productType);
+  }
+
+  async function requireStoreOpen() {
+    const helpers = await import('./shared/store-status.js');
+    return helpers.requireStoreAcceptingOrders({
+      select: (_table, query) => supabaseAdmin('GET', `storefront_settings?${query}`),
+    });
+  }
+
   const CART_SELECT = 'id,product_type,text_value,quantity,design,preview,unit_price,weight_g,created_at';
   const PREVIEW_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
   const PREVIEW_MAX_CHARS = 160000;
@@ -220,6 +234,14 @@ module.exports = function mountCustomerRoutes(app, deps) {
       if (!VALID_PRODUCT_TYPES.includes(productType)) {
         return res.status(400).json({ error: 'Unknown product type' });
       }
+      const store = await requireStoreOpen();
+      if (store.error) {
+        return res.status(store.statusCode).json({ error: store.error });
+      }
+      const availability = await requireOrderable(productType);
+      if (availability.error) {
+        return res.status(availability.status).json({ error: availability.error });
+      }
       if (!text) return res.status(400).json({ error: 'The design needs some text' });
       if (text.length > 200) return res.status(400).json({ error: 'Text is too long (max 200 characters)' });
       if (!Number.isFinite(quantity) || quantity < 1 || quantity > 20) {
@@ -332,6 +354,10 @@ module.exports = function mountCustomerRoutes(app, deps) {
       if (!user || !user.id) {
         return res.status(401).json({ error: 'Your session has expired — please sign in again.' });
       }
+      const store = await requireStoreOpen();
+      if (store.error) {
+        return res.status(store.statusCode).json({ error: store.error });
+      }
 
       const body = req.body || {};
       const method = body.fulfilmentMethod === 'ship' ? 'ship' : 'pickup';
@@ -399,6 +425,16 @@ module.exports = function mountCustomerRoutes(app, deps) {
           );
         } catch (restoreErr) {
           console.error('cart restore after failed checkout:', restoreErr.message);
+        }
+      }
+
+      for (const productType of new Set(cartRows.map((row) => row.product_type))) {
+        const availability = await requireOrderable(productType);
+        if (availability.error) {
+          await restoreCart(cartRows);
+          return res.status(availability.status).json({
+            error: `${availability.error} Remove it from your cart to continue.`,
+          });
         }
       }
 

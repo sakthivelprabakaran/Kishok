@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/kiosk.css?v=k5">
+    <link rel="stylesheet" href="css/kiosk.css?v=k6">
     <link rel="stylesheet" href="css/cart.css?v=kootzy5">
 </head>
 <body>
@@ -33,6 +33,14 @@
 
         <main class="cart-page">
             <h1 class="cart-title">Your cart</h1>
+            <div class="store-status-banner" data-store-status hidden role="status" aria-live="polite">
+                <span class="store-status-icon" aria-hidden="true">⏸</span>
+                <div>
+                    <strong>New orders are temporarily paused</strong>
+                    <span data-store-status-message></span>
+                    <small data-store-status-resume hidden></small>
+                </div>
+            </div>
 
             <p id="cartLoading" class="cart-note">Loading your designs…</p>
 
@@ -57,7 +65,7 @@
                         <dd id="sumShipping" class="cart-muted">Calculated at checkout</dd>
                     </dl>
                     <p class="cart-note">Final amount is confirmed at checkout.</p>
-                    <a class="state-btn cart-checkout" href="checkout.html">Go to checkout</a>
+                    <a class="state-btn cart-checkout" href="checkout.html" data-order-action>Go to checkout</a>
                     <button class="cart-clear" type="button" id="btnClearCart">Empty cart</button>
                 </aside>
             </div>
@@ -70,6 +78,7 @@
         </footer>
     </div>
 
+    <script type="module" src="js/store-status.js?v=s1"></script>
     <script type="module" src="js/cart-page.js?v=k6"></script>
 </body>
 </html>

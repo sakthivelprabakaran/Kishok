@@ -172,6 +172,32 @@ module.exports = function mountOperatorRoutes(app, deps) {
         return import('./shared/filaments.js');
     }
 
+    async function productHelpers() {
+        return import('./shared/product-catalog.js');
+    }
+
+    async function storeHelpers() {
+        return import('./shared/store-status.js');
+    }
+
+    async function storePayload(allowFallback = false) {
+        const helpers = await storeHelpers();
+        return {
+            storeStatus: await helpers.loadStoreStatus({
+                select: (table, query) => rest('GET', `${table}?${query}`),
+            }, { allowFallback }),
+        };
+    }
+
+    async function productPayload(allowFallback = false) {
+        const helpers = await productHelpers();
+        return {
+            products: await helpers.loadProductCatalog({
+                select: (table, query) => rest('GET', `${table}?${query}`),
+            }, { allowFallback }),
+        };
+    }
+
     async function filamentPayload() {
         const helpers = await filamentHelpers();
         const [colours, spools] = await Promise.all([
@@ -235,6 +261,20 @@ module.exports = function mountOperatorRoutes(app, deps) {
             if (text.length > 200) return res.status(400).json({ error: 'Text is too long (max 200 characters)' });
             if (!VALID_PRODUCT_TYPES.includes(productType)) {
                 return res.status(400).json({ error: 'Invalid productType' });
+            }
+            const store = await storeHelpers();
+            const storeAvailability = await store.requireStoreAcceptingOrders({
+                select: (table, query) => rest('GET', `${table}?${query}`),
+            });
+            if (storeAvailability.error) {
+                return res.status(storeAvailability.statusCode).json({ error: storeAvailability.error });
+            }
+            const products = await productHelpers();
+            const availability = await products.requireOrderableProduct({
+                select: (table, query) => rest('GET', `${table}?${query}`),
+            }, productType);
+            if (availability.error) {
+                return res.status(availability.status).json({ error: availability.error });
             }
 
             // Server-side price. The browser computed the same figure from the
@@ -309,6 +349,84 @@ module.exports = function mountOperatorRoutes(app, deps) {
     });
 
     /* ── operator: today's orders ──────────────────────────────────────────── */
+    app.get('/api/products', async (_req, res) => {
+        try {
+            if (!configured(res)) return;
+            res.json(await productPayload(true));
+        } catch (err) {
+            sendError(res, err, 'Failed to load product catalogue');
+        }
+    });
+
+    app.get('/api/store-status', async (_req, res) => {
+        try {
+            if (!configured(res)) return;
+            res.json(await storePayload(true));
+        } catch (err) {
+            sendError(res, err, 'Failed to load store status');
+        }
+    });
+
+    app.get('/api/admin/store-status', requireAdmin, async (_req, res) => {
+        try {
+            if (!configured(res)) return;
+            res.json(await storePayload(false));
+        } catch (err) {
+            sendError(res, err, 'Failed to load store status');
+        }
+    });
+
+    app.patch('/api/admin/store-status', requireAdmin, async (req, res) => {
+        try {
+            if (!configured(res)) return;
+            const helpers = await storeHelpers();
+            const checked = helpers.validateStoreStatusPatch(req.body || {});
+            if (checked.error) return res.status(400).json({ error: checked.error });
+            const rows = await rest(
+                'PATCH',
+                'storefront_settings?id=eq.1',
+                checked.patch,
+                'return=representation'
+            );
+            if (!Array.isArray(rows) || rows.length === 0) {
+                return res.status(404).json({ error: 'Storefront settings record not found' });
+            }
+            res.json({ success: true, ...await storePayload(false) });
+        } catch (err) {
+            sendError(res, err, 'Failed to update store status');
+        }
+    });
+
+    app.get('/api/admin/products', requireAdmin, async (_req, res) => {
+        try {
+            if (!configured(res)) return;
+            res.json(await productPayload(false));
+        } catch (err) {
+            sendError(res, err, 'Failed to load product catalogue');
+        }
+    });
+
+    app.patch('/api/admin/products', requireAdmin, async (req, res) => {
+        try {
+            if (!configured(res)) return;
+            const helpers = await productHelpers();
+            const checked = helpers.validateProductPatch(req.body || {});
+            if (checked.error) return res.status(400).json({ error: checked.error });
+            const rows = await rest(
+                'PATCH',
+                `product_catalog?product_type=eq.${encodeURIComponent(checked.productType)}`,
+                checked.patch,
+                'return=representation'
+            );
+            if (!Array.isArray(rows) || rows.length === 0) {
+                return res.status(404).json({ error: 'Product catalogue record not found' });
+            }
+            res.json({ success: true, ...await productPayload(false) });
+        } catch (err) {
+            sendError(res, err, 'Failed to update product');
+        }
+    });
+
     app.get('/api/orders', requireAdmin, async (req, res) => {
         try {
             if (!configured(res)) return;

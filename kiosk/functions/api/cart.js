@@ -2,6 +2,8 @@ import { json, fail, guard, readJson, requireCustomer } from '../../shared/http.
 import { db, rowToBatch } from '../../shared/db.js';
 import { priceLine, RATES } from '../../public/js/pricing.js';
 import { findBatchDiscount } from '../../public/js/batch-offers.js';
+import { CUSTOMER_PRODUCT_TYPES, requireOrderableProduct } from '../../shared/product-catalog.js';
+import { requireStoreAcceptingOrders } from '../../shared/store-status.js';
 
 /* Cart, owned by the signed-in customer.
  *
@@ -17,13 +19,6 @@ import { findBatchDiscount } from '../../public/js/batch-offers.js';
 
 const SELECT = 'select=id,product_type,text_value,quantity,design,preview,unit_price,weight_g,created_at'
     + '&order=created_at.desc';
-
-const VALID_PRODUCT_TYPES = [
-    'keychain', 'wordart', 'loveseries', 'tilekey', 'linked_initials',
-    'nametag', 'girly_keychain', 'supported_text', 'flower_keychain',
-    'led_word_stand', 'led_word_art', 'bordered_keychain', 'bubble_keychain',
-    'nameplate', 'desk_organizer', 'name_beads',
-];
 
 const MAX_ITEMS = 25;
 const MAX_QTY = 20;
@@ -102,9 +97,14 @@ export const onRequestPost = guard(async ({ request, env }) => {
     const text = String(body.text || '').trim();
     const quantity = parseInt(body.quantity, 10);
 
-    if (!VALID_PRODUCT_TYPES.includes(productType)) {
+    if (!CUSTOMER_PRODUCT_TYPES.includes(productType)) {
         return fail('Unknown product type', 400);
     }
+    const admin = db(env);
+    const store = await requireStoreAcceptingOrders(admin);
+    if (store.error) return fail(store.error, store.statusCode);
+    const availability = await requireOrderableProduct(admin, productType);
+    if (availability.error) return fail(availability.error, availability.status);
     if (!text) return fail('The design needs some text', 400);
     if (text.length > 200) return fail('Text is too long (max 200 characters)', 400);
     if (!Number.isFinite(quantity) || quantity < 1 || quantity > MAX_QTY) {

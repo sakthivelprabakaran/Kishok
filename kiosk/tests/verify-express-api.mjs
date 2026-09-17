@@ -63,11 +63,45 @@ function check(label, pass, detail = '') {
 
 const PIN = ENV.ADMIN_PIN;
 
+console.log('\n-- global order controls --');
+reset();
+
+let r = await call('GET', '/api/store-status');
+check('public store status starts open',
+    r.status === 200 && r.data.storeStatus.acceptingOrders === true);
+
+r = await call('GET', '/api/admin/store-status');
+check('Express store controls require PIN', r.status === 401);
+
+r = await call('PATCH', '/api/admin/store-status', {
+    pin: PIN,
+    body: {
+        acceptingOrders: false,
+        pauseMessage: 'Production is full today.',
+        resumeAt: '2026-09-18T04:30:00.000Z',
+    },
+});
+check('Express admin pauses all new orders',
+    r.status === 200 && r.data.storeStatus.acceptingOrders === false);
+
+r = await call('POST', '/api/order', {
+    body: { name: 'Walkup', phone: '9999999999', productType: 'keychain', text: 'Priya', weightG: 20 },
+});
+check('Express global pause blocks quick order',
+    r.status === 409 && /production is full/i.test(r.data.error));
+
+r = await call('PATCH', '/api/admin/store-status', {
+    pin: PIN,
+    body: { acceptingOrders: true, pauseMessage: '', resumeAt: null },
+});
+check('Express admin resumes all new orders',
+    r.status === 200 && r.data.storeStatus.acceptingOrders === true);
+
 /* ═══ kiosk quick order ═══ */
 console.log('\n-- quick order (walk-up pay flow) --');
 reset();
 
-let r = await call('POST', '/api/order', { body: { name: 'Walkup', phone: '9999999999', productType: 'keychain', text: 'Priya', weightG: 20, finalAmount: 1, batchSize: 100 } });
+r = await call('POST', '/api/order', { body: { name: 'Walkup', phone: '9999999999', productType: 'keychain', text: 'Priya', weightG: 20, finalAmount: 1, batchSize: 100 } });
 check('order accepted -> 201 with orderNum', r.status === 201 && Boolean(r.data.orderNum), JSON.stringify(r.data && r.data.orderNum));
 check('client-claimed ₹1 overwritten with server price ₹107', r.data.order.finalAmount === 107, `₹${r.data.order.finalAmount}`);
 

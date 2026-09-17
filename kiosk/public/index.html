@@ -82,7 +82,7 @@
     <!-- Baloo 2 is the Kootzy display face. Body copy uses the system sans per the
          brand guidelines, so this is one family instead of the previous three. -->
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/kiosk.css?v=k5">
+    <link rel="stylesheet" href="css/kiosk.css?v=k6">
     <link rel="stylesheet" href="css/legal.css?v=wa1">
 </head>
 <body>
@@ -147,6 +147,15 @@
         </div>
         </div><!-- /hero-zone -->
 
+        <div class="store-status-banner" data-store-status hidden role="status" aria-live="polite">
+            <span class="store-status-icon" aria-hidden="true">⏸</span>
+            <div>
+                <strong>New orders are temporarily paused</strong>
+                <span data-store-status-message></span>
+                <small data-store-status-resume hidden></small>
+            </div>
+        </div>
+
         <!-- Verified Classic Keychain batch offers; hidden until live data proves
              that a batch is large enough to reduce the normal unit price. -->
         <div class="batch-savings-banner" id="batchBanner" style="display: none;">
@@ -157,6 +166,16 @@
                 <div class="batch-offer-links" id="batchOfferLinks"></div>
             </div>
         </div>
+
+        <section class="featured-products-section" id="featuredProductsSection" hidden aria-labelledby="featuredProductsTitle">
+            <div class="featured-products-heading">
+                <div>
+                    <span class="featured-products-kicker">Customer favourites</span>
+                    <h2 id="featuredProductsTitle">Featured picks</h2>
+                </div>
+            </div>
+            <div class="featured-product-grid" id="featuredProductGrid"></div>
+        </section>
 
         <!-- Category Selector Tabs -->
         <div class="category-tabs">
@@ -446,6 +465,26 @@
         function setupCategoryFilters() {
             const tabs = document.querySelectorAll('.tab-btn');
             const cards = document.querySelectorAll('.product-card');
+            const featuredSection = document.getElementById('featuredProductsSection');
+
+            const applyCategory = (selectedCategory) => {
+                cards.forEach(card => {
+                    if (card.dataset.catalogHidden === 'true') {
+                        card.style.display = 'none';
+                    } else if (selectedCategory === 'all' || card.dataset.category === selectedCategory) {
+                        card.style.display = 'flex';
+                        card.style.opacity = '1';
+                    } else {
+                        card.style.display = 'none';
+                        card.style.opacity = '0';
+                    }
+                });
+                if (featuredSection) {
+                    const visibleFeatured = [...featuredSection.querySelectorAll('.product-card')]
+                        .some((card) => card.style.display !== 'none' && !card.hidden);
+                    featuredSection.hidden = !visibleFeatured;
+                }
+            };
             
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
@@ -455,17 +494,12 @@
                     
                     const selectedCategory = tab.dataset.category;
                     
-                    // Filter cards
-                    cards.forEach(card => {
-                        if (selectedCategory === 'all' || card.dataset.category === selectedCategory) {
-                            card.style.display = 'flex';
-                            card.style.opacity = '1';
-                        } else {
-                            card.style.display = 'none';
-                            card.style.opacity = '0';
-                        }
-                    });
+                    applyCategory(selectedCategory);
                 });
+            });
+
+            document.addEventListener('productcatalogready', () => {
+                applyCategory(document.querySelector('.tab-btn.active')?.dataset.category || 'all');
             });
         }
 
@@ -473,6 +507,10 @@
             loadActiveBatches();
             setupCategoryFilters();
         });
+    </script>
+    <script type="module">
+        import { applyHomepageProductCatalog } from './js/product-catalog.js?v=pc1';
+        applyHomepageProductCatalog();
     </script>
 
     <!-- 3D demo reel libs (same stack as the customizer) -->
@@ -494,6 +532,7 @@
     </script>
     <script type="module" src="js/landing-reel.js?v=reel9"></script>
     <script type="module" src="js/cart-badge.js?v=k4"></script>
+    <script type="module" src="js/store-status.js?v=s1"></script>
     <script type="module">
         import { mountProfileChip } from './js/profile-chip.js?v=k1';
         mountProfileChip('#headerProfile');

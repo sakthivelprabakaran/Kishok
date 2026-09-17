@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/kiosk.css?v=k5">
+    <link rel="stylesheet" href="css/kiosk.css?v=k6">
     <link rel="stylesheet" href="css/cart.css?v=kootzy5">
     <link rel="stylesheet" href="css/checkout.css?v=kootzy3">
 </head>
@@ -30,6 +30,14 @@
 
         <main class="checkout-page">
             <h1 class="cart-title">Checkout</h1>
+            <div class="store-status-banner" data-store-status hidden role="status" aria-live="polite">
+                <span class="store-status-icon" aria-hidden="true">⏸</span>
+                <div>
+                    <strong>New orders are temporarily paused</strong>
+                    <span data-store-status-message></span>
+                    <small data-store-status-resume hidden></small>
+                </div>
+            </div>
 
             <p id="coLoading" class="cart-note">Loading your order…</p>
 
@@ -135,7 +143,7 @@
                         before anything is printed or dispatched.
                     </p>
 
-                    <button class="state-btn cart-checkout" type="button" id="coSubmit">Continue with Google</button>
+                    <button class="state-btn cart-checkout" type="button" id="coSubmit" data-order-action>Continue with Google</button>
                     <p class="cart-note">You can still change your mind — nothing is charged here.</p>
                 </aside>
 
@@ -148,6 +156,7 @@
         </footer>
     </div>
 
+    <script type="module" src="js/store-status.js?v=s1"></script>
     <script type="module" src="js/checkout-page.js?v=k3"></script>
 </body>
 </html>

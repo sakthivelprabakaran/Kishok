@@ -27,9 +27,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/kiosk.css?v=k5">
+    <link rel="stylesheet" href="css/kiosk.css?v=k6">
     <link rel="stylesheet" href="css/legal.css?v=wa1">
-    <link rel="stylesheet" href="css/customize.css?v=k8">
+    <link rel="stylesheet" href="css/customize.css?v=k9">
 </head>
 <body>
     <!-- Sticky 3D Canvas Pane (45% viewport height) -->
@@ -79,9 +79,24 @@
 
     <!-- Customizer Panel Section -->
     <section class="customizer-pane">
+        <div class="store-status-banner" data-store-status hidden role="status" aria-live="polite">
+            <span class="store-status-icon" aria-hidden="true">⏸</span>
+            <div>
+                <strong>New orders are temporarily paused</strong>
+                <span data-store-status-message></span>
+                <small data-store-status-resume hidden></small>
+            </div>
+        </div>
         <div class="panel-header">
             <h2 id="productTitle">Keychain Customizer</h2>
             <p id="productSubtitle" class="product-subtitle">Personalize your keychain design below</p>
+        </div>
+        <div class="product-availability-notice" id="productAvailabilityNotice" hidden role="status" aria-live="polite">
+            <div>
+                <strong id="productAvailabilityTitle">Orders temporarily paused</strong>
+                <span id="productAvailabilityMessage"></span>
+            </div>
+            <a href="index.html">Choose another product</a>
         </div>
 
         <!-- Stepper Progress -->
@@ -406,13 +421,13 @@
         <div class="stepper-nav">
             <button class="stepper-btn-back" id="btnPrevStep" style="visibility: hidden;">Back</button>
             <button class="stepper-btn-next" id="btnNextStep">Next: Font</button>
-            <button class="primary-pay-btn" id="btnPlaceOrder" style="display: none;">
+            <button class="primary-pay-btn" id="btnPlaceOrder" data-order-action style="display: none;">
                 <span class="btn-text">PAY ₹0 VIA UPI</span>
                 <span class="btn-subtext">Click to pay & submit order</span>
             </button>
             <!-- Shipped orders go via the cart; the kiosk quick-order path still
                  uses the pay button above. -->
-            <button class="stepper-btn-cart" id="btnAddToCart" style="display: none;">
+            <button class="stepper-btn-cart" id="btnAddToCart" data-order-action style="display: none;">
                 <span class="btn-text">Add to cart</span>
             </button>
         </div>
@@ -459,7 +474,7 @@
                 <div class="input-wrap" style="margin-top: 0.5rem;">
                     <input type="text" id="upiTxnIdInput" class="custom-input" placeholder="e.g. 123456789012" maxlength="12" pattern="\d{12}">
                 </div>
-                <button class="verify-submit-btn" id="btnSubmitVerify">Submit Order & Start Printing</button>
+                <button class="verify-submit-btn" id="btnSubmitVerify" data-order-action>Submit Order & Start Printing</button>
             </div>
         </div>
     </div>
@@ -480,6 +495,7 @@
     }
     </script>
 
+    <script type="module" src="js/store-status.js?v=s1"></script>
     <script type="module" src="js/kiosk-app.js?v=k19"></script>
 </body>
 </html>

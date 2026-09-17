@@ -14,6 +14,7 @@ import {
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
 } from './filament-catalog.js?v=k8';
+import { loadProductCatalog } from './product-catalog.js?v=pc1';
 
 // ===== DATA & CONFIG =====
 
@@ -142,6 +143,7 @@ const state = {
     matchedBatchSize: null,
     costs: null,
     kiriComparison: null,
+    catalogProduct: null,
 };
 
 // ===== DOM ELEMENTS =====
@@ -159,6 +161,9 @@ function cacheElements() {
     
     el.productTitle    = document.getElementById('productTitle');
     el.productSubtitle = document.getElementById('productSubtitle');
+    el.productAvailabilityNotice = document.getElementById('productAvailabilityNotice');
+    el.productAvailabilityTitle = document.getElementById('productAvailabilityTitle');
+    el.productAvailabilityMessage = document.getElementById('productAvailabilityMessage');
     
     el.stepDots        = document.querySelectorAll('.step-dot');
     el.stepLines       = document.querySelectorAll('.stepper-line');
@@ -283,6 +288,50 @@ let kiriBenchmark = null;
 let kiriBenchmarkEnabled = false;
 let kiriBenchmarkTimer = null;
 let kiriBenchmarkRunning = false;
+
+function productCanOrder() {
+    return !state.catalogProduct || state.catalogProduct.orderable;
+}
+
+function syncProductAvailability() {
+    const product = state.catalogProduct;
+    const blocked = product && !product.orderable;
+    const notice = el.productAvailabilityNotice;
+    if (notice) {
+        notice.hidden = !blocked;
+        notice.classList.toggle('is-unavailable', Boolean(blocked && !product.visible));
+    }
+    if (blocked) {
+        const paused = product.lifecycleState === 'paused';
+        if (el.productAvailabilityTitle) {
+            el.productAvailabilityTitle.textContent = paused
+                ? 'Orders temporarily paused'
+                : 'This product is currently unavailable';
+        }
+        if (el.productAvailabilityMessage) {
+            el.productAvailabilityMessage.textContent = product.pauseMessage
+                || (paused
+                    ? `${product.displayName} can still be previewed, but new orders are paused.`
+                    : `${product.displayName} is not accepting new orders.`);
+        }
+    }
+    for (const button of [el.btnAddToCart, el.btnPlaceOrder, el.btnSubmitVerify]) {
+        if (button) button.disabled = Boolean(blocked);
+    }
+}
+
+async function loadCurrentProductAvailability() {
+    const products = await loadProductCatalog();
+    state.catalogProduct = products.find((product) => product.productType === state.productType) || {
+        productType: state.productType,
+        displayName: 'This product',
+        lifecycleState: 'retired',
+        visible: false,
+        orderable: false,
+        pauseMessage: '',
+    };
+    syncProductAvailability();
+}
 let kiriBenchmarkPending = false;
 let kiriModelRevision = 0;
 let kiriBenchmarkStatusMessage = '';
@@ -2034,6 +2083,10 @@ function setupEvents() {
 
     if (el.btnAddToCart) {
         el.btnAddToCart.addEventListener('click', async () => {
+            if (!productCanOrder()) {
+                syncProductAvailability();
+                return;
+            }
             // Guard against a double tap creating two lines.
             if (el.btnAddToCart.disabled) return;
             const label = el.btnAddToCart.querySelector('.btn-text');
@@ -2047,17 +2100,21 @@ function setupEvents() {
                 // the cart — most people add more than one design.
                 setTimeout(() => {
                     if (label) label.textContent = original;
-                    el.btnAddToCart.disabled = false;
+                    el.btnAddToCart.disabled = !productCanOrder();
                 }, 1400);
             } catch (err) {
                 alert(err.message || 'Could not add this design to the cart.');
                 if (label) label.textContent = original;
-                el.btnAddToCart.disabled = false;
+                el.btnAddToCart.disabled = !productCanOrder();
             }
         });
     }
 
     el.btnPlaceOrder.addEventListener('click', () => {
+        if (!productCanOrder()) {
+            syncProductAvailability();
+            return;
+        }
         // Validate form
         if (!el.custName.value.trim() || !el.custPhone.value.trim()) {
             alert('Please enter your Name and Phone Number to queue the order.');
@@ -2084,6 +2141,10 @@ function setupEvents() {
 
     // Order submit
     el.btnSubmitVerify.addEventListener('click', async () => {
+        if (!productCanOrder()) {
+            syncProductAvailability();
+            return;
+        }
         const txnId = el.upiTxnIdInput.value.trim();
         if (txnId.length !== 12 || !/^\d+$/.test(txnId)) {
             alert('Please enter your 12-digit numeric UPI Reference / Transaction ID to verify payment.');
@@ -2169,6 +2230,7 @@ async function init() {
     setupEvents();
 
     const filamentPromise = loadFilamentColours();
+    const productAvailabilityPromise = loadCurrentProductAvailability();
     
     // Fetch active batches from server
     try {
@@ -2186,6 +2248,7 @@ async function init() {
     }
 
     const initialFilaments = await filamentPromise;
+    await productAvailabilityPromise;
     applyFilamentCatalogue(initialFilaments);
     _filamentCatalogueSignature = filamentCatalogueSignature(initialFilaments);
     applyProductTypeConstraints();
@@ -2195,6 +2258,7 @@ async function init() {
     init3DViewer();
     update3DModelNow();
     renderStepper();
+    syncProductAvailability();
     updateCartBadge();
 
     // If this browser has a signed-in session, load auth so Add to cart writes

@@ -36,6 +36,9 @@ const MODULES = [
     'js/kiri-moto-benchmark.js',
     'js/batch-offers.js',
     'js/filament-catalog.js',
+    'js/product-catalog.js',
+    'js/product-registry.js',
+    'js/store-status.js',
     'js/product-labels.js',
     'js/studio-products.js',
     'js/printer-profiles.js',
@@ -73,7 +76,8 @@ for (const rel of MODULES) {
  * one version token everywhere.
  */
 const SHARED = ['cart', 'auth', 'supabase-config', 'auth-boot', 'pricing', 'kiri-moto-benchmark', 'batch-offers',
-    'filament-catalog', 'product-labels', 'studio-products', 'printer-profiles', 'viewer3d', 'order-status'];
+    'filament-catalog', 'product-labels', 'studio-products', 'printer-profiles', 'viewer3d', 'order-status',
+    'store-status'];
 const seen = {};
 const scanFiles = [
     ...fs.readdirSync(path.join(ROOT, 'js')).filter((f) => f.endsWith('.js')).map((f) => 'js/' + f),

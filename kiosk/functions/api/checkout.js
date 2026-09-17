@@ -2,6 +2,8 @@ import { json, fail, guard, readJson, requireCustomer } from '../../shared/http.
 import { db, authUser, rowToBatch, rowToOrder } from '../../shared/db.js';
 import { priceLine, priceOrder, RATES } from '../../public/js/pricing.js';
 import { findBatchDiscount } from '../../public/js/batch-offers.js';
+import { requireOrderableProduct } from '../../shared/product-catalog.js';
+import { requireStoreAcceptingOrders } from '../../shared/store-status.js';
 
 /* POST /api/checkout — turn the signed-in customer's cart into an order.
  *
@@ -45,6 +47,9 @@ function addressProblems(a) {
 export const onRequestPost = guard(async ({ request, env }) => {
     const auth = requireCustomer(request);
     if (auth instanceof Response) return auth;
+    const admin = db(env);
+    const store = await requireStoreAcceptingOrders(admin);
+    if (store.error) return fail(store.error, store.statusCode);
 
     // Resolve the owner through the auth server (which validates the signature),
     // NOT by decoding the JWT locally. Without user_id on the order, the RLS
@@ -81,7 +86,12 @@ export const onRequestPost = guard(async ({ request, env }) => {
     }
 
     /* ── Price server-side. The client's numbers are never consulted. ── */
-    const admin = db(env);
+    for (const productType of new Set(cartRows.map((row) => row.product_type))) {
+        const availability = await requireOrderableProduct(admin, productType);
+        if (availability.error) {
+            return fail(`${availability.error} Remove it from your cart to continue.`, availability.status);
+        }
+    }
     let batches = [];
     try {
         const rows = await admin.select('batches', 'select=*&order=updated_at.desc');

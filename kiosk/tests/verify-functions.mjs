@@ -18,6 +18,10 @@ const adminFilaments = await import('../functions/api/admin/filaments.js');
 const orderHistory = await import('../functions/api/orders/index.js');
 const ordersToday = await import('../functions/api/orders/today.js');
 const orderItem = await import('../functions/api/order-item/[id].js');
+const products = await import('../functions/api/products.js');
+const adminProducts = await import('../functions/api/admin/products.js');
+const storeStatus = await import('../functions/api/store-status.js');
+const adminStoreStatus = await import('../functions/api/admin/store-status.js');
 
 let stub;
 function reset() {
@@ -57,11 +61,134 @@ const VALID_ITEM = {
     unitPrice: 107, weightG: 20,
 };
 
+console.log('\n-- global order controls --');
+reset();
+
+let r = await call(storeStatus.onRequestGet, req('GET', '/api/store-status'));
+check('public store status starts open',
+    r.status === 200 && r.data.storeStatus.acceptingOrders === true);
+
+r = await call(adminStoreStatus.onRequestGet, req('GET', '/api/admin/store-status'));
+check('store controls require PIN', r.status === 401);
+
+r = await call(adminStoreStatus.onRequestPatch, req('PATCH', '/api/admin/store-status', {
+    headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+    body: {
+        acceptingOrders: false,
+        pauseMessage: 'Production is full today.',
+        resumeAt: '2026-09-18T04:30:00.000Z',
+    },
+}));
+check('admin pauses all new orders',
+    r.status === 200
+    && r.data.storeStatus.acceptingOrders === false
+    && /production is full/i.test(r.data.storeStatus.pauseMessage));
+
+r = await call(cart.onRequestPost, req('POST', '/api/cart', { headers: AUTH_A, body: VALID_ITEM }));
+check('global pause blocks add to cart',
+    r.status === 409 && /production is full/i.test(r.data.error) && stub.tables.cart_items.length === 0);
+
+r = await call(quickOrder.onRequestPost, req('POST', '/api/order', {
+    body: { name: 'Walkup', phone: '9999999999', productType: 'keychain', text: 'Priya', weightG: 20 },
+}));
+check('global pause blocks quick order', r.status === 409);
+
+stub.tables.cart_items.push({
+    id: 699,
+    user_id: 'user-A',
+    product_type: 'keychain',
+    text_value: 'Saved design',
+    quantity: 1,
+    design: {},
+    preview: '',
+    unit_price: 107,
+    weight_g: 20,
+    created_at: new Date().toISOString(),
+});
+r = await call(checkout.onRequestPost, req('POST', '/api/checkout', {
+    headers: AUTH_A,
+    body: { contactName: 'Priya', contactPhone: '9999999999' },
+}));
+check('global pause blocks checkout and preserves cart',
+    r.status === 409 && stub.tables.cart_items.some((row) => row.id === 699));
+
+r = await call(adminStoreStatus.onRequestPatch, req('PATCH', '/api/admin/store-status', {
+    headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+    body: { acceptingOrders: true, pauseMessage: '', resumeAt: null },
+}));
+check('admin resumes all new orders',
+    r.status === 200 && r.data.storeStatus.acceptingOrders === true);
+
+console.log('\n-- product lifecycle --');
+reset();
+
+r = await call(products.onRequestGet, req('GET', '/api/products'));
+check('public catalogue exposes active and hidden lifecycle flags',
+    r.status === 200
+    && r.data.products.find((product) => product.productType === 'keychain').orderable === true
+    && r.data.products.find((product) => product.productType === 'bordered_keychain').visible === false);
+
+r = await call(adminProducts.onRequestGet, req('GET', '/api/admin/products'));
+check('product admin requires PIN', r.status === 401);
+
+r = await call(adminProducts.onRequestPatch, req('PATCH', '/api/admin/products', {
+    headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+    body: {
+        productType: 'keychain',
+        lifecycleState: 'paused',
+        pauseMessage: 'Classic orders resume tomorrow.',
+    },
+}));
+check('admin pauses a product',
+    r.status === 200
+    && r.data.products.find((product) => product.productType === 'keychain').orderable === false);
+
+r = await call(cart.onRequestPost, req('POST', '/api/cart', { headers: AUTH_A, body: VALID_ITEM }));
+check('paused product cannot be added to cart',
+    r.status === 409 && /resume tomorrow/i.test(r.data.error));
+
+r = await call(quickOrder.onRequestPost, req('POST', '/api/order', {
+    body: { name: 'Walkup', phone: '9999999999', productType: 'keychain', text: 'Priya', weightG: 20 },
+}));
+check('paused product cannot use quick order', r.status === 409);
+
+stub.tables.cart_items.push({
+    id: 700,
+    user_id: 'user-A',
+    product_type: 'keychain',
+    text_value: 'Old cart line',
+    quantity: 1,
+    design: {},
+    preview: '',
+    unit_price: 1,
+    weight_g: 20,
+    created_at: new Date().toISOString(),
+});
+r = await call(checkout.onRequestPost, req('POST', '/api/checkout', {
+    headers: AUTH_A,
+    body: { contactName: 'Priya', contactPhone: '9999999999' },
+}));
+check('paused product blocks checkout but preserves the cart',
+    r.status === 409 && stub.tables.cart_items.some((row) => row.id === 700));
+
+r = await call(adminProducts.onRequestPatch, req('PATCH', '/api/admin/products', {
+    headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+    body: { productType: 'keychain', lifecycleState: 'not-a-state' },
+}));
+check('invalid lifecycle state is rejected', r.status === 400);
+
+r = await call(adminProducts.onRequestPatch, req('PATCH', '/api/admin/products', {
+    headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+    body: { productType: 'keychain', lifecycleState: 'active', pauseMessage: '' },
+}));
+check('admin can resume ordering', r.status === 200
+    && r.data.products.find((product) => product.productType === 'keychain').orderable === true);
+
 /* ═══ cart.js ═══ */
 console.log('\n-- cart --');
 reset();
 
-let r = await call(cart.onRequestGet, req('GET', '/api/cart'));
+r = await call(cart.onRequestGet, req('GET', '/api/cart'));
 check('GET without token -> 401', r.status === 401);
 
 r = await call(cart.onRequestGet, req('GET', '/api/cart', { headers: AUTH_A }));
