@@ -397,6 +397,31 @@ r = await call(adminFilaments.onRequestPost,
     }));
 check('admin adds a normalized colour',
     r.status === 201 && stub.tables.filament_colours.some((colour) => colour.hex_color === '#FF61A6'));
+const deletableColour = stub.tables.filament_colours.find((colour) => colour.hex_color === '#FF61A6');
+
+r = await call(adminFilaments.onRequestDelete,
+    req('DELETE', '/api/admin/filaments', {
+        body: { resource: 'colour', id: deletableColour.id },
+    }));
+check('permanent filament deletion requires PIN', r.status === 401);
+
+r = await call(adminFilaments.onRequestDelete,
+    req('DELETE', '/api/admin/filaments', {
+        headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+        body: { resource: 'colour', id: 101 },
+    }));
+check('colour with spool history cannot be deleted',
+    r.status === 409 && stub.tables.filament_colours.some((colour) => colour.id === 101));
+
+r = await call(adminFilaments.onRequestDelete,
+    req('DELETE', '/api/admin/filaments', {
+        headers: { 'x-admin-pin': ENV.ADMIN_PIN },
+        body: { resource: 'colour', id: deletableColour.id },
+    }));
+check('admin permanently deletes a colour without spool history',
+    r.status === 200
+    && !stub.tables.filament_colours.some((colour) => colour.id === deletableColour.id)
+    && !r.data.colours.some((colour) => colour.id === deletableColour.id));
 
 r = await call(adminFilaments.onRequestPatch,
     req('PATCH', '/api/admin/filaments', {

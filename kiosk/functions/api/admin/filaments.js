@@ -65,3 +65,30 @@ export const onRequestPatch = guard(async ({ request, env }) => {
     if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'Inventory record not found' }, 404);
     return json({ success: true, ...await payload(database) });
 });
+
+export const onRequestDelete = guard(async ({ request, env }) => {
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const body = await readJson(request);
+    if (body.resource !== 'colour') {
+        return json({ error: 'Only filament colours can be permanently deleted' }, 400);
+    }
+    const id = validId(body.id);
+    if (!id) return json({ error: 'A valid id is required' }, 400);
+
+    const database = db(env);
+    const colours = await database.select('filament_colours', `select=id,name&id=eq.${id}&limit=1`);
+    if (!Array.isArray(colours) || colours.length === 0) {
+        return json({ error: 'Filament colour not found' }, 404);
+    }
+
+    const spools = await database.select('filament_spools', `select=id&colour_id=eq.${id}&limit=1`);
+    if (Array.isArray(spools) && spools.length > 0) {
+        return json({
+            error: 'This colour has spool history and cannot be deleted. Mark it Unavailable to preserve inventory records.',
+        }, 409);
+    }
+
+    await database.remove('filament_colours', `id=eq.${id}`);
+    return json({ success: true, deletedColour: colours[0], ...await payload(database) });
+});

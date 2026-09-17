@@ -208,6 +208,28 @@ r = await call('POST', '/api/admin/filaments', {
 });
 check('Express admin adds a colour', r.status === 201
     && stub.tables.filament_colours.some((colour) => colour.hex_color === '#FF61A6'));
+const expressDeletableColour = stub.tables.filament_colours.find((colour) => colour.hex_color === '#FF61A6');
+
+r = await call('DELETE', '/api/admin/filaments', {
+    body: { resource: 'colour', id: expressDeletableColour.id },
+});
+check('Express filament deletion requires PIN', r.status === 401);
+
+r = await call('DELETE', '/api/admin/filaments', {
+    pin: PIN,
+    body: { resource: 'colour', id: 101 },
+});
+check('Express blocks deletion when spool history exists',
+    r.status === 409 && stub.tables.filament_colours.some((colour) => colour.id === 101));
+
+r = await call('DELETE', '/api/admin/filaments', {
+    pin: PIN,
+    body: { resource: 'colour', id: expressDeletableColour.id },
+});
+check('Express permanently deletes a colour without spool history',
+    r.status === 200
+    && !stub.tables.filament_colours.some((colour) => colour.id === expressDeletableColour.id)
+    && !r.data.colours.some((colour) => colour.id === expressDeletableColour.id));
 
 r = await call('PATCH', '/api/admin/filaments', {
     pin: PIN,

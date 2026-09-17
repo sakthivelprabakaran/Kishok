@@ -709,7 +709,14 @@ function renderFilaments() {
                     </select>
                 </label>
                 <label>Sort<input class="colour-sort" type="number" min="0" max="100000" value="${esc(colour.sortOrder)}"></label>
-                <button type="button" class="add-batch-btn" data-action="save-colour">Save colour</button>
+                <div class="filament-actions">
+                    <button type="button" class="add-batch-btn" data-action="save-colour">Save colour</button>
+                    <button type="button" class="delete-filament-btn" data-action="delete-colour"
+                        ${spools.length ? 'disabled title="This colour has spool history. Mark it Unavailable instead."' : ''}>
+                        Delete permanently
+                    </button>
+                    ${spools.length ? '<small>Spool history exists — use Unavailable.</small>' : ''}
+                </div>
             </div>
             <details class="spool-details">
                 <summary>Spool lots and manual stock adjustments</summary>
@@ -752,7 +759,7 @@ function setupFilamentEvents() {
         }
     });
 
-    el.filamentList && el.filamentList.addEventListener('click', (event) => {
+    el.filamentList && el.filamentList.addEventListener('click', async (event) => {
         const button = event.target.closest('[data-action]');
         if (!button) return;
         const card = button.closest('.filament-card');
@@ -767,6 +774,23 @@ function setupFilamentEvents() {
                 state: card.querySelector('.colour-state').value,
                 sortOrder: readNumber(card.querySelector('.colour-sort')),
             }, 'Colour updated. Storefront availability is now current.');
+        }
+        if (button.dataset.action === 'delete-colour') {
+            const colour = state.filaments.find((item) => Number(item.id) === colourId);
+            if (!colour) return;
+            if (Number(colour.spoolCount) > 0) {
+                setFilamentMessage('This colour has spool history. Mark it Unavailable instead of deleting it.', true);
+                return;
+            }
+            const confirmed = window.confirm(
+                `Permanently delete ${colour.name} (${colour.hex})?\n\n`
+                + 'It will disappear from Admin and every customer colour selector. This cannot be undone.'
+            );
+            if (!confirmed) return;
+            await saveFilament('DELETE', {
+                resource: 'colour',
+                id: colourId,
+            }, `${colour.name} was permanently deleted.`);
         }
         if (button.dataset.action === 'save-spool') {
             const row = button.closest('.spool-row');

@@ -746,6 +746,35 @@
     padding: .75rem .85rem;
     border-top: 1px solid var(--border-color);
 }
+.filament-actions {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+}
+.filament-actions small {
+    max-width: 150px;
+    color: var(--text-muted);
+    font-size: .62rem;
+    line-height: 1.25;
+}
+.delete-filament-btn {
+    min-height: 36px;
+    padding: .45rem .7rem;
+    border: 1px solid rgba(239, 68, 68, .45);
+    border-radius: 8px;
+    background: rgba(239, 68, 68, .08);
+    color: #dc2626;
+    font: 750 .7rem var(--font-family);
+    cursor: pointer;
+}
+.delete-filament-btn:hover:not(:disabled) {
+    border-color: #dc2626;
+    background: rgba(239, 68, 68, .16);
+}
+.delete-filament-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
 .spool-details { border-top: 1px solid var(--border-color); }
 .spool-details summary {
     padding: .7rem .85rem;

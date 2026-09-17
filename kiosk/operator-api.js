@@ -552,4 +552,34 @@ module.exports = function mountOperatorRoutes(app, deps) {
             sendError(res, err, 'Failed to update filament inventory');
         }
     });
+
+    app.delete('/api/admin/filaments', requireAdmin, async (req, res) => {
+        try {
+            if (!configured(res)) return;
+            const body = req.body || {};
+            if (body.resource !== 'colour') {
+                return res.status(400).json({ error: 'Only filament colours can be permanently deleted' });
+            }
+            const id = Number(body.id);
+            if (!Number.isInteger(id) || id < 1) {
+                return res.status(400).json({ error: 'A valid id is required' });
+            }
+
+            const colours = await rest('GET', `filament_colours?select=id,name&id=eq.${id}&limit=1`);
+            if (!Array.isArray(colours) || colours.length === 0) {
+                return res.status(404).json({ error: 'Filament colour not found' });
+            }
+            const spools = await rest('GET', `filament_spools?select=id&colour_id=eq.${id}&limit=1`);
+            if (Array.isArray(spools) && spools.length > 0) {
+                return res.status(409).json({
+                    error: 'This colour has spool history and cannot be deleted. Mark it Unavailable to preserve inventory records.',
+                });
+            }
+
+            await rest('DELETE', `filament_colours?id=eq.${id}`);
+            res.json({ success: true, deletedColour: colours[0], ...await filamentPayload() });
+        } catch (err) {
+            sendError(res, err, 'Failed to delete filament colour');
+        }
+    });
 };
