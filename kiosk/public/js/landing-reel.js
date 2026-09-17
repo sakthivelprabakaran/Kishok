@@ -5,7 +5,7 @@
    a mock customizer UI animates alongside. Honours
    prefers-reduced-motion (renders one static design, no loop).
    ========================================================= */
-import { KeychainViewer } from './viewer3d.js?v=wa37';
+import { KeychainViewer } from './viewer3d.js?v=wa38';
 
 (function () {
   'use strict';

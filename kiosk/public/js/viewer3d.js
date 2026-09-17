@@ -417,6 +417,7 @@ export class KeychainViewer {
         this.container = containerEl;
         this.fontCache  = {};
         this.keychainGroup = null;
+        this._wordartColorMaterials = null;
         this.disposed = false;
         this.printerProfile = getPrinterProfile();
         this.printBedGroup = null;
@@ -1124,6 +1125,7 @@ export class KeychainViewer {
     /* ── Build the 3D Keychain Mesh ── */
 
     _clearKeychain() {
+        this._wordartColorMaterials = null;
         if (!this.keychainGroup) return;
         this.scene.remove(this.keychainGroup);
         this.keychainGroup.traverse(function (obj) {
@@ -2166,6 +2168,13 @@ export class KeychainViewer {
             side:               THREE.DoubleSide,
         });
         this._applyFDMTexture(fontMat, p);
+        if (isWordart) {
+            this._wordartColorMaterials = {
+                base: [baseMat],
+                font: [],
+                line2: [],
+            };
+        }
 
         // ── Base Layer (Widest, bottom) ──
         // Word-art has no separate base — the letters themselves are the structure.
@@ -2295,6 +2304,8 @@ export class KeychainViewer {
                     side:               THREE.DoubleSide,
                 });
                 this._applyFDMTexture(lineMat, p);
+                var colorRole = lineEntry.lineIndex === 0 ? 'font' : 'line2';
+                this._wordartColorMaterials[colorRole].push(lineMat);
                 var lineGeo = new THREE.ExtrudeGeometry(lineEntry.shapes, fontSettings);
                 lineGeo.translate(0, 0, fontLayerBottomZ);
                 stackParent.add(new THREE.Mesh(lineGeo, lineMat));
@@ -6445,6 +6456,52 @@ export class KeychainViewer {
         }
         this.buildKeychain(text, font, colors.base, colors.font, colors.outline, params);
         this._afterModelUpdated();
+    }
+
+    /**
+     * Recolour an already-built Word Art model without regenerating any geometry.
+     * Returns false when the current model does not support the material-only path.
+     */
+    updateColors(colors) {
+        var registry = this._wordartColorMaterials;
+        if (!registry || !this.keychainGroup || !this._lastParams
+            || this._lastParams.productType !== 'wordart') {
+            return false;
+        }
+
+        var next = colors || {};
+        var baseColor = next.base || this._lastBaseColor;
+        var fontColor = next.font || this._lastFontColor;
+        var line2Color = next.line2 || next.outline
+            || (this._lastParams.lineColors && this._lastParams.lineColors[1])
+            || fontColor;
+
+        function recolour(materials, value) {
+            if (!value || !materials) return;
+            for (var i = 0; i < materials.length; i++) {
+                if (materials[i] && materials[i].color) materials[i].color.set(value);
+            }
+        }
+
+        recolour(registry.base, baseColor);
+        recolour(registry.font, fontColor);
+        recolour(registry.line2, line2Color);
+
+        this._lastBaseColor = baseColor;
+        this._lastFontColor = fontColor;
+        if (next.outline) this._lastOutlineColor = next.outline;
+        this._lastParams.lineColors = [fontColor, line2Color];
+
+        this.container.dispatchEvent(new CustomEvent('viewercolorschange', {
+            detail: {
+                colors: {
+                    base: baseColor,
+                    font: fontColor,
+                    line2: line2Color,
+                },
+            },
+        }));
+        return true;
     }
 
     /* ── Auto-rotate toggle ── */

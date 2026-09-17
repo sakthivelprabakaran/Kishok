@@ -218,13 +218,73 @@ try {
 
         const result = await cdp.evaluate(`(async () => {
             const expectedRoles = ${JSON.stringify(expectedRoles[productType])};
-            const swatches = Object.fromEntries(expectedRoles.map((role) => [
+            const collectSwatches = () => Object.fromEntries(expectedRoles.map((role) => [
                 role,
                 [...document.querySelectorAll('[data-color-role="' + role + '"]')],
             ]));
+            let swatches = collectSwatches();
             for (const role of expectedRoles) {
                 if (swatches[role].length !== 9) {
                     throw new Error(role + ' has ' + swatches[role].length + ' colors instead of 9.');
+                }
+            }
+
+            let fastPathProbe = null;
+            if (${JSON.stringify(productType)} === 'wordart') {
+                const line1 = document.querySelector('#wordartLine1');
+                const line2 = document.querySelector('#wordartLine2');
+                line1.value = 'VIVI';
+                line2.value = 'THA';
+                line1.dispatchEvent(new Event('input', { bubbles: true }));
+                line2.dispatchEvent(new Event('input', { bubbles: true }));
+                await window.__kootzyCustomizer.waitForIdle(90000);
+
+                document.querySelector('#wordartBackingToggle [data-mode="hollow"]').click();
+                await window.__kootzyCustomizer.waitForIdle(90000);
+                // The backing-mode handler reapplies product constraints and
+                // recreates swatch buttons, so collect the live DOM nodes again.
+                swatches = collectSwatches();
+
+                const before = window.__kootzyCustomizer.snapshot();
+                const viewerBefore = window.__kootzyViewer;
+                const fastPathReadyBefore = Boolean(
+                    viewerBefore?._wordartColorMaterials
+                    && viewerBefore?._lastParams?.productType === 'wordart'
+                );
+                const registryCountsBefore = Object.fromEntries(
+                    Object.entries(viewerBefore?._wordartColorMaterials || {})
+                        .map(([role, materials]) => [role, materials.length])
+                );
+                const target = swatches.base.find((button) =>
+                    button.dataset.colorHex !== before.colors.base.toUpperCase()
+                );
+                const started = performance.now();
+                target.click();
+                const elapsedMs = performance.now() - started;
+                const after = window.__kootzyCustomizer.snapshot();
+                fastPathProbe = {
+                    elapsedMs,
+                    fastPathReadyBefore,
+                    registryCountsBefore,
+                    lastProductTypeBefore: viewerBefore?._lastParams?.productType || null,
+                    sameModel: before.modelUuid === after.modelUuid,
+                    sameGeometry: JSON.stringify(before.geometryUuids) === JSON.stringify(after.geometryUuids),
+                    sameDimensions: JSON.stringify(before.dimensions) === JSON.stringify(after.dimensions),
+                    idle: after.idle,
+                    updateState: after.updateState,
+                    loadingVisible: after.loadingVisible,
+                };
+                if (!fastPathProbe.sameModel || !fastPathProbe.sameGeometry || !fastPathProbe.sameDimensions) {
+                    throw new Error('Word Art color update rebuilt or changed geometry.');
+                }
+                if (!fastPathProbe.idle || fastPathProbe.loadingVisible) {
+                    throw new Error(
+                        'Word Art color update entered the blocking rebuild/loading path: '
+                        + JSON.stringify(fastPathProbe)
+                    );
+                }
+                if (elapsedMs >= 50) {
+                    throw new Error('Word Art color update took ' + elapsedMs.toFixed(1) + 'ms.');
                 }
             }
 
@@ -381,6 +441,7 @@ try {
                 exercisedOptions,
                 optionCoverage,
                 hollowImmediate,
+                fastPathProbe,
                 final,
             };
         })()`);
@@ -390,6 +451,9 @@ try {
             assert.equal(result.hollowImmediate?.visible, true);
             assert.match(result.hollowImmediate?.text || '', /Building hollow Word Art/);
             assert.equal(result.hollowImmediate?.busy, 'true');
+            assert.equal(result.fastPathProbe?.sameGeometry, true);
+            assert.equal(result.fastPathProbe?.loadingVisible, false);
+            assert.ok(result.fastPathProbe?.elapsedMs < 50);
         }
 
         await cdp.evaluate('window.scrollTo(0, 0)');
@@ -404,6 +468,7 @@ try {
             colorCases: result.colorCases,
             options: result.exercisedOptions,
             optionCoverage: result.optionCoverage,
+            fastPathProbe: result.fastPathProbe,
             dimensions: result.final.dimensions,
         });
         console.log(`[PASS] ${productType}: ${result.colorCases} color combinations`);

@@ -3,7 +3,7 @@
    Full-screen STL Generation Console
    ========================================= */
 
-import { KeychainViewer } from './js/viewer3d.js?v=wa44';
+import { KeychainViewer } from './js/viewer3d.js?v=wa45';
 import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
@@ -747,7 +747,22 @@ function buildSwatches() {
                 });
                 swatch.classList.add('active');
                 swatch.setAttribute('aria-pressed', 'true');
-                updateViewer();
+                const usedFastPath = !_updateViewerRunning && viewer && viewer.updateColors(state.colors);
+                if (usedFastPath) {
+                    try {
+                        localStorage.setItem('adminConsoleState', JSON.stringify({
+                            name: state.name,
+                            lang: state.lang,
+                            layers: state.layers,
+                            productType: state.productType,
+                            wordartBase: state.wordartBase,
+                            selectedFontIndex: state.selectedFontIndex,
+                            colors: state.colors,
+                        }));
+                    } catch(e) {}
+                } else {
+                    updateViewer();
+                }
             });
 
             container.appendChild(swatch);

@@ -3,13 +3,14 @@ import { readFile } from 'node:fs/promises';
 
 import { FALLBACK_FILAMENT_COLOURS } from '../public/js/filament-catalog.js';
 
-const [indexHtml, customizeHtml, kioskApp, studioHtml, studioApp, customizeCss] = await Promise.all([
+const [indexHtml, customizeHtml, kioskApp, studioHtml, studioApp, customizeCss, viewerSource] = await Promise.all([
     readFile(new URL('../public/index.html', import.meta.url), 'utf8'),
     readFile(new URL('../public/customize.html', import.meta.url), 'utf8'),
     readFile(new URL('../public/js/kiosk-app.js', import.meta.url), 'utf8'),
     readFile(new URL('../public/studio.html', import.meta.url), 'utf8'),
     readFile(new URL('../public/admin-console.js', import.meta.url), 'utf8'),
     readFile(new URL('../public/css/customize.css', import.meta.url), 'utf8'),
+    readFile(new URL('../public/js/viewer3d.js', import.meta.url), 'utf8'),
 ]);
 
 const PRODUCT_COLOR_ROLES = Object.freeze({
@@ -78,6 +79,21 @@ assert.match(kioskApp, /swatch\.dataset\.colorHex\s*=\s*color\.hex\.toUpperCase\
 assert.match(kioskApp, /swatch\.setAttribute\('aria-pressed',\s*String\(isSelected\)\)/);
 assert.match(kioskApp, /document\.createElement\('button'\)/);
 assert.match(customizeCss, /\.swatch\.light-swatch\.selected::after/);
+assert.match(
+    viewerSource,
+    /updateColors\(colors\)[\s\S]*?_wordartColorMaterials[\s\S]*?return true/,
+    'Word Art needs a material-only color update path.',
+);
+assert.match(
+    kioskApp,
+    /if\s*\(!updateColorsWithoutRebuild\(\)\)\s*update3DModel\(\)/,
+    'Customer Word Art colors must use the material-only path before rebuilding geometry.',
+);
+assert.match(
+    studioApp,
+    /viewer\.updateColors\(state\.colors\)/,
+    'Studio Word Art colors must use the material-only path.',
+);
 assert.match(
     kioskApp,
     /customerDimensionsBtn\.addEventListener\('click'[\s\S]*?setDimensionOverlayVisible/,

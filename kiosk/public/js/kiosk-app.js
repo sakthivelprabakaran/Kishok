@@ -3,7 +3,7 @@
    Three.js Integration + Cost Engine + UPI
    ========================================= */
 
-import { KeychainViewer } from './viewer3d.js?v=wa37';
+import { KeychainViewer } from './viewer3d.js?v=wa38';
 import * as Cart from './cart.js?v=k1';
 import * as Pricing from './pricing.js?v=k1';
 import * as BatchOffers from './batch-offers.js?v=k1';
@@ -314,7 +314,18 @@ function init3DViewer() {
                     loadingVisible: Boolean(el.viewerLoading && getComputedStyle(el.viewerLoading).display !== 'none'),
                     loadingText: el.viewerLoadingText?.textContent || '',
                     idle: !_update3DRunning && !_update3DTimer && !_update3DDirty,
+                    updateState: {
+                        running: _update3DRunning,
+                        timerPending: Boolean(_update3DTimer),
+                        dirty: _update3DDirty,
+                    },
                     dimensions: state.dims ? { ...state.dims } : null,
+                    modelUuid: viewer?.keychainGroup?.uuid || null,
+                    geometryUuids: viewer?.keychainGroup
+                        ? viewer.keychainGroup.children
+                            .filter((child) => child.geometry)
+                            .map((child) => child.geometry.uuid)
+                        : [],
                 };
             },
             waitForIdle(timeoutMs = 30000) {
@@ -396,6 +407,16 @@ function update3DModel(options = {}) {
         _update3DTimer = null;
         _runUpdate3D();
     }, 180);
+}
+
+function updateColorsWithoutRebuild() {
+    if (!viewer || _update3DRunning || _update3DTimer || _update3DDirty) return false;
+    return viewer.updateColors({
+        base: state.colors.base,
+        font: state.colors.font,
+        outline: state.colors.outline,
+        line2: state.colors.line2,
+    });
 }
 
 // Force an immediate rebuild with no debounce (used on init / product switch).
@@ -1125,7 +1146,7 @@ function renderColorSwatches() {
                     conf.badge.textContent = color.label;
                 }
                 updateFilamentAvailabilityNotice();
-                update3DModel();
+                if (!updateColorsWithoutRebuild()) update3DModel();
             });
             
             conf.container.appendChild(swatch);
