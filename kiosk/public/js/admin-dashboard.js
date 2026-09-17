@@ -177,6 +177,9 @@ async function saveFilament(method, body, successMessage) {
         if (!data) return;
         state.filaments = Array.isArray(data.colours) ? data.colours : [];
         renderFilaments();
+        try {
+            localStorage.setItem('filamentCatalogRevision', String(Date.now()));
+        } catch (_) {}
         showFilamentMessage(successMessage);
     } catch (err) {
         console.error('Failed to save filament inventory:', err);

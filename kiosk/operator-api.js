@@ -484,6 +484,7 @@ module.exports = function mountOperatorRoutes(app, deps) {
             const colors = (Array.isArray(rows) ? rows : [])
                 .filter((row) => row.storefront_state !== 'unavailable')
                 .map(helpers.colourToApi);
+            res.set('Cache-Control', 'no-store');
             res.json({ colors, madeToOrderNotice: helpers.MADE_TO_ORDER_NOTICE });
         } catch (err) {
             sendError(res, err, 'Failed to load filament colours');

@@ -49,29 +49,17 @@ export function normalizeFilamentColours(values, { includeUnavailable = false } 
 }
 
 export function approvedFilamentColours(values) {
-    const liveByHex = new Map(
-        normalizeFilamentColours(values, { includeUnavailable: true })
-            .map((colour) => [colour.hex, colour])
-    );
-
-    return FALLBACK_FILAMENT_COLOURS
-        .map((approved) => {
-            const live = liveByHex.get(approved.hex);
-            if (live && live.state === 'unavailable') return null;
-            return {
-                ...approved,
-                id: live ? live.id : null,
-                state: live ? live.state : approved.state,
-                notice: live ? live.notice : '',
-            };
-        })
-        .filter(Boolean);
+    // Backwards-compatible export: once the API responds, Admin is the source
+    // of truth. Never merge missing rows back from the static fallback because
+    // "missing" is how the public API represents an unavailable colour.
+    return normalizeFilamentColours(values);
 }
 
 export async function loadFilamentColours(fetchImpl = fetch) {
     try {
-        const response = await fetchImpl('/api/filament-colours', {
+        const response = await fetchImpl(`/api/filament-colours?t=${Date.now()}`, {
             headers: { Accept: 'application/json' },
+            cache: 'no-store',
         });
         if (!response.ok) throw new Error(`Filament catalogue returned ${response.status}`);
         const payload = await response.json();
@@ -81,5 +69,5 @@ export async function loadFilamentColours(fetchImpl = fetch) {
     } catch (error) {
         console.warn('Using fallback filament colours:', error.message || error);
     }
-    return approvedFilamentColours([]);
+    return normalizeFilamentColours(FALLBACK_FILAMENT_COLOURS);
 }

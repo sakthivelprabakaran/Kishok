@@ -8,7 +8,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './js/filament-catalog.js?v=k7';
+} from './js/filament-catalog.js?v=k8';
 import {
     STUDIO_PRODUCT_SECTION_IDS,
     getStudioProductProfile,
@@ -687,7 +687,7 @@ function selectFont(index, skipRender = false, isBottom = false) {
 // ===== BUILD COLOR SWATCHES =====
 
 function applyStudioFilamentCatalogue(colours) {
-    const palette = studioPalette(colours && colours.length ? colours : FALLBACK_FILAMENT_COLOURS);
+    const palette = studioPalette(Array.isArray(colours) ? colours : FALLBACK_FILAMENT_COLOURS);
     for (const type of Object.keys(COLOR_PALETTES)) {
         COLOR_PALETTES[type] = [...palette];
         const selectedHex = String(state.colors[type] || '').toUpperCase();

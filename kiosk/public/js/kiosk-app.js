@@ -13,7 +13,7 @@ import {
     FALLBACK_FILAMENT_COLOURS,
     MADE_TO_ORDER_NOTICE,
     loadFilamentColours,
-} from './filament-catalog.js?v=k7';
+} from './filament-catalog.js?v=k8';
 
 // ===== DATA & CONFIG =====
 
@@ -1066,7 +1066,7 @@ function renderFontList() {
 }
 
 function applyFilamentCatalogue(colours) {
-    const palette = toPalette(colours && colours.length ? colours : FALLBACK_FILAMENT_COLOURS);
+    const palette = toPalette(Array.isArray(colours) ? colours : FALLBACK_FILAMENT_COLOURS);
     for (const key of Object.keys(COLOR_PALETTES)) COLOR_PALETTES[key] = [...palette];
 
     // A colour switched to Unavailable must disappear from new customer
@@ -1076,6 +1076,41 @@ function applyFilamentCatalogue(colours) {
         if (!palette.some((colour) => colour.hex.toUpperCase() === current)) {
             state.colors[key] = palette[0] ? palette[0].hex : '#F1ECE1';
         }
+    }
+}
+
+let _filamentRefreshPromise = null;
+let _filamentCatalogueSignature = '';
+
+function filamentCatalogueSignature(colours) {
+    return JSON.stringify((Array.isArray(colours) ? colours : []).map((colour) => [
+        colour.id, colour.name, colour.hex, colour.state, colour.sortOrder,
+    ]));
+}
+
+async function refreshFilamentCatalogue({ rebuildSelection = true } = {}) {
+    if (_filamentRefreshPromise) return _filamentRefreshPromise;
+    _filamentRefreshPromise = (async () => {
+        const colours = await loadFilamentColours();
+        const signature = filamentCatalogueSignature(colours);
+        if (signature === _filamentCatalogueSignature) return false;
+
+        const previous = { ...state.colors };
+        applyFilamentCatalogue(colours);
+        _filamentCatalogueSignature = signature;
+        applyProductTypeConstraints();
+
+        const selectionChanged = Object.keys(state.colors)
+            .some((key) => state.colors[key] !== previous[key]);
+        if (rebuildSelection && selectionChanged && viewer) {
+            if (!updateColorsWithoutRebuild()) update3DModel();
+        }
+        return true;
+    })();
+    try {
+        return await _filamentRefreshPromise;
+    } finally {
+        _filamentRefreshPromise = null;
     }
 }
 
@@ -2150,7 +2185,9 @@ async function init() {
         console.error('Failed to load active batches from server:', err);
     }
 
-    applyFilamentCatalogue(await filamentPromise);
+    const initialFilaments = await filamentPromise;
+    applyFilamentCatalogue(initialFilaments);
+    _filamentCatalogueSignature = filamentCatalogueSignature(initialFilaments);
     applyProductTypeConstraints();
     renderFontList();
     renderColorSwatches();
@@ -2174,6 +2211,13 @@ async function init() {
     window.addEventListener('resize', () => {
         clearTimeout(_rsTimer);
         _rsTimer = setTimeout(renderStepper, 200);
+    });
+    window.addEventListener('focus', () => refreshFilamentCatalogue());
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshFilamentCatalogue();
+    });
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'filamentCatalogRevision') refreshFilamentCatalogue();
     });
 }
 

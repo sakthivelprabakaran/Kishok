@@ -40,19 +40,36 @@ const approved = approvedFilamentColours([
     { id: 8, name: 'Old Gold', hex: '#FFD700', state: 'available', sortOrder: 1 },
     { id: 9, name: 'Forest Green', hex: '#008351', state: 'made_to_order', sortOrder: 60 },
 ]);
-assert.equal(approved.length, 9);
-assert(!approved.some((colour) => colour.hex === '#FFD700'));
+assert.equal(approved.length, 2);
+assert(approved.some((colour) => colour.hex === '#FFD700'));
 assert.equal(approved.find((colour) => colour.hex === '#008351').notice, MADE_TO_ORDER_NOTICE);
 
-const loaded = await loadFilamentColours(async () => new Response(JSON.stringify({
+let requestedUrl = '';
+let requestedOptions = null;
+const loaded = await loadFilamentColours(async (url, options) => {
+    requestedUrl = url;
+    requestedOptions = options;
+    return new Response(JSON.stringify({
     colors: [
         { id: 8, name: 'Old Gold', hex: '#FFD700', state: 'available', sortOrder: 1 },
         { id: 9, name: 'Forest Green', hex: '#008351', state: 'made_to_order', sortOrder: 60 },
     ],
-}), { status: 200, headers: { 'Content-Type': 'application/json' } }));
-assert.equal(loaded.length, 9);
-assert(!loaded.some((colour) => colour.hex === '#FFD700'));
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+});
+assert.equal(loaded.length, 2);
+assert(loaded.some((colour) => colour.hex === '#FFD700'));
 assert.equal(loaded.find((colour) => colour.hex === '#008351').state, 'made_to_order');
+assert.match(requestedUrl, /^\/api\/filament-colours\?t=\d+$/);
+assert.equal(requestedOptions.cache, 'no-store');
+
+const authoritative = await loadFilamentColours(async () => new Response(JSON.stringify({
+    colors: [
+        { id: 10, name: 'New Admin Colour', hex: '#ABCDEF', state: 'available', sortOrder: 1 },
+    ],
+}), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+assert.deepEqual(authoritative.map((colour) => colour.hex), ['#ABCDEF']);
+assert(!authoritative.some((colour) => colour.hex === '#C93655'),
+    'successful API data must not re-add a missing/unavailable fallback colour');
 
 const fallback = await loadFilamentColours(async () => new Response('{}', { status: 503 }));
 assert.equal(fallback.length, FALLBACK_FILAMENT_COLOURS.length);
