@@ -185,6 +185,7 @@ const state = {
     lang: 'en',
     layers: '3L',
     productType: 'keychain',
+    ringAnchor: 'top',
     // Word-art backing: 'none' (letters only) | 'solid' (plaque) | 'hollow' (standee)
     wordartBase: 'none',
     selectedFont: null,
@@ -242,6 +243,14 @@ const productControlNav = $('studioControlNav');
 const contextWidth = $('studioContextWidth');
 const contextHeight = $('studioContextHeight');
 const contextDepth = $('studioContextDepth');
+const classicRingAnchorSelect = $('adminClassicRingAnchor');
+const studioCrewContext = $('studioCrewContext');
+const studioCrewOrder = $('studioCrewOrder');
+const studioCrewMember = $('studioCrewMember');
+const studioCrewPrev = $('studioCrewPrev');
+const studioCrewNext = $('studioCrewNext');
+const studioCrewBack = $('studioCrewBack');
+let activeStudioCrew = null;
 
 function assignStudioSectionIds() {
     const sectionFor = (element) => element && element.closest('.ctrlSection');
@@ -538,6 +547,11 @@ function studioControlEntries(profile) {
 
 function renderStudioProductContext() {
     const profile = getStudioProductProfile(state.productType);
+    const classicRingAnchorRow = $('adminClassicRingAnchorRow');
+    if (classicRingAnchorRow) {
+        classicRingAnchorRow.style.display = state.productType === 'keychain' ? '' : 'none';
+    }
+    if (classicRingAnchorSelect) classicRingAnchorSelect.value = state.ringAnchor;
     if (productContextTitle) productContextTitle.textContent = profile.label;
     if (productContextDescription) productContextDescription.textContent = profile.description;
     if (productScaleModeBadge) {
@@ -564,6 +578,76 @@ function renderStudioProductContext() {
             button.textContent = entry.label;
             productControlNav.appendChild(button);
         }
+    }
+}
+
+function decodeStudioCrew(value) {
+    if (!value) return null;
+    try {
+        const normalized = String(value).replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+        const json = decodeURIComponent(escape(atob(padded)));
+        const members = JSON.parse(json);
+        if (!Array.isArray(members) || members.length < 2 || members.length > 6) return null;
+        return members.filter((member) =>
+            member && typeof member === 'object'
+            && typeof member.text === 'string'
+            && typeof member.productType === 'string'
+        );
+    } catch (_) {
+        return null;
+    }
+}
+
+function studioCrewMemberHref(member, index) {
+    if (!activeStudioCrew) return '#';
+    const params = new URLSearchParams({
+        text: member.text || '',
+        productType: member.productType || 'keychain',
+        scaleFactor: member.scaleFactor || '0.5',
+        font: member.font || '',
+        baseColor: member.baseColor || '',
+        fontColor: member.fontColor || '',
+        wordartBase: member.wordartBase || 'none',
+        layers: member.layers || '',
+        ringAnchor: member.ringAnchor || 'top',
+        orderNum: activeStudioCrew.orderNum || '',
+        crew: activeStudioCrew.encoded,
+        crewIndex: String(index),
+        crewId: activeStudioCrew.crewId || '',
+    });
+    return `/studio.html?${params.toString()}`;
+}
+
+function renderStudioCrewContext() {
+    if (!studioCrewContext) return;
+    studioCrewContext.hidden = !activeStudioCrew;
+    if (!activeStudioCrew) return;
+
+    const { members, index, orderNum } = activeStudioCrew;
+    const current = members[index];
+    if (studioCrewOrder) {
+        studioCrewOrder.textContent =
+            `${current.label || 'Kootzy Crew'}${orderNum ? ` · Order ${orderNum}` : ''}`;
+    }
+    if (studioCrewMember) {
+        studioCrewMember.textContent =
+            `Member ${index + 1} of ${members.length} · ${current.text || 'Unnamed'}`;
+    }
+    if (studioCrewPrev) {
+        const disabled = index <= 0;
+        studioCrewPrev.href = disabled ? '#' : studioCrewMemberHref(members[index - 1], index - 1);
+        studioCrewPrev.setAttribute('aria-disabled', String(disabled));
+    }
+    if (studioCrewNext) {
+        const disabled = index >= members.length - 1;
+        studioCrewNext.href = disabled ? '#' : studioCrewMemberHref(members[index + 1], index + 1);
+        studioCrewNext.setAttribute('aria-disabled', String(disabled));
+    }
+    if (studioCrewBack) {
+        studioCrewBack.href = orderNum
+            ? `/admin.html?tab=orders&order=${encodeURIComponent(orderNum)}`
+            : '/admin.html?tab=orders';
     }
 }
 
@@ -755,6 +839,7 @@ function buildSwatches() {
                             lang: state.lang,
                             layers: state.layers,
                             productType: state.productType,
+                            ringAnchor: state.ringAnchor,
                             wordartBase: state.wordartBase,
                             selectedFontIndex: state.selectedFontIndex,
                             colors: state.colors,
@@ -962,6 +1047,7 @@ function collectParams() {
             bevelThickness: 0.5,
             bevelSize:      0.5,
             bevelSegments:  4,
+            anchor:         state.ringAnchor,
         },
     };
 
@@ -1693,6 +1779,7 @@ async function _runUpdateViewer() {
             lang: state.lang,
             layers: state.layers,
             productType: state.productType,
+            ringAnchor: state.ringAnchor,
             wordartBase: state.wordartBase,
             selectedFontIndex: state.selectedFontIndex,
             colors: state.colors,
@@ -2175,6 +2262,10 @@ function restoreState() {
             if (saved.productType) {
                 state.productType = saved.productType;
             }
+            if (saved.ringAnchor && ['top', 'center'].includes(saved.ringAnchor)) {
+                state.ringAnchor = saved.ringAnchor;
+                if (classicRingAnchorSelect) classicRingAnchorSelect.value = state.ringAnchor;
+            }
             if (saved.wordartBase) {
                 state.wordartBase = saved.wordartBase;
                 syncWordartBaseUI();
@@ -2586,6 +2677,20 @@ function applyProductTypeUI() {
 
 function parseURLParameters() {
     const params = new URLSearchParams(window.location.search);
+    const encodedCrew = params.get('crew') || '';
+    const crewMembers = decodeStudioCrew(encodedCrew);
+    if (crewMembers) {
+        const requestedIndex = Number(params.get('crewIndex'));
+        activeStudioCrew = {
+            encoded: encodedCrew,
+            members: crewMembers,
+            index: Number.isInteger(requestedIndex)
+                ? Math.max(0, Math.min(crewMembers.length - 1, requestedIndex))
+                : 0,
+            crewId: params.get('crewId') || '',
+            orderNum: params.get('orderNum') || '',
+        };
+    }
     
     // 1. Parse Product Type first to guide text/color parsing
     const productTypeParam = params.get('productType');
@@ -2675,6 +2780,17 @@ function parseURLParameters() {
         }
     }
 
+    const layersParam = params.get('layers');
+    if (layersParam === '2L' || layersParam === '3L') {
+        state.layers = layersParam;
+    }
+
+    const ringAnchorParam = params.get('ringAnchor');
+    if (ringAnchorParam === 'top' || ringAnchorParam === 'center') {
+        state.ringAnchor = ringAnchorParam;
+    }
+    if (classicRingAnchorSelect) classicRingAnchorSelect.value = state.ringAnchor;
+
     const wordartBaseParam = params.get('wordartBase');
     if (wordartBaseParam) {
         const v = decodeURIComponent(wordartBaseParam).trim();
@@ -2723,6 +2839,7 @@ function parseURLParameters() {
         outlineGroup.style.display = is3L ? '' : 'none';
         outlineSection.style.display = is3L ? '' : 'none';
     }
+    renderStudioCrewContext();
 }
 
 // ===== INIT =====
@@ -2781,6 +2898,13 @@ async function init() {
             debouncedRebuild();
         });
         syncNametagRingPlacementUI();
+    }
+    if (classicRingAnchorSelect) {
+        classicRingAnchorSelect.value = state.ringAnchor;
+        classicRingAnchorSelect.addEventListener('change', () => {
+            state.ringAnchor = classicRingAnchorSelect.value === 'center' ? 'center' : 'top';
+            debouncedRebuild();
+        });
     }
 
     // Bind Name Beads shape/direction (Jackson's SCAD)

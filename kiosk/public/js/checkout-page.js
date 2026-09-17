@@ -170,7 +170,11 @@ async function render() {
 
         const name = document.createElement('span');
         name.className = 'co-line-name';
-        name.textContent = `${LABELS[item.productType] || item.productType} · “${item.text}”`;
+        const crew = item.design && item.design.crew;
+        const crewPrefix = crew && crew.id
+            ? `${crew.label || 'Kootzy Crew'} ${Number(crew.memberIndex) || 0}/${Number(crew.memberCount) || 0} · `
+            : '';
+        name.textContent = `${crewPrefix}${LABELS[item.productType] || item.productType} · “${item.text}”`;
 
         const qty = document.createElement('span');
         qty.className = 'co-line-qty';

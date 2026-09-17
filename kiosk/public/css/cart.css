@@ -49,6 +49,33 @@
 /* ── Lines ── */
 .cart-lines { list-style: none; margin: 0 0 1.25rem; padding: 0; display: grid; gap: 0.75rem; }
 
+.cart-crew-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.35rem;
+    padding: 0.75rem 0.9rem;
+    border: 1.5px solid var(--primary);
+    border-radius: var(--r-md, 14px);
+    background: linear-gradient(135deg, var(--paper-2), var(--bg-panel));
+    color: var(--text-main);
+}
+.cart-crew-heading > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+.cart-crew-heading strong {
+    color: var(--text-main);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+}
+.cart-crew-heading span {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+}
+
 .cart-line {
     display: flex;
     flex-wrap: wrap;
@@ -103,6 +130,7 @@
     overflow-wrap: anywhere;            /* customer text can be a single long run */
 }
 .cart-line-meta { margin: 0.15rem 0 0; color: var(--text-muted); font-size: 0.8rem; }
+.cart-crew-member-note { color: var(--primary-strong); font-weight: 800; }
 .batch-saving-note { color: #087f5b; font-weight: 800; }
 
 .cart-swatches { display: flex; gap: 4px; margin-top: 0.45rem; }

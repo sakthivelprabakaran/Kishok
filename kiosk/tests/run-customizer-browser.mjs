@@ -11,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const visualDir = path.resolve(
     process.env.CUSTOMIZER_VISUAL_DIR || path.join(os.tmpdir(), 'kootzy-customizer-functional'),
 );
-const products = [
+const allProducts = [
     'bubble_keychain',
     'keychain',
     'flower_keychain',
@@ -28,6 +28,8 @@ const products = [
     'desk_organizer',
     'led_word_art',
 ];
+const products = process.env.CREW_ONLY === '1' ? ['keychain'] : allProducts;
+const mobileViewport = process.env.CUSTOMIZER_MOBILE === '1';
 const expectedRoles = {
     bubble_keychain: ['base', 'font'],
     keychain: ['base', 'font', 'outline'],
@@ -198,6 +200,20 @@ try {
     cdp = await CdpClient.connect(target.webSocketDebuggerUrl);
     await cdp.send('Page.enable');
     await cdp.send('Runtime.enable');
+    if (mobileViewport) {
+        await cdp.send('Emulation.setDeviceMetricsOverride', {
+            width: 390,
+            height: 844,
+            deviceScaleFactor: 2,
+            mobile: true,
+            screenWidth: 390,
+            screenHeight: 844,
+        });
+        await cdp.send('Emulation.setTouchEmulationEnabled', {
+            enabled: true,
+            maxTouchPoints: 5,
+        });
+    }
 
     const results = [];
     for (const [productIndex, productType] of products.entries()) {
@@ -436,12 +452,64 @@ try {
                 }
             }
             if (final.loadingVisible) throw new Error('Loading overlay remained visible after rendering completed.');
+
+            let crewProbe = null;
+            if (${JSON.stringify(productType)} === 'keychain') {
+                localStorage.removeItem('kootzyCart.v1');
+                document.getElementById('crewModeBtn').click();
+                const names = ['Amma', 'Appa', 'Mithra'];
+                for (let index = 0; index < names.length; index += 1) {
+                    document.querySelector('[data-crew-member="' + index + '"]').click();
+                    const input = document.getElementById('nameInput');
+                    input.value = names[index];
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    await window.__kootzyCustomizer.waitForIdle(90000);
+                }
+                document.getElementById('crewRefreshPreviews').click();
+                const deadline = performance.now() + 90000;
+                while (document.body.classList.contains('crew-refreshing') && performance.now() < deadline) {
+                    await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+                if (document.body.classList.contains('crew-refreshing')) {
+                    throw new Error('Crew previews did not finish before timeout.');
+                }
+                const previewCount = document.querySelectorAll('#crewMemberStrip .crew-member-preview img').length;
+                const canvasCount = document.querySelectorAll('#viewer3dCanvas canvas').length;
+                const addButton = document.getElementById('btnAddToCart');
+                addButton.click();
+                const cartDeadline = performance.now() + 90000;
+                let cartItems = [];
+                while (performance.now() < cartDeadline) {
+                    const payload = JSON.parse(localStorage.getItem('kootzyCart.v1') || '{"items":[]}');
+                    cartItems = payload.items || [];
+                    if (cartItems.length === 3 && !addButton.disabled) break;
+                    await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+                const crewIds = [...new Set(cartItems.map((item) => item.design?.crew?.id).filter(Boolean))];
+                crewProbe = {
+                    memberCards: document.querySelectorAll('[data-crew-member]').length,
+                    previewCount,
+                    canvasCount,
+                    names: cartItems.map((item) => item.text).sort(),
+                    crewIds,
+                    memberIndexes: cartItems.map((item) => item.design?.crew?.memberIndex).sort(),
+                    quantityHidden: getComputedStyle(document.querySelector('.qty-selector-wrap')).display === 'none',
+                };
+                if (crewProbe.memberCards !== 3 || previewCount !== 3 || canvasCount !== 1) {
+                    throw new Error('Crew overview did not produce three exact previews with one WebGL canvas.');
+                }
+                if (cartItems.length !== 3 || crewIds.length !== 1) {
+                    throw new Error('Crew cart lines were not grouped under one Crew ID.');
+                }
+                if (!crewProbe.quantityHidden) throw new Error('Crew mode must hide the single-item quantity control.');
+            }
             return {
                 colorCases,
                 exercisedOptions,
                 optionCoverage,
                 hollowImmediate,
                 fastPathProbe,
+                crewProbe,
                 final,
             };
         })()`);
@@ -454,6 +522,15 @@ try {
             assert.equal(result.fastPathProbe?.sameGeometry, true);
             assert.equal(result.fastPathProbe?.loadingVisible, false);
             assert.ok(result.fastPathProbe?.elapsedMs < 50);
+        }
+        if (productType === 'keychain') {
+            assert.equal(result.crewProbe?.memberCards, 3);
+            assert.equal(result.crewProbe?.previewCount, 3);
+            assert.equal(result.crewProbe?.canvasCount, 1);
+            assert.deepEqual(result.crewProbe?.names, ['Amma', 'Appa', 'Mithra']);
+            assert.deepEqual(result.crewProbe?.memberIndexes, [1, 2, 3]);
+            assert.equal(result.crewProbe?.crewIds.length, 1);
+            assert.equal(result.crewProbe?.quantityHidden, true);
         }
 
         await cdp.evaluate('window.scrollTo(0, 0)');
@@ -469,6 +546,7 @@ try {
             options: result.exercisedOptions,
             optionCoverage: result.optionCoverage,
             fastPathProbe: result.fastPathProbe,
+            crewProbe: result.crewProbe,
             dimensions: result.final.dimensions,
         });
         console.log(`[PASS] ${productType}: ${result.colorCases} color combinations`);

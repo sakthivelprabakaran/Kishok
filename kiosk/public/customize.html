@@ -122,6 +122,43 @@
                 <button id="langToggleBtn" class="lang-toggle-btn">EN</button>
             </div>
 
+            <section class="crew-mode-card" id="crewModeCard" hidden aria-labelledby="crewModeTitle">
+                <div class="crew-mode-heading">
+                    <div>
+                        <span class="crew-mode-eyebrow">Make a matching set</span>
+                        <h4 id="crewModeTitle">Who are you designing for?</h4>
+                    </div>
+                    <div class="crew-mode-toggle" role="group" aria-label="Keychain order mode">
+                        <button type="button" class="crew-mode-option active" id="soloModeBtn" aria-pressed="true">Just one</button>
+                        <button type="button" class="crew-mode-option" id="crewModeBtn" aria-pressed="false">Kootzy Crew</button>
+                    </div>
+                </div>
+
+                <div class="crew-builder" id="crewBuilder" hidden>
+                    <div class="crew-count-row">
+                        <div>
+                            <strong>How many people?</strong>
+                            <span>Each person gets their own name, font and colours.</span>
+                        </div>
+                        <div class="crew-count-control" aria-label="Number of crew members">
+                            <button type="button" id="crewCountMinus" aria-label="Remove one member">−</button>
+                            <strong id="crewCountValue">3</strong>
+                            <button type="button" id="crewCountPlus" aria-label="Add one member">+</button>
+                        </div>
+                    </div>
+
+                    <div class="crew-overview-heading">
+                        <div>
+                            <strong>Crew overview</strong>
+                            <span>Tap a member to customize their keychain.</span>
+                        </div>
+                        <button type="button" class="crew-refresh-btn" id="crewRefreshPreviews">Refresh all previews</button>
+                    </div>
+                    <div class="crew-member-strip" id="crewMemberStrip" role="tablist" aria-label="Kootzy Crew members"></div>
+                    <p class="crew-status" id="crewStatus" aria-live="polite"></p>
+                </div>
+            </section>
+
             <!-- Single Input Container -->
             <div class="input-wrap" id="singleInputContainer">
                 <input type="text" id="nameInput" class="custom-input" placeholder="Enter custom text..." maxlength="15" autocomplete="off" spellcheck="false">
@@ -496,6 +533,6 @@
     </script>
 
     <script type="module" src="js/store-status.js?v=s1"></script>
-    <script type="module" src="js/kiosk-app.js?v=k19"></script>
+    <script type="module" src="js/kiosk-app.js?v=k20"></script>
 </body>
 </html>

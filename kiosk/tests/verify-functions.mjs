@@ -60,6 +60,12 @@ const VALID_ITEM = {
     design: { font: 'Brandy', colors: { base: '#ff9933' } },
     unitPrice: 107, weightG: 20,
 };
+const CREW_META = {
+    id: 'crew-test-1',
+    label: 'Kootzy Crew',
+    memberIndex: 1,
+    memberCount: 3,
+};
 
 console.log('\n-- global order controls --');
 reset();
@@ -275,7 +281,17 @@ check('empty cart -> 409', r.status === 409);
 /* seed a cart: 20g x1 and 5g x2, with tampered display prices */
 async function seedCart() {
     await call(cart.onRequestPost, req('POST', '/api/cart',
-        { headers: AUTH_A, body: { ...VALID_ITEM, text: 'Priya', weightG: 20, unitPrice: 1, preview: 'data:image/jpeg;base64,PIC1' } }));
+        {
+            headers: AUTH_A,
+            body: {
+                ...VALID_ITEM,
+                text: 'Priya',
+                weightG: 20,
+                unitPrice: 1,
+                preview: 'data:image/jpeg;base64,PIC1',
+                design: { ...VALID_ITEM.design, crew: CREW_META },
+            },
+        }));
     await call(cart.onRequestPost, req('POST', '/api/cart',
         { headers: AUTH_A, body: { ...VALID_ITEM, text: 'Arun', weightG: 5, quantity: 2, unitPrice: 1 } }));
 }
@@ -309,6 +325,9 @@ const lines = stub.tables.order_items;
 check('order_items freeze both lines', lines.length === 2
     && lines.every((l) => l.order_num === order.order_num));
 check('preview follows the order line', lines.find((l) => l.text_value === 'Priya').preview === 'data:image/jpeg;base64,PIC1');
+check('Crew grouping metadata survives checkout',
+    lines.find((l) => l.text_value === 'Priya').design.crew.id === CREW_META.id
+    && lines.find((l) => l.text_value === 'Priya').design.crew.memberCount === 3);
 check('cart emptied after checkout', stub.tables.cart_items.length === 0);
 
 /* ship happy path freezes the address */

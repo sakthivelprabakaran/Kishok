@@ -144,6 +144,13 @@ const state = {
     costs: null,
     kiriComparison: null,
     catalogProduct: null,
+    crew: {
+        enabled: false,
+        count: 3,
+        activeIndex: 0,
+        members: [],
+        refreshing: false,
+    },
 };
 
 // ===== DOM ELEMENTS =====
@@ -164,6 +171,17 @@ function cacheElements() {
     el.productAvailabilityNotice = document.getElementById('productAvailabilityNotice');
     el.productAvailabilityTitle = document.getElementById('productAvailabilityTitle');
     el.productAvailabilityMessage = document.getElementById('productAvailabilityMessage');
+
+    el.crewModeCard = document.getElementById('crewModeCard');
+    el.soloModeBtn = document.getElementById('soloModeBtn');
+    el.crewModeBtn = document.getElementById('crewModeBtn');
+    el.crewBuilder = document.getElementById('crewBuilder');
+    el.crewCountMinus = document.getElementById('crewCountMinus');
+    el.crewCountPlus = document.getElementById('crewCountPlus');
+    el.crewCountValue = document.getElementById('crewCountValue');
+    el.crewMemberStrip = document.getElementById('crewMemberStrip');
+    el.crewRefreshPreviews = document.getElementById('crewRefreshPreviews');
+    el.crewStatus = document.getElementById('crewStatus');
     
     el.stepDots        = document.querySelectorAll('.step-dot');
     el.stepLines       = document.querySelectorAll('.stepper-line');
@@ -398,6 +416,14 @@ function init3DViewer() {
             state.dims = event.detail.dimensions;
             renderCustomerDimensions(event.detail);
         });
+        viewer.container.addEventListener('viewercolorschange', () => {
+            if (!state.crew.enabled || state.crew.refreshing) return;
+            requestAnimationFrame(() => {
+                if (viewer && viewer.renderer) viewer.renderer.render(viewer.scene, viewer.camera);
+                saveActiveCrewDraft({ capture: true });
+                renderCrewMembers();
+            });
+        });
         const showDimensions = window.matchMedia('(min-width: 880px)').matches;
         viewer.setDimensionOverlayVisible(showDimensions);
     }
@@ -426,6 +452,421 @@ function renderCustomerDimensions(detail) {
     }
 }
 
+const CREW_MIN = 2;
+const CREW_MAX = 6;
+
+function newCrewId() {
+    if (globalThis.crypto && typeof crypto.randomUUID === 'function') {
+        return `crew-${crypto.randomUUID()}`;
+    }
+    return `crew-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function currentCrewDraft(existing = {}) {
+    return {
+        name: state.name,
+        font: state.selectedFont,
+        fontFile: state.selectedFontFile,
+        layers: state.layers,
+        colors: { ...state.colors },
+        ringPosition: state.ringPosition,
+        ringAnchor: state.ringAnchor,
+        showFDMTexture: state.showFDMTexture,
+        preview: existing.preview || '',
+        dims: existing.dims || null,
+        unitPrice: Number(existing.unitPrice) || 0,
+        weightG: Number(existing.weightG) || 0,
+        dirty: existing.dirty !== false,
+    };
+}
+
+function makeCrewMember(index, source) {
+    const member = currentCrewDraft(source || {});
+    if (index > 0 && !source) {
+        member.name = '';
+        member.preview = '';
+        member.dims = null;
+        member.unitPrice = 0;
+        member.weightG = 0;
+        member.dirty = true;
+    }
+    return member;
+}
+
+function ensureCrewMembers() {
+    while (state.crew.members.length < CREW_MAX) {
+        state.crew.members.push(makeCrewMember(state.crew.members.length));
+    }
+}
+
+function visibleCrewMembers() {
+    return state.crew.members.slice(0, state.crew.count);
+}
+
+function setCrewStatus(message = '', isError = false) {
+    if (!el.crewStatus) return;
+    el.crewStatus.textContent = message;
+    el.crewStatus.classList.toggle('is-error', isError);
+}
+
+function saveActiveCrewDraft({ capture = false, markDirty = false } = {}) {
+    if (!state.crew.enabled || state.productType !== 'keychain') return;
+    ensureCrewMembers();
+    const index = Math.min(state.crew.activeIndex, state.crew.count - 1);
+    const previous = state.crew.members[index] || {};
+    const next = currentCrewDraft(previous);
+    if (markDirty) next.dirty = true;
+    if (capture && viewer && state.dims) {
+        next.preview = captureViewerPreview();
+        next.dims = { ...state.dims };
+        next.unitPrice = Number(state.costs && state.costs.finalAmount) || 0;
+        next.weightG = Number(state.dims.weightGrams) || 0;
+        next.dirty = false;
+    }
+    state.crew.members[index] = next;
+}
+
+function crewEstimatedTotal() {
+    const members = visibleCrewMembers();
+    if (!members.length || members.some((member) => member.dirty || !member.unitPrice)) return 0;
+    return members.reduce((total, member) => total + member.unitPrice, 0);
+}
+
+function renderCrewMembers() {
+    if (!el.crewMemberStrip) return;
+    el.crewMemberStrip.textContent = '';
+    visibleCrewMembers().forEach((member, index) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `crew-member-card${index === state.crew.activeIndex ? ' active' : ''}`
+            + `${member.name.trim() ? '' : ' is-missing'}`;
+        card.dataset.crewMember = String(index);
+        card.setAttribute('role', 'tab');
+        card.setAttribute('aria-selected', String(index === state.crew.activeIndex));
+        card.setAttribute('aria-label', member.name.trim()
+            ? `Edit crew member ${index + 1}, ${member.name.trim()}`
+            : `Add name for crew member ${index + 1}`);
+
+        const preview = document.createElement('span');
+        preview.className = 'crew-member-preview';
+        if (member.preview) {
+            const image = document.createElement('img');
+            image.src = member.preview;
+            image.alt = '';
+            image.decoding = 'async';
+            preview.appendChild(image);
+        } else {
+            const placeholder = document.createElement('span');
+            placeholder.textContent = member.name.trim() || `Member ${index + 1}`;
+            preview.appendChild(placeholder);
+        }
+
+        const meta = document.createElement('span');
+        meta.className = 'crew-member-meta';
+        const name = document.createElement('strong');
+        name.textContent = member.name.trim() || `Member ${index + 1}`;
+        const detail = document.createElement('small');
+        detail.textContent = member.unitPrice && !member.dirty
+            ? `${member.font} · ₹${member.unitPrice}`
+            : `${member.font} · Preview needed`;
+        meta.append(name, detail);
+        card.append(preview, meta);
+        card.addEventListener('click', () => selectCrewMember(index));
+        el.crewMemberStrip.appendChild(card);
+    });
+
+    if (el.crewCountValue) el.crewCountValue.textContent = String(state.crew.count);
+    if (el.crewCountMinus) el.crewCountMinus.disabled = state.crew.count <= CREW_MIN || state.crew.refreshing;
+    if (el.crewCountPlus) el.crewCountPlus.disabled = state.crew.count >= CREW_MAX || state.crew.refreshing;
+    if (el.crewRefreshPreviews) el.crewRefreshPreviews.disabled = state.crew.refreshing;
+
+    const total = crewEstimatedTotal();
+    if (total > 0 && !state.crew.refreshing) {
+        setCrewStatus(`All ${state.crew.count} previews are current · Estimated set total ₹${total}`);
+    }
+}
+
+function syncCrewUi() {
+    const available = state.productType === 'keychain';
+    if (el.crewModeCard) el.crewModeCard.hidden = !available;
+    if (!available && state.crew.enabled) state.crew.enabled = false;
+    document.body.classList.toggle('crew-mode-active', available && state.crew.enabled);
+    if (el.crewBuilder) el.crewBuilder.hidden = !state.crew.enabled;
+    if (el.soloModeBtn) {
+        el.soloModeBtn.classList.toggle('active', !state.crew.enabled);
+        el.soloModeBtn.setAttribute('aria-pressed', String(!state.crew.enabled));
+    }
+    if (el.crewModeBtn) {
+        el.crewModeBtn.classList.toggle('active', state.crew.enabled);
+        el.crewModeBtn.setAttribute('aria-pressed', String(state.crew.enabled));
+    }
+    if (el.btnAddToCart) {
+        const label = el.btnAddToCart.querySelector('.btn-text');
+        if (label && !el.btnAddToCart.disabled) {
+            label.textContent = state.crew.enabled
+                ? `Add ${state.crew.count}-member crew to cart`
+                : 'Add to cart';
+        }
+    }
+    if (state.crew.enabled) renderCrewMembers();
+}
+
+function setCrewMode(enabled) {
+    if (state.productType !== 'keychain' || state.crew.refreshing) return;
+    if (enabled === state.crew.enabled) return;
+    if (enabled) {
+        state.crew.enabled = true;
+        state.crew.activeIndex = 0;
+        state.crew.members = [makeCrewMember(0)];
+        ensureCrewMembers();
+        state.quantity = 1;
+        if (el.qtyVal) el.qtyVal.textContent = '1';
+        saveActiveCrewDraft({ capture: true });
+        setCrewStatus('Customize each member, then refresh all previews before adding the set.');
+    } else {
+        saveActiveCrewDraft({ capture: true });
+        state.crew.enabled = false;
+        setCrewStatus('');
+    }
+    syncCrewUi();
+    calculatePricing();
+    renderStepper();
+}
+
+function setCrewCount(nextCount) {
+    if (!state.crew.enabled || state.crew.refreshing) return;
+    saveActiveCrewDraft({ capture: true });
+    state.crew.count = Math.max(CREW_MIN, Math.min(CREW_MAX, Number(nextCount) || CREW_MIN));
+    ensureCrewMembers();
+    if (state.crew.activeIndex >= state.crew.count) {
+        selectCrewMember(state.crew.count - 1);
+        return;
+    }
+    renderCrewMembers();
+    syncCrewUi();
+}
+
+function applyCrewMemberToEditor(member) {
+    state.name = member.name;
+    state.selectedFont = member.font;
+    state.selectedFontFile = member.fontFile;
+    state.layers = member.layers;
+    state.colors = { ...member.colors };
+    state.ringPosition = member.ringPosition || 'left';
+    state.ringAnchor = member.ringAnchor || 'top';
+    state.showFDMTexture = Boolean(member.showFDMTexture);
+    state.quantity = 1;
+
+    el.nameInput.value = state.name;
+    el.charCount.textContent = String(state.name.length);
+    if (el.qtyVal) el.qtyVal.textContent = '1';
+    if (el.thicknessToggle) {
+        el.thicknessToggle.querySelectorAll('.pos-opt').forEach((button) => {
+            button.classList.toggle('active', button.dataset.val === state.layers);
+        });
+    }
+    if (el.ringPosToggle) {
+        el.ringPosToggle.querySelectorAll('.pos-opt').forEach((button) => {
+            button.classList.toggle('active', button.dataset.val === state.ringAnchor);
+        });
+    }
+    applyProductTypeConstraints();
+    renderFontList();
+    renderColorSwatches();
+}
+
+function selectCrewMember(index) {
+    if (!state.crew.enabled || state.crew.refreshing) return;
+    const nextIndex = Math.max(0, Math.min(state.crew.count - 1, Number(index) || 0));
+    if (nextIndex === state.crew.activeIndex) return;
+    saveActiveCrewDraft({ capture: true });
+    state.crew.activeIndex = nextIndex;
+    applyCrewMemberToEditor(state.crew.members[nextIndex]);
+    setCrewStatus(`Editing member ${nextIndex + 1} of ${state.crew.count}.`);
+    renderCrewMembers();
+    update3DModelNow();
+}
+
+function firstMissingCrewName() {
+    return visibleCrewMembers().findIndex((member) => !String(member.name || '').trim());
+}
+
+function validateCrewNames() {
+    if (!state.crew.enabled) return true;
+    saveActiveCrewDraft();
+    const missing = firstMissingCrewName();
+    if (missing < 0) return true;
+    selectCrewMember(missing);
+    setCrewStatus(`Add a name for member ${missing + 1} before continuing.`, true);
+    el.nameInput.focus();
+    return false;
+}
+
+function classicCrewViewerParams(member) {
+    return {
+        ringPosition: member.ringPosition || 'left',
+        ring: { anchor: member.ringAnchor || 'top' },
+        wave_mode: 'wave',
+        wave_amplitude: 5.0,
+        wave_cycles: 1.0,
+        text_size: 22,
+        letter_gap: -2.5,
+        base_thickness: 2.5,
+        height_even: 4.0,
+        height_odd: 2.0,
+        ring_outer_d: 10,
+        ring_inner_d: 5,
+        ring_height: 4.5,
+        showFDMTexture: Boolean(member.showFDMTexture),
+    };
+}
+
+async function renderCrewMemberExact(member) {
+    await viewer.update(
+        member.name,
+        member.fontFile,
+        member.colors,
+        member.layers,
+        classicCrewViewerParams(member),
+        'keychain',
+        null
+    );
+    if (viewer.renderer) viewer.renderer.render(viewer.scene, viewer.camera);
+    const dims = viewer.getDimensions();
+    const offer = BatchOffers.findBatchDiscount({
+        productType: 'keychain',
+        design: {
+            layers: member.layers,
+            colors: {
+                base: member.colors.base,
+                font: member.colors.font,
+                ...(member.layers === '3L' ? { outline: member.colors.outline } : {}),
+            },
+        },
+        weightG: dims.weightGrams,
+    }, state.activeBatches, Pricing.priceLine, DEFAULT_BATCH_SIZE);
+    const priced = Pricing.priceLine({
+        weightG: dims.weightGrams,
+        quantity: 1,
+        batchSize: offer ? offer.batchSize : DEFAULT_BATCH_SIZE,
+    });
+    return {
+        ...member,
+        preview: captureViewerPreview(),
+        dims: { ...dims },
+        unitPrice: priced.unitPrice,
+        weightG: dims.weightGrams,
+        dirty: false,
+    };
+}
+
+async function refreshAllCrewPreviews() {
+    if (!state.crew.enabled || state.crew.refreshing || !viewer) return false;
+    if (!validateCrewNames()) return false;
+
+    saveActiveCrewDraft();
+    clearTimeout(_update3DTimer);
+    _update3DTimer = null;
+    while (_update3DRunning) {
+        await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    state.crew.refreshing = true;
+    _update3DDirty = false;
+    document.body.classList.add('crew-refreshing');
+    showViewerLoading(`Preparing crew previews…`);
+    renderCrewMembers();
+
+    const restoreIndex = state.crew.activeIndex;
+    try {
+        for (let index = 0; index < state.crew.count; index += 1) {
+            setCrewStatus(`Generating exact preview ${index + 1} of ${state.crew.count}…`);
+            showViewerLoading(`Preparing ${index + 1} of ${state.crew.count} crew keychains…`);
+            state.crew.members[index] = await renderCrewMemberExact(state.crew.members[index]);
+            renderCrewMembers();
+        }
+        setCrewStatus(`All ${state.crew.count} exact previews are ready.`);
+        return true;
+    } catch (error) {
+        console.error('Crew preview refresh failed:', error);
+        setCrewStatus(error.message || 'Could not prepare every crew preview.', true);
+        return false;
+    } finally {
+        state.crew.activeIndex = restoreIndex;
+        applyCrewMemberToEditor(state.crew.members[restoreIndex]);
+        try {
+            const restored = await renderCrewMemberExact(state.crew.members[restoreIndex]);
+            state.crew.members[restoreIndex] = restored;
+            state.dims = { ...restored.dims };
+            calculatePricing();
+        } catch (error) {
+            console.error('Crew editor restore failed:', error);
+            _update3DDirty = true;
+        }
+        state.crew.refreshing = false;
+        document.body.classList.remove('crew-refreshing');
+        hideViewerLoading();
+        renderCrewMembers();
+        syncCrewUi();
+        renderCustomerDimensions({
+            dimensions: state.dims,
+            dimensionsVisible: viewer.dimensionOverlayVisible,
+        });
+    }
+}
+
+function buildCrewCartLine(member, crewId, memberIndex) {
+    const design = {
+        font: member.font,
+        fontFile: member.fontFile,
+        layers: member.layers,
+        colors: {
+            base: member.colors.base,
+            font: member.colors.font,
+            ...(member.layers === '3L' ? { outline: member.colors.outline } : {}),
+        },
+        ringPosition: member.ringPosition || 'left',
+        ringAnchor: member.ringAnchor || 'top',
+        showFDMTexture: Boolean(member.showFDMTexture),
+        crew: {
+            id: crewId,
+            label: 'Kootzy Crew',
+            memberIndex: memberIndex + 1,
+            memberCount: state.crew.count,
+        },
+    };
+    if (member.dims) {
+        design.finishedSize = {
+            approximate: true,
+            lengthMm: Number(member.dims.width.toFixed(1)),
+            heightMm: Number(member.dims.height.toFixed(1)),
+            thicknessMm: Number(member.dims.depth.toFixed(1)),
+        };
+    }
+    return {
+        productType: 'keychain',
+        text: member.name,
+        quantity: 1,
+        design,
+        preview: member.preview,
+        unitPrice: member.unitPrice,
+        weightG: member.weightG,
+    };
+}
+
+async function addCrewToCart() {
+    const ready = await refreshAllCrewPreviews();
+    if (!ready) return false;
+    const crewId = newCrewId();
+    const members = visibleCrewMembers();
+    for (let index = 0; index < members.length; index += 1) {
+        setCrewStatus(`Adding member ${index + 1} of ${members.length} to your cart…`);
+        await Cart.add(buildCrewCartLine(members[index], crewId, index));
+    }
+    setCrewStatus(`${members.length}-member Kootzy Crew added to your cart.`);
+    return true;
+}
+
 // Debounced entry point. Rapid calls (typing, slider drags) collapse into a single
 // rebuild ~180ms after the last change. While a build is running, further calls set
 // a "dirty" flag so exactly one more rebuild runs after it finishes — no pile-up.
@@ -447,6 +888,11 @@ function hideViewerLoading() {
 }
 
 function update3DModel(options = {}) {
+    if (state.crew.enabled) saveActiveCrewDraft({ markDirty: true });
+    if (state.crew.refreshing) {
+        _update3DDirty = true;
+        return;
+    }
     if (options.showLoading) {
         showViewerLoading(options.loadingMessage || 'Updating 3D preview…');
     }
@@ -459,6 +905,7 @@ function update3DModel(options = {}) {
 }
 
 function updateColorsWithoutRebuild() {
+    if (state.crew.enabled) saveActiveCrewDraft({ markDirty: true });
     if (!viewer || _update3DRunning || _update3DTimer || _update3DDirty) return false;
     return viewer.updateColors({
         base: state.colors.base,
@@ -577,6 +1024,11 @@ async function _runUpdate3D() {
         kiriModelRevision += 1;
         state.kiriComparison = null;
         calculatePricing();
+        if (state.crew.enabled && !state.crew.refreshing) {
+            if (viewer.renderer) viewer.renderer.render(viewer.scene, viewer.camera);
+            saveActiveCrewDraft({ capture: true });
+            renderCrewMembers();
+        }
         renderKiriBenchmark();
         if (kiriBenchmarkEnabled) scheduleKiriBenchmark();
     } catch (err) {
@@ -859,10 +1311,14 @@ function renderStepper() {
     // `is-review` on the nav flips the visual hierarchy so Add to cart reads as
     // the primary action and the walk-up "pay now" path reads as secondary.
     const showCheckoutButtons = (visible) => {
-        if (el.btnPlaceOrder) el.btnPlaceOrder.style.display = visible ? 'flex' : 'none';
+        const crewEnabled = Boolean(state.crew && state.crew.enabled);
+        if (el.btnPlaceOrder) {
+            el.btnPlaceOrder.style.display = visible && !crewEnabled ? 'flex' : 'none';
+        }
         if (el.btnAddToCart)  el.btnAddToCart.style.display  = visible ? 'inline-flex' : 'none';
         const nav = document.querySelector('.stepper-nav');
         if (nav) nav.classList.toggle('is-review', visible);
+        if (typeof syncCrewUi === 'function') syncCrewUi();
     };
 
     if (desktop) {
@@ -1534,6 +1990,7 @@ function applyProductTypeConstraints() {
     }
     el.productTitle.textContent = titleStr;
     el.productSubtitle.textContent = subStr;
+    syncCrewUi();
 }
 
 // ===== UPI INITIATOR =====
@@ -1767,6 +2224,22 @@ function setInputValuePreservingCaret(input, next) {
 // ===== EVENT BINDINGS =====
 
 function setupEvents() {
+    if (el.soloModeBtn) {
+        el.soloModeBtn.addEventListener('click', () => setCrewMode(false));
+    }
+    if (el.crewModeBtn) {
+        el.crewModeBtn.addEventListener('click', () => setCrewMode(true));
+    }
+    if (el.crewCountMinus) {
+        el.crewCountMinus.addEventListener('click', () => setCrewCount(state.crew.count - 1));
+    }
+    if (el.crewCountPlus) {
+        el.crewCountPlus.addEventListener('click', () => setCrewCount(state.crew.count + 1));
+    }
+    if (el.crewRefreshPreviews) {
+        el.crewRefreshPreviews.addEventListener('click', () => refreshAllCrewPreviews());
+    }
+
     if (el.customerDimensionsBtn) {
         el.customerDimensionsBtn.addEventListener('click', () => {
             if (!viewer) return;
@@ -1788,7 +2261,9 @@ function setupEvents() {
         el.btnNextStep.addEventListener('click', () => {
             // Validation before proceeding
             if (state.currentStep === 1) {
-                if (state.productType === 'wordart') {
+                if (state.crew.enabled) {
+                    if (!validateCrewNames()) return;
+                } else if (state.productType === 'wordart') {
                     if (!el.wordartLine1.value.trim() && !el.wordartLine2.value.trim()) {
                         alert('Please enter text for at least one line.');
                         return;
@@ -2093,13 +2568,26 @@ function setupEvents() {
             const original = label ? label.textContent : '';
             el.btnAddToCart.disabled = true;
             try {
-                await Cart.add(buildCartLine());
+                if (state.crew.enabled) {
+                    if (label) label.textContent = 'Preparing crew…';
+                    const added = await addCrewToCart();
+                    if (!added) {
+                        if (label) label.textContent = original;
+                        return;
+                    }
+                } else {
+                    await Cart.add(buildCartLine());
+                }
                 if (label) label.textContent = 'Added ✓';
                 updateCartBadge();
                 // Brief confirmation in place, rather than yanking the customer to
                 // the cart — most people add more than one design.
                 setTimeout(() => {
-                    if (label) label.textContent = original;
+                    if (label) {
+                        label.textContent = state.crew.enabled
+                            ? `Add ${state.crew.count}-member crew to cart`
+                            : 'Add to cart';
+                    }
                     el.btnAddToCart.disabled = !productCanOrder();
                 }, 1400);
             } catch (err) {

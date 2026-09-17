@@ -15,7 +15,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="styles-root.css" rel="stylesheet"/>
-<link href="admin-console.css?v=wa7" rel="stylesheet"/>
+<link href="admin-console.css?v=wa8" rel="stylesheet"/>
 <style>
 /* ── PIN Gate ── */
 #studioLoginGate {
@@ -169,6 +169,17 @@
 <span class="studio-scale-badge" id="studioScaleModeBadge">Footprint scale</span>
 </div>
 <p class="studio-product-description" id="studioProductDescription">Layered keychain with independently controlled base, outline, text and keyring geometry.</p>
+<section class="studio-crew-context" id="studioCrewContext" hidden aria-label="Kootzy Crew navigation">
+<div>
+<span id="studioCrewOrder">Kootzy Crew</span>
+<strong id="studioCrewMember">Member 1 of 3</strong>
+</div>
+<nav aria-label="Crew members">
+<a id="studioCrewPrev" href="#" aria-label="Previous crew member">← Previous</a>
+<a id="studioCrewBack" href="admin.html">Order</a>
+<a id="studioCrewNext" href="#" aria-label="Next crew member">Next →</a>
+</nav>
+</section>
 <div class="studio-context-metrics" aria-label="Current model dimensions">
 <div><span>Width</span><strong id="studioContextWidth">—</strong><small>mm</small></div>
 <div><span>Height</span><strong id="studioContextHeight">—</strong><small>mm</small></div>
@@ -383,6 +394,13 @@ Letters only — the word itself is the whole structure.
 <input class="sliderNum" id="adminRingInnerNum" max="8" min="1.5" step="0.5" type="number" value="3.5"/>
 <span class="valSuffix">mm</span>
 </div>
+</div>
+<div class="sliderRow" id="adminClassicRingAnchorRow">
+<span class="sliderLabel">Vertical position</span>
+<select class="ctrl-select-input" id="adminClassicRingAnchor" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 6px; padding: 6px 12px; font-family: inherit;">
+<option selected="" value="top">Top corner</option>
+<option value="center">Centered</option>
+</select>
 </div>
 </div><div class="ctrlSection" id="adminLinkedSection" style="display: none;">
 <div class="ctrlSectionTitle">🔗 Linked Initial Geometry</div>
@@ -1461,6 +1479,6 @@ Letters only — the word itself is the whole structure.
   boot();
 })();
 </script>
-<script src="admin-console.js?v=46" type="module"></script>
+<script src="admin-console.js?v=47" type="module"></script>
 </body>
 </html>

@@ -9,7 +9,7 @@
     "previews:classic": "node scripts/generate-classic-reel.mjs",
     "previews:catalog": "node scripts/generate-catalog-reels.mjs",
     "test:functional": "node tests/run-customizer-browser.mjs",
-    "test": "node public/verify_studio_parity.js && node public/verify_input_perf.js && node public/verify_control_coverage.js && node tests/verify-batch-offers.mjs && node tests/verify-filament-catalog.mjs && node tests/verify-customizer-functional.mjs && node tests/verify-studio-products.mjs && node tests/verify-printer-profiles.mjs && node tests/verify-threemf.mjs && node tests/verify-kiri-benchmark.mjs && node tests/verify-classic-reel-pilot.mjs && node tests/verify-catalog-reel-gate.mjs && node --experimental-vm-modules public/verify_esm_parse.js && node tests/verify-functions.mjs && node tests/verify-express-api.mjs"
+    "test": "node public/verify_studio_parity.js && node public/verify_input_perf.js && node public/verify_control_coverage.js && node tests/verify-batch-offers.mjs && node tests/verify-filament-catalog.mjs && node tests/verify-customizer-functional.mjs && node tests/verify-crew-mode.mjs && node tests/verify-studio-products.mjs && node tests/verify-printer-profiles.mjs && node tests/verify-threemf.mjs && node tests/verify-kiri-benchmark.mjs && node tests/verify-classic-reel-pilot.mjs && node tests/verify-catalog-reel-gate.mjs && node --experimental-vm-modules public/verify_esm_parse.js && node tests/verify-functions.mjs && node tests/verify-express-api.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

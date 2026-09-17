@@ -28,6 +28,7 @@ const state = {
     dateTo: '',
     rangeMeta: null,
     activeTab: sessionStorage.getItem('ygAdminTab') || 'overview',
+    focusOrder: '',
     pin: sessionStorage.getItem('ygAdminPin') || ''
 };
 
@@ -578,7 +579,12 @@ function productionOptions(selected) {
     ).join('');
 }
 
-function itemDesignLink(order, item) {
+function itemCrew(item) {
+    const crew = item && item.design && item.design.crew;
+    return crew && typeof crew === 'object' && String(crew.id || '').trim() ? crew : null;
+}
+
+function studioSpec(order, item) {
     const design = item.design && typeof item.design === 'object' ? item.design : {};
     const colors = design.colors && typeof design.colors === 'object' ? design.colors : {};
     const productType = item.productType || order.productType || '';
@@ -590,7 +596,7 @@ function itemDesignLink(order, item) {
             ? `${secondaryFontColor}/${primaryFontColor}`
             : `${primaryFontColor}/${secondaryFontColor}`;
     }
-    const params = new URLSearchParams({
+    return {
         text: item.text || '',
         productType,
         scaleFactor: Number.isFinite(Number(design.scaleFactor)) ? String(design.scaleFactor) : '0.5',
@@ -598,13 +604,47 @@ function itemDesignLink(order, item) {
         baseColor: colors.base || order.baseColor || '',
         fontColor,
         wordartBase: design.wordartBase || order.wordartBase || 'none',
+        layers: design.layers || '',
+        ringAnchor: design.ringAnchor || 'top',
+    };
+}
+
+function encodeStudioCrew(items) {
+    const json = JSON.stringify(items);
+    const base64 = btoa(unescape(encodeURIComponent(json)));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function itemDesignLink(order, item) {
+    const spec = studioSpec(order, item);
+    const params = new URLSearchParams({
+        ...spec,
         orderNum: order.orderNum || '',
     });
+    const crew = itemCrew(item);
+    if (crew) {
+        const members = orderItems(order)
+            .filter((candidate) => itemCrew(candidate)?.id === crew.id)
+            .sort((a, b) => Number(itemCrew(a).memberIndex) - Number(itemCrew(b).memberIndex));
+        const currentIndex = Math.max(0, members.findIndex((candidate) => candidate === item));
+        params.set('crew', encodeStudioCrew(members.map((member) => ({
+            ...studioSpec(order, member),
+            memberIndex: Number(itemCrew(member).memberIndex) || 0,
+            memberCount: Number(itemCrew(member).memberCount) || members.length,
+            label: itemCrew(member).label || 'Kootzy Crew',
+        }))));
+        params.set('crewIndex', String(currentIndex));
+        params.set('crewId', String(crew.id));
+    }
     return `/studio.html?${params.toString()}`;
 }
 
 function orderItemHTML(order, item, index) {
     const colours = itemColours(item, order);
+    const crew = item.design && item.design.crew;
+    const crewBadge = crew && crew.id
+        ? `<span class="order-product-crew">${esc(crew.label || 'Kootzy Crew')} · ${esc(crew.memberIndex)}/${esc(crew.memberCount)}</span>`
+        : '';
     const itemId = Number(item.id);
     const editable = Number.isInteger(itemId) && itemId > 0
         && !['Pending', 'Cancelled', 'PaymentFailed'].includes(order.status);
@@ -616,6 +656,7 @@ function orderItemHTML(order, item, index) {
                     <strong>${index + 1}. ${esc(plabel(item.productType))}</strong>
                     <span>×${esc(item.quantity)}</span>
                 </div>
+                ${crewBadge}
                 <div class="order-product-text">&quot;${esc(item.text)}&quot;</div>
                 <div class="order-product-meta">
                     <span class="color-indicator-swatches">${renderColorSwatches(colours.join('/'), 'Product colours')}</span>
@@ -631,6 +672,45 @@ function orderItemHTML(order, item, index) {
                 <a class="action-btn design" href="${itemDesignLink(order, item)}">DESIGN</a>
             </div>
         </div>`;
+}
+
+function productionIsComplete(item) {
+    return ['printed', 'qc_passed', 'packed'].includes(item.productionStatus);
+}
+
+function orderProductsHTML(order, items) {
+    const renderedCrewIds = new Set();
+    const html = [];
+    for (const item of items) {
+        const crew = itemCrew(item);
+        if (!crew) {
+            html.push(orderItemHTML(order, item, items.indexOf(item)));
+            continue;
+        }
+        if (renderedCrewIds.has(crew.id)) continue;
+        renderedCrewIds.add(crew.id);
+        const members = items
+            .filter((candidate) => itemCrew(candidate)?.id === crew.id)
+            .sort((a, b) => Number(itemCrew(a).memberIndex) - Number(itemCrew(b).memberIndex));
+        const complete = members.filter(productionIsComplete).length;
+        const names = members.map((member) => member.text).join(', ');
+        html.push(`
+            <details class="order-crew-group" open>
+                <summary>
+                    <span>
+                        <strong>${esc(crew.label || 'Kootzy Crew')}</strong>
+                        <small>${esc(names)}</small>
+                    </span>
+                    <span class="order-crew-progress">${complete}/${members.length} complete</span>
+                </summary>
+                <div class="order-crew-members">
+                    ${members.map((member) =>
+                        orderItemHTML(order, member, items.indexOf(member))
+                    ).join('')}
+                </div>
+            </details>`);
+    }
+    return html.join('');
 }
 
 function orderCardHTML(order) {
@@ -665,7 +745,7 @@ function orderCardHTML(order) {
             <span>📞 <strong>Phone:</strong> <a href="tel:${esc(order.phone)}" style="color:var(--primary-ink);">${esc(order.phone)}</a></span>
             <span><strong>${items.length}</strong> product${items.length === 1 ? '' : 's'} · ${itemCount} item${itemCount === 1 ? '' : 's'}</span>
         </div>
-        <div class="order-products">${items.map((item, index) => orderItemHTML(order, item, index)).join('')}</div>
+        <div class="order-products">${orderProductsHTML(order, items)}</div>
         <div class="order-total-row"><span>Order total</span><strong>₹${esc(order.finalAmount)}</strong></div>
         <div class="txn-id-row ${upiVerified}">
             🔑 <strong>UPI Ref:</strong> <code>${esc(order.upiTxnId || 'N/A')}</code>
@@ -727,6 +807,15 @@ function renderOrders() {
     Array.from(el.orderList.children).forEach(c => {
         if (c.dataset.order && !seen.has(c.dataset.order)) c.remove();
     });
+    if (state.focusOrder) {
+        const focused = Array.from(el.orderList.children)
+            .find((card) => card.dataset.order === state.focusOrder);
+        if (focused) {
+            focused.classList.add('is-focused-order');
+            requestAnimationFrame(() => focused.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+            state.focusOrder = '';
+        }
+    }
 }
 
 function renderCustomers() {
@@ -1166,6 +1255,10 @@ function startDashboard() {
 
 function init() {
     cacheEls();
+    const query = new URLSearchParams(window.location.search);
+    const requestedTab = query.get('tab');
+    if (requestedTab) state.activeTab = requestedTab;
+    state.focusOrder = String(query.get('order') || '');
     // Auth gate: if we have a cached PIN that still works, skip the gate.
     const boot = async () => {
         if (state.pin && await tryLogin(state.pin)) { showApp(); return; }

@@ -209,6 +209,15 @@
     gap: 0.75rem;
     transition: var(--transition-smooth);
 }
+.admin-order-card.is-focused-order {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    animation: focused-order-pulse 1.2s ease-out 1;
+}
+@keyframes focused-order-pulse {
+    from { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 22%, transparent); }
+    to { box-shadow: var(--card-shadow); }
+}
 
 .admin-order-card:hover {
     border-color: var(--border-color-hover);
@@ -285,6 +294,61 @@
     gap: .6rem;
 }
 
+.order-crew-group {
+    overflow: hidden;
+    border: 1.5px solid color-mix(in srgb, var(--accent) 55%, var(--border-color));
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--accent) 5%, var(--bg-dark));
+}
+.order-crew-group > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .7rem .8rem;
+    color: var(--text-main);
+    cursor: pointer;
+    list-style: none;
+}
+.order-crew-group > summary::-webkit-details-marker { display: none; }
+.order-crew-group > summary::before {
+    content: "▸";
+    color: var(--accent);
+    font-size: .8rem;
+    transition: transform .15s ease;
+}
+.order-crew-group[open] > summary::before { transform: rotate(90deg); }
+.order-crew-group > summary > span:first-of-type {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+}
+.order-crew-group > summary strong { font-size: .82rem; }
+.order-crew-group > summary small {
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: .66rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.order-crew-progress {
+    flex: 0 0 auto;
+    padding: .2rem .48rem;
+    border: 1px solid var(--accent);
+    border-radius: 99px;
+    color: var(--accent);
+    font-size: .64rem;
+    font-weight: 800;
+}
+.order-crew-members {
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    padding: 0 .55rem .55rem;
+}
+.order-crew-members .order-product-item { background: var(--bg-panel); }
+
 .order-product-item {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -320,6 +384,18 @@
     color: var(--text-muted);
     font-size: .68rem;
     font-weight: 750;
+}
+.order-product-crew {
+    display: inline-flex;
+    width: fit-content;
+    margin-top: .22rem;
+    padding: .12rem .38rem;
+    border: 1px solid var(--accent);
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: var(--accent);
+    font-size: .62rem;
+    font-weight: 800;
 }
 .order-product-text {
     overflow: hidden;

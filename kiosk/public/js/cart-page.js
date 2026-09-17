@@ -26,6 +26,17 @@ import { PRODUCT_LABELS as LABELS } from './product-labels.js?v=k2';
 
 const rupees = (n) => '₹' + (Math.round(Number(n) || 0)).toLocaleString('en-IN');
 
+function crewMeta(item) {
+    const crew = item && item.design && item.design.crew;
+    if (!crew || typeof crew !== 'object' || !String(crew.id || '').trim()) return null;
+    return {
+        id: String(crew.id),
+        label: String(crew.label || 'Kootzy Crew'),
+        memberIndex: Number(crew.memberIndex) || 0,
+        memberCount: Number(crew.memberCount) || 0,
+    };
+}
+
 function lineNode(item) {
     const li = document.createElement('li');
     li.className = 'cart-line';
@@ -82,6 +93,13 @@ function lineNode(item) {
 
     info.append(name, text);
     if (fontName) info.appendChild(font);
+    const crew = crewMeta(item);
+    if (crew) {
+        const crewLine = document.createElement('p');
+        crewLine.className = 'cart-line-meta cart-crew-member-note';
+        crewLine.textContent = `${crew.label} · Member ${crew.memberIndex} of ${crew.memberCount}`;
+        info.appendChild(crewLine);
+    }
     if (item.batchOffer && Number(item.batchOffer.savings) > 0) {
         const saving = document.createElement('p');
         saving.className = 'cart-line-meta batch-saving-note';
@@ -130,6 +148,42 @@ function lineNode(item) {
     del.addEventListener('click', () => mutate(() => Cart.remove(item.id)));
 
     return li;
+}
+
+function crewHeadingNode(crew, members) {
+    const li = document.createElement('li');
+    li.className = 'cart-crew-heading';
+    const text = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = crew.label;
+    const note = document.createElement('span');
+    note.textContent = `${members.length} matching keychains · customized individually`;
+    text.append(title, note);
+    const total = document.createElement('strong');
+    total.textContent = rupees(members.reduce(
+        (sum, member) => sum + member.unitPrice * member.quantity,
+        0
+    ));
+    li.append(text, total);
+    return li;
+}
+
+function appendGroupedLines(fragment, items) {
+    const renderedCrewIds = new Set();
+    for (const item of items) {
+        const crew = crewMeta(item);
+        if (!crew) {
+            fragment.appendChild(lineNode(item));
+            continue;
+        }
+        if (renderedCrewIds.has(crew.id)) continue;
+        renderedCrewIds.add(crew.id);
+        const members = items
+            .filter((candidate) => crewMeta(candidate)?.id === crew.id)
+            .sort((a, b) => crewMeta(a).memberIndex - crewMeta(b).memberIndex);
+        fragment.appendChild(crewHeadingNode(crew, members));
+        members.forEach((member) => fragment.appendChild(lineNode(member)));
+    }
 }
 
 function showError(message) {
@@ -197,7 +251,7 @@ async function render() {
 
     el.lines.textContent = '';
     const frag = document.createDocumentFragment();
-    for (const item of items) frag.appendChild(lineNode(item));
+    appendGroupedLines(frag, items);
     el.lines.appendChild(frag);
 
     const totalItems = items.reduce((n, i) => n + i.quantity, 0);

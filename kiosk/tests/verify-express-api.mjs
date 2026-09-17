@@ -297,11 +297,37 @@ r = await call('GET', '/api/cart');
 check('cart without token -> 401', r.status === 401);
 
 const A = { token: 'aaa.bbb.ccc' };
-r = await call('POST', '/api/cart', { ...A, body: { productType: 'keychain', text: 'Priya', quantity: 1, weightG: 20, unitPrice: 1, preview: 'data:image/jpeg;base64,PIC1' } });
+const EXPRESS_CREW = {
+    id: 'crew-express-1',
+    label: 'Kootzy Crew',
+    memberIndex: 1,
+    memberCount: 3,
+};
+r = await call('POST', '/api/cart', {
+    ...A,
+    body: {
+        productType: 'keychain',
+        text: 'Priya',
+        quantity: 1,
+        weightG: 20,
+        unitPrice: 1,
+        preview: 'data:image/jpeg;base64,PIC1',
+        design: { crew: EXPRESS_CREW },
+    },
+});
 check('add to cart -> ok', (r.status === 201 || r.status === 200) && r.data.item.text === 'Priya');
 check('owner from token, not body', stub.tables.cart_items[0].user_id === 'user-A');
 
-r = await call('POST', '/api/cart', { ...A, body: { productType: 'keychain', text: 'Priya', quantity: 2, weightG: 20 } });
+r = await call('POST', '/api/cart', {
+    ...A,
+    body: {
+        productType: 'keychain',
+        text: 'Priya',
+        quantity: 2,
+        weightG: 20,
+        design: { crew: EXPRESS_CREW },
+    },
+});
 check('identical design merges quantity instead of duplicating (their dedupe)',
     stub.tables.cart_items.length === 1 && Number(stub.tables.cart_items[0].quantity) === 3,
     `lines=${stub.tables.cart_items.length} qty=${stub.tables.cart_items[0].quantity}`);
@@ -320,6 +346,8 @@ check('order carries user_id', stub.tables.orders.some((o) => o.user_id === 'use
 check('order_items frozen with preview',
     stub.tables.order_items.length >= 1
     && stub.tables.order_items.some((l) => l.preview === 'data:image/jpeg;base64,PIC1'));
+check('Express checkout preserves Crew grouping metadata',
+    stub.tables.order_items.some((line) => line.design?.crew?.id === EXPRESS_CREW.id));
 check('cart emptied after checkout',
     stub.tables.cart_items.filter((c) => c.user_id === 'user-A').length === 0);
 

@@ -203,7 +203,11 @@ async function renderDetail(orderNum) {
         text.textContent = '“' + item.text + '”';
         const meta = document.createElement('p');
         meta.className = 'cart-line-meta';
-        meta.textContent = `×${item.quantity} · ${rupees(item.lineTotal)}`;
+        const crew = item.design && item.design.crew;
+        const crewText = crew && crew.id
+            ? `${crew.label || 'Kootzy Crew'} · Member ${Number(crew.memberIndex) || 0} of ${Number(crew.memberCount) || 0} · `
+            : '';
+        meta.textContent = `${crewText}×${item.quantity} · ${rupees(item.lineTotal)}`;
         info.append(name, text, meta);
         li.appendChild(info);
         $('odItems').appendChild(li);
