@@ -29,7 +29,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/kiosk.css?v=k6">
     <link rel="stylesheet" href="css/legal.css?v=wa1">
-    <link rel="stylesheet" href="css/customize.css?v=k9">
+    <link rel="stylesheet" href="css/customize.css?v=k10">
 </head>
 <body>
     <!-- Sticky 3D Canvas Pane (45% viewport height) -->
@@ -110,6 +110,16 @@
             <div class="step-dot" data-step="4"></div>
         </div>
         <div class="stepper-text-indicator" id="stepperTextIndicator">Step 1: Text Customization</div>
+        <section class="crew-quick-switcher" id="crewQuickSwitcher" hidden aria-label="Switch Kootzy Crew member">
+            <div class="crew-quick-heading">
+                <div>
+                    <span id="crewQuickTitle">Customizing Member 1</span>
+                    <small id="crewQuickProgress">0 of 3 finished</small>
+                </div>
+                <button type="button" id="crewEditNamesBtn">Edit names</button>
+            </div>
+            <div class="crew-quick-members" id="crewQuickMembers" role="tablist" aria-label="Choose a crew member to customize"></div>
+        </section>
 
         <!-- STEP 1: Text Customization -->
         <div class="step-card" data-step="1">
@@ -533,6 +543,6 @@
     </script>
 
     <script type="module" src="js/store-status.js?v=s1"></script>
-    <script type="module" src="js/kiosk-app.js?v=k20"></script>
+    <script type="module" src="js/kiosk-app.js?v=k21"></script>
 </body>
 </html>

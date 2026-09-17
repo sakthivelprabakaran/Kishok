@@ -465,6 +465,53 @@ try {
                     input.dispatchEvent(new Event('input', { bubbles: true }));
                     await window.__kootzyCustomizer.waitForIdle(90000);
                 }
+                let mobileFlow = null;
+                if (matchMedia('(max-width: 879px)').matches) {
+                    const nextButton = document.getElementById('btnNextStep');
+                    nextButton.click();
+                    await window.__kootzyCustomizer.waitForIdle(90000);
+                    const enteredFontStep = window.__kootzyCustomizer.snapshot();
+                    const quickSwitcher = document.getElementById('crewQuickSwitcher');
+                    const quickVisible = !quickSwitcher.hidden
+                        && getComputedStyle(quickSwitcher).display !== 'none';
+
+                    nextButton.click();
+                    const colorStep = window.__kootzyCustomizer.snapshot();
+                    document.querySelector('[data-crew-quick-member="1"]').click();
+                    await window.__kootzyCustomizer.waitForIdle(90000);
+                    const switchedOnColorStep = window.__kootzyCustomizer.snapshot();
+                    document.querySelector('[data-crew-quick-member="0"]').click();
+                    await window.__kootzyCustomizer.waitForIdle(90000);
+                    nextButton.click();
+                    await window.__kootzyCustomizer.waitForIdle(90000);
+                    const advancedToNextMember = window.__kootzyCustomizer.snapshot();
+
+                    mobileFlow = {
+                        quickVisible,
+                        enteredStep: enteredFontStep.currentStep,
+                        enteredMember: enteredFontStep.crew.activeIndex,
+                        colorStep: colorStep.currentStep,
+                        switchedStep: switchedOnColorStep.currentStep,
+                        switchedMember: switchedOnColorStep.crew.activeIndex,
+                        advancedStep: advancedToNextMember.currentStep,
+                        advancedMember: advancedToNextMember.crew.activeIndex,
+                        configured: advancedToNextMember.crew.configured,
+                        nextLabel: nextButton.textContent,
+                    };
+                    if (!quickVisible || enteredFontStep.currentStep !== 2 || enteredFontStep.crew.activeIndex !== 0) {
+                        throw new Error('Crew mobile flow did not start with Member 1 and a visible switcher.');
+                    }
+                    if (colorStep.currentStep !== 3
+                        || switchedOnColorStep.currentStep !== 3
+                        || switchedOnColorStep.crew.activeIndex !== 1) {
+                        throw new Error('Crew member switching did not preserve the current mobile customization step.');
+                    }
+                    if (advancedToNextMember.currentStep !== 2
+                        || advancedToNextMember.crew.activeIndex !== 1
+                        || advancedToNextMember.crew.configured[0] !== true) {
+                        throw new Error('Crew mobile flow did not save Member 1 and advance to Member 2.');
+                    }
+                }
                 document.getElementById('crewRefreshPreviews').click();
                 const deadline = performance.now() + 90000;
                 while (document.body.classList.contains('crew-refreshing') && performance.now() < deadline) {
@@ -494,6 +541,7 @@ try {
                     crewIds,
                     memberIndexes: cartItems.map((item) => item.design?.crew?.memberIndex).sort(),
                     quantityHidden: getComputedStyle(document.querySelector('.qty-selector-wrap')).display === 'none',
+                    mobileFlow,
                 };
                 if (crewProbe.memberCards !== 3 || previewCount !== 3 || canvasCount !== 1) {
                     throw new Error('Crew overview did not produce three exact previews with one WebGL canvas.');
@@ -531,6 +579,16 @@ try {
             assert.deepEqual(result.crewProbe?.memberIndexes, [1, 2, 3]);
             assert.equal(result.crewProbe?.crewIds.length, 1);
             assert.equal(result.crewProbe?.quantityHidden, true);
+            if (mobileViewport) {
+                assert.equal(result.crewProbe?.mobileFlow?.quickVisible, true);
+                assert.equal(result.crewProbe?.mobileFlow?.enteredStep, 2);
+                assert.equal(result.crewProbe?.mobileFlow?.enteredMember, 0);
+                assert.equal(result.crewProbe?.mobileFlow?.switchedStep, 3);
+                assert.equal(result.crewProbe?.mobileFlow?.switchedMember, 1);
+                assert.equal(result.crewProbe?.mobileFlow?.advancedStep, 2);
+                assert.equal(result.crewProbe?.mobileFlow?.advancedMember, 1);
+                assert.equal(result.crewProbe?.mobileFlow?.configured[0], true);
+            }
         }
 
         await cdp.evaluate('window.scrollTo(0, 0)');

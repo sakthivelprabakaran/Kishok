@@ -182,6 +182,11 @@ function cacheElements() {
     el.crewMemberStrip = document.getElementById('crewMemberStrip');
     el.crewRefreshPreviews = document.getElementById('crewRefreshPreviews');
     el.crewStatus = document.getElementById('crewStatus');
+    el.crewQuickSwitcher = document.getElementById('crewQuickSwitcher');
+    el.crewQuickTitle = document.getElementById('crewQuickTitle');
+    el.crewQuickProgress = document.getElementById('crewQuickProgress');
+    el.crewQuickMembers = document.getElementById('crewQuickMembers');
+    el.crewEditNamesBtn = document.getElementById('crewEditNamesBtn');
     
     el.stepDots        = document.querySelectorAll('.step-dot');
     el.stepLines       = document.querySelectorAll('.stepper-line');
@@ -368,6 +373,7 @@ function init3DViewer() {
                 });
                 return {
                     productType: state.productType,
+                    currentStep: state.currentStep,
                     colors: { ...state.colors },
                     renderedColors: {
                         base: viewer?._lastBaseColor || null,
@@ -387,6 +393,12 @@ function init3DViewer() {
                         dirty: _update3DDirty,
                     },
                     dimensions: state.dims ? { ...state.dims } : null,
+                    crew: {
+                        enabled: state.crew.enabled,
+                        count: state.crew.count,
+                        activeIndex: state.crew.activeIndex,
+                        configured: visibleCrewMembers().map((member) => Boolean(member.configured)),
+                    },
                     modelUuid: viewer?.keychainGroup?.uuid || null,
                     geometryUuids: viewer?.keychainGroup
                         ? viewer.keychainGroup.children
@@ -477,6 +489,7 @@ function currentCrewDraft(existing = {}) {
         unitPrice: Number(existing.unitPrice) || 0,
         weightG: Number(existing.weightG) || 0,
         dirty: existing.dirty !== false,
+        configured: Boolean(existing.configured),
     };
 }
 
@@ -539,7 +552,8 @@ function renderCrewMembers() {
         const card = document.createElement('button');
         card.type = 'button';
         card.className = `crew-member-card${index === state.crew.activeIndex ? ' active' : ''}`
-            + `${member.name.trim() ? '' : ' is-missing'}`;
+            + `${member.name.trim() ? '' : ' is-missing'}`
+            + `${member.configured ? ' is-complete' : ''}`;
         card.dataset.crewMember = String(index);
         card.setAttribute('role', 'tab');
         card.setAttribute('aria-selected', String(index === state.crew.activeIndex));
@@ -584,6 +598,72 @@ function renderCrewMembers() {
     if (total > 0 && !state.crew.refreshing) {
         setCrewStatus(`All ${state.crew.count} previews are current · Estimated set total ₹${total}`);
     }
+    renderCrewQuickSwitcher();
+}
+
+function configuredCrewCount() {
+    return visibleCrewMembers().filter((member) => member.configured).length;
+}
+
+function nextUnconfiguredCrewIndex(fromIndex = state.crew.activeIndex) {
+    for (let offset = 1; offset < state.crew.count; offset += 1) {
+        const index = (fromIndex + offset) % state.crew.count;
+        if (!state.crew.members[index]?.configured) return index;
+    }
+    return -1;
+}
+
+function markActiveCrewConfigured() {
+    if (!state.crew.enabled) return;
+    saveActiveCrewDraft({ capture: true });
+    const member = state.crew.members[state.crew.activeIndex];
+    if (member) member.configured = true;
+    renderCrewMembers();
+}
+
+function renderCrewQuickSwitcher() {
+    if (!el.crewQuickSwitcher || !el.crewQuickMembers) return;
+    const visible = state.crew.enabled && !isDesktop() && state.currentStep > 1;
+    el.crewQuickSwitcher.hidden = !visible;
+    if (!visible) return;
+
+    const members = visibleCrewMembers();
+    const active = members[state.crew.activeIndex];
+    const previousActive = el.crewQuickMembers.dataset.activeIndex;
+    if (el.crewQuickTitle) {
+        el.crewQuickTitle.textContent =
+            `Customizing ${active?.name?.trim() || `Member ${state.crew.activeIndex + 1}`}`;
+    }
+    if (el.crewQuickProgress) {
+        el.crewQuickProgress.textContent =
+            `${configuredCrewCount()} of ${state.crew.count} finished · Tap a name to switch`;
+    }
+
+    el.crewQuickMembers.textContent = '';
+    members.forEach((member, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `crew-quick-member${index === state.crew.activeIndex ? ' active' : ''}`
+            + `${member.configured ? ' is-complete' : ''}`;
+        button.dataset.crewQuickMember = String(index);
+        button.dataset.memberNumber = String(index + 1);
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-selected', String(index === state.crew.activeIndex));
+        button.textContent = member.name.trim() || `Member ${index + 1}`;
+        button.addEventListener('click', () => selectCrewMember(index));
+        el.crewQuickMembers.appendChild(button);
+    });
+    el.crewQuickMembers.dataset.activeIndex = String(state.crew.activeIndex);
+
+    if (previousActive !== String(state.crew.activeIndex)) {
+        requestAnimationFrame(() => {
+            const activeButton = el.crewQuickMembers.querySelector('.crew-quick-member.active');
+            if (!activeButton) return;
+            const target = activeButton.offsetLeft
+                - (el.crewQuickMembers.clientWidth - activeButton.offsetWidth) / 2;
+            el.crewQuickMembers.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+        });
+    }
 }
 
 function syncCrewUi() {
@@ -609,6 +689,7 @@ function syncCrewUi() {
         }
     }
     if (state.crew.enabled) renderCrewMembers();
+    else if (el.crewQuickSwitcher) el.crewQuickSwitcher.hidden = true;
 }
 
 function setCrewMode(enabled) {
@@ -1269,6 +1350,7 @@ function isSectionUnavailable(elem) {
 
 function renderStepper() {
     const desktop = isDesktop();
+    const crewEnabled = Boolean(state.crew && state.crew.enabled);
     document.body.classList.toggle('all-steps', desktop);
 
     if (desktop) {
@@ -1303,7 +1385,14 @@ function renderStepper() {
         3: 'Step 3: Colors & Details',
         4: 'Step 4: Review & Payment'
     };
-    if(el.stepperText) el.stepperText.textContent = stepTitles[state.currentStep];
+    if(el.stepperText) {
+        const activeCrewName = crewEnabled && state.currentStep > 1
+            ? state.crew.members[state.crew.activeIndex]?.name?.trim()
+            : '';
+        el.stepperText.textContent = activeCrewName
+            ? `${stepTitles[state.currentStep]} · ${activeCrewName}`
+            : stepTitles[state.currentStep];
+    }
 
     // Update Buttons
     // The Add to cart button tracks the Pay button: both belong to the final
@@ -1311,7 +1400,6 @@ function renderStepper() {
     // `is-review` on the nav flips the visual hierarchy so Add to cart reads as
     // the primary action and the walk-up "pay now" path reads as secondary.
     const showCheckoutButtons = (visible) => {
-        const crewEnabled = Boolean(state.crew && state.crew.enabled);
         if (el.btnPlaceOrder) {
             el.btnPlaceOrder.style.display = visible && !crewEnabled ? 'flex' : 'none';
         }
@@ -1332,23 +1420,48 @@ function renderStepper() {
     if (state.currentStep === 1) {
         if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'hidden';
         if(el.btnNextStep) el.btnNextStep.style.display = '';
-        if(el.btnNextStep) el.btnNextStep.textContent = 'Next: Font';
+        if(el.btnNextStep) {
+            const firstName = crewEnabled
+                ? state.crew.members[0]?.name?.trim()
+                : '';
+            el.btnNextStep.textContent = firstName
+                ? `Next: Customize ${firstName}`
+                : 'Next: Font';
+        }
         showCheckoutButtons(false);
     } else if (state.currentStep === 2) {
         if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'visible';
         if(el.btnNextStep) el.btnNextStep.style.display = '';
-        if(el.btnNextStep) el.btnNextStep.textContent = 'Next: Colors';
+        if(el.btnNextStep) {
+            const activeName = crewEnabled
+                ? state.crew.members[state.crew.activeIndex]?.name?.trim()
+                : '';
+            el.btnNextStep.textContent = activeName
+                ? `Next: Colors for ${activeName}`
+                : 'Next: Colors';
+        }
         showCheckoutButtons(false);
     } else if (state.currentStep === 3) {
         if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'visible';
         if(el.btnNextStep) el.btnNextStep.style.display = '';
-        if(el.btnNextStep) el.btnNextStep.textContent = 'Next: Review & Pay';
+        if(el.btnNextStep) {
+            const nextCrewIndex = crewEnabled
+                ? nextUnconfiguredCrewIndex()
+                : -1;
+            const nextCrewName = nextCrewIndex >= 0
+                ? state.crew.members[nextCrewIndex]?.name?.trim()
+                : '';
+            el.btnNextStep.textContent = crewEnabled
+                ? (nextCrewName ? `Save & customize ${nextCrewName}` : 'Review Crew')
+                : 'Next: Review & Pay';
+        }
         showCheckoutButtons(false);
     } else if (state.currentStep === 4) {
         if(el.btnPrevStep) el.btnPrevStep.style.visibility = 'visible';
         if(el.btnNextStep) el.btnNextStep.style.display = 'none';
         showCheckoutButtons(true);
     }
+    if (typeof renderCrewQuickSwitcher === 'function') renderCrewQuickSwitcher();
 }
 
 // ===== UI RENDERERS =====
@@ -2239,6 +2352,13 @@ function setupEvents() {
     if (el.crewRefreshPreviews) {
         el.crewRefreshPreviews.addEventListener('click', () => refreshAllCrewPreviews());
     }
+    if (el.crewEditNamesBtn) {
+        el.crewEditNamesBtn.addEventListener('click', () => {
+            state.currentStep = 1;
+            renderStepper();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
 
     if (el.customerDimensionsBtn) {
         el.customerDimensionsBtn.addEventListener('click', () => {
@@ -2263,6 +2383,15 @@ function setupEvents() {
             if (state.currentStep === 1) {
                 if (state.crew.enabled) {
                     if (!validateCrewNames()) return;
+                    if (state.crew.activeIndex !== 0) {
+                        selectCrewMember(0);
+                    }
+                    state.currentStep = 2;
+                    renderStepper();
+                    if (!isDesktop()) {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                    return;
                 } else if (state.productType === 'wordart') {
                     if (!el.wordartLine1.value.trim() && !el.wordartLine2.value.trim()) {
                         alert('Please enter text for at least one line.');
@@ -2274,6 +2403,27 @@ function setupEvents() {
                         return;
                     }
                 }
+            }
+
+            if (state.currentStep === 3 && state.crew.enabled) {
+                markActiveCrewConfigured();
+                const nextCrewIndex = nextUnconfiguredCrewIndex();
+                if (nextCrewIndex >= 0) {
+                    selectCrewMember(nextCrewIndex);
+                    state.currentStep = 2;
+                    setCrewStatus(
+                        `Now customizing ${state.crew.members[nextCrewIndex].name.trim()} `
+                        + `(${configuredCrewCount()} of ${state.crew.count} finished).`
+                    );
+                } else {
+                    state.currentStep = 4;
+                    setCrewStatus(`All ${state.crew.count} crew members are ready to review.`);
+                }
+                renderStepper();
+                if (!isDesktop()) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+                return;
             }
             
             if (state.currentStep < state.totalSteps) {
@@ -2302,10 +2452,13 @@ function setupEvents() {
     if (el.stepDots && el.stepDots.length) {
         el.stepDots.forEach(dot => {
             dot.addEventListener('click', () => {
-                const targetStep = parseInt(dot.dataset.step);
+                let targetStep = parseInt(dot.dataset.step);
                 if (targetStep && targetStep !== state.currentStep) {
                     if (targetStep > 1 && state.currentStep === 1) {
-                        if (state.productType === 'wordart') {
+                        if (state.crew.enabled) {
+                            if (!validateCrewNames()) return;
+                            if (state.crew.activeIndex !== 0) selectCrewMember(0);
+                        } else if (state.productType === 'wordart') {
                             if (!el.wordartLine1.value.trim() && !el.wordartLine2.value.trim()) {
                                 alert('Please enter text for at least one line.');
                                 return;
@@ -2315,6 +2468,18 @@ function setupEvents() {
                                 alert('Please enter some text.');
                                 return;
                             }
+                        }
+                    }
+                    if (targetStep === 4 && state.crew.enabled) {
+                        if (state.currentStep === 3) markActiveCrewConfigured();
+                        const incomplete = visibleCrewMembers().findIndex((member) => !member.configured);
+                        if (incomplete >= 0) {
+                            if (state.crew.activeIndex !== incomplete) selectCrewMember(incomplete);
+                            targetStep = 2;
+                            setCrewStatus(
+                                `Finish customizing ${state.crew.members[incomplete].name.trim()} before review.`,
+                                true
+                            );
                         }
                     }
                     state.currentStep = targetStep;

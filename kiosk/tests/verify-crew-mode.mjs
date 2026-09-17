@@ -36,6 +36,9 @@ for (const id of [
     'crewMemberStrip',
     'crewRefreshPreviews',
     'crewStatus',
+    'crewQuickSwitcher',
+    'crewQuickMembers',
+    'crewEditNamesBtn',
 ]) {
     assert.match(customizeHtml, new RegExp(`id="${id}"`), `${id} must exist in the customizer.`);
 }
@@ -62,6 +65,12 @@ assert.match(kioskApp, /member\.fontFile/);
 assert.match(kioskApp, /member\.colors/);
 assert.match(kioskApp, /member\.layers/);
 assert.match(kioskApp, /member\.ringAnchor/);
+assert.match(kioskApp, /configured:\s*Boolean\(existing\.configured\)/);
+assert.match(kioskApp, /function nextUnconfiguredCrewIndex/);
+assert.match(kioskApp, /function markActiveCrewConfigured/);
+assert.match(kioskApp, /function renderCrewQuickSwitcher/);
+assert.match(kioskApp, /Save & customize \$\{nextCrewName\}/);
+assert.match(kioskApp, /state\.currentStep = 2;[\s\S]*?selectCrewMember\(nextCrewIndex\)/);
 assert.match(kioskApp, /firstMissingCrewName/);
 assert.match(kioskApp, /Add a name for member/);
 assert.match(kioskApp, /crew:\s*\{[\s\S]*?id:\s*crewId[\s\S]*?memberIndex[\s\S]*?memberCount/);
@@ -70,6 +79,8 @@ assert.match(kioskApp, /await Cart\.add\(buildCrewCartLine/);
 
 assert.match(customizeCss, /\.crew-member-strip/);
 assert.match(customizeCss, /\.crew-member-card\.active/);
+assert.match(customizeCss, /\.crew-quick-switcher/);
+assert.match(customizeCss, /\.crew-quick-member\.is-complete::after/);
 assert.match(customizeCss, /@media \(max-width: 430px\)/);
 assert.match(customizeCss, /\.crew-mode-active \.qty-selector-wrap \{ display: none; \}/);
 
