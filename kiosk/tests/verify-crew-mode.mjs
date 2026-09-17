@@ -69,6 +69,8 @@ assert.match(kioskApp, /configured:\s*Boolean\(existing\.configured\)/);
 assert.match(kioskApp, /function nextUnconfiguredCrewIndex/);
 assert.match(kioskApp, /function markActiveCrewConfigured/);
 assert.match(kioskApp, /function renderCrewQuickSwitcher/);
+assert.match(kioskApp, /function syncStepperNavClearance/);
+assert.match(kioskApp, /nav\.classList\.toggle\('is-crew-review'/);
 assert.match(kioskApp, /Save & customize \$\{nextCrewName\}/);
 assert.match(kioskApp, /state\.currentStep = 2;[\s\S]*?selectCrewMember\(nextCrewIndex\)/);
 assert.match(kioskApp, /firstMissingCrewName/);
@@ -81,6 +83,8 @@ assert.match(customizeCss, /\.crew-member-strip/);
 assert.match(customizeCss, /\.crew-member-card\.active/);
 assert.match(customizeCss, /\.crew-quick-switcher/);
 assert.match(customizeCss, /\.crew-quick-member\.is-complete::after/);
+assert.match(customizeCss, /\.stepper-nav\.is-review\.is-crew-review/);
+assert.match(customizeCss, /var\(--stepper-nav-height, 76px\)/);
 assert.match(customizeCss, /@media \(max-width: 430px\)/);
 assert.match(customizeCss, /\.crew-mode-active \.qty-selector-wrap \{ display: none; \}/);
 

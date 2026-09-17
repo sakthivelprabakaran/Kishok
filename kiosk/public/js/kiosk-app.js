@@ -191,6 +191,7 @@ function cacheElements() {
     el.stepDots        = document.querySelectorAll('.step-dot');
     el.stepLines       = document.querySelectorAll('.stepper-line');
     el.stepperText     = document.getElementById('stepperTextIndicator');
+    el.stepperNav      = document.querySelector('.stepper-nav');
     el.btnNextStep     = document.getElementById('btnNextStep');
     el.btnPrevStep     = document.getElementById('btnPrevStep');
     
@@ -1323,6 +1324,34 @@ async function runKiriBenchmark() {
 // the step-by-step wizard. Single source of truth for the breakpoint.
 function isDesktop() { return window.matchMedia('(min-width: 880px)').matches; }
 
+let stepperNavMeasureFrame = 0;
+let stepperNavResizeObserver = null;
+
+function syncStepperNavClearance() {
+    cancelAnimationFrame(stepperNavMeasureFrame);
+    stepperNavMeasureFrame = requestAnimationFrame(() => {
+        const nav = el.stepperNav;
+        const mobileFixed = nav && !isDesktop() && getComputedStyle(nav).position === 'fixed';
+        const height = mobileFixed ? Math.ceil(nav.getBoundingClientRect().height) : 0;
+        document.documentElement.style.setProperty(
+            '--stepper-nav-height',
+            `${height || 76}px`
+        );
+    });
+}
+
+function setupStepperNavClearance() {
+    if (!el.stepperNav) return;
+    if ('ResizeObserver' in window) {
+        stepperNavResizeObserver = new ResizeObserver(syncStepperNavClearance);
+        stepperNavResizeObserver.observe(el.stepperNav);
+    }
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncStepperNavClearance);
+    }
+    syncStepperNavClearance();
+}
+
 /* Conditional step-cards: sections that depend on the PRODUCT, not just on
  * which wizard step you are on, and so must stay hidden even when their step
  * is reached.
@@ -1352,6 +1381,10 @@ function renderStepper() {
     const desktop = isDesktop();
     const crewEnabled = Boolean(state.crew && state.crew.enabled);
     document.body.classList.toggle('all-steps', desktop);
+    document.body.classList.toggle(
+        'crew-review-step',
+        !desktop && crewEnabled && state.currentStep === 4
+    );
 
     if (desktop) {
         // Show ALL steps in the sidebar (respecting the conditional sections).
@@ -1404,9 +1437,13 @@ function renderStepper() {
             el.btnPlaceOrder.style.display = visible && !crewEnabled ? 'flex' : 'none';
         }
         if (el.btnAddToCart)  el.btnAddToCart.style.display  = visible ? 'inline-flex' : 'none';
-        const nav = document.querySelector('.stepper-nav');
-        if (nav) nav.classList.toggle('is-review', visible);
+        const nav = el.stepperNav || document.querySelector('.stepper-nav');
+        if (nav) {
+            nav.classList.toggle('is-review', visible);
+            nav.classList.toggle('is-crew-review', visible && crewEnabled);
+        }
         if (typeof syncCrewUi === 'function') syncCrewUi();
+        if (typeof syncStepperNavClearance === 'function') syncStepperNavClearance();
     };
 
     if (desktop) {
@@ -1462,6 +1499,7 @@ function renderStepper() {
         showCheckoutButtons(true);
     }
     if (typeof renderCrewQuickSwitcher === 'function') renderCrewQuickSwitcher();
+    if (typeof syncStepperNavClearance === 'function') syncStepperNavClearance();
 }
 
 // ===== UI RENDERERS =====
@@ -2881,6 +2919,7 @@ function setupEvents() {
 async function init() {
     cacheElements();
     setupEvents();
+    setupStepperNavClearance();
 
     const filamentPromise = loadFilamentColours();
     const productAvailabilityPromise = loadCurrentProductAvailability();
@@ -2927,7 +2966,10 @@ async function init() {
     let _rsTimer = null;
     window.addEventListener('resize', () => {
         clearTimeout(_rsTimer);
-        _rsTimer = setTimeout(renderStepper, 200);
+        _rsTimer = setTimeout(() => {
+            renderStepper();
+            syncStepperNavClearance();
+        }, 200);
     });
     window.addEventListener('focus', () => refreshFilamentCatalogue());
     document.addEventListener('visibilitychange', () => {

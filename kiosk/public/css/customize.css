@@ -217,7 +217,7 @@ body {
 /* Customizer Panel */
 .customizer-pane {
     flex-grow: 1;
-    padding: 0.65rem 0.85rem calc(4.8rem + env(safe-area-inset-bottom, 0px)) 0.85rem;
+    padding: 0.65rem 0.85rem calc(var(--stepper-nav-height, 76px) + 1rem) 0.85rem;
     max-width: 500px;
     margin: 0 auto;
     width: 100%;
@@ -533,6 +533,10 @@ body {
         color: #fff;
         font-size: 0.58rem;
         font-weight: 900;
+    }
+    body.crew-review-step .crew-quick-switcher:not([hidden]) {
+        position: relative;
+        top: auto;
     }
 }
 
@@ -1571,6 +1575,30 @@ body {
     transform: translateY(1px);
     background: var(--paper-2);
     box-shadow: none;
+}
+
+/* Crew checkout has no Pay Now action. Keep Back and Add to Cart in one
+   compact row instead of leaving a blank second row over the customer form. */
+@media (max-width: 879px) {
+    .stepper-nav.is-review.is-crew-review {
+        flex-wrap: nowrap;
+        gap: 0.55rem;
+    }
+    .stepper-nav.is-review.is-crew-review .stepper-btn-back {
+        order: 1;
+        flex: 0 0 82px;
+        min-height: 50px;
+        padding: 0.55rem 0.7rem;
+    }
+    .stepper-nav.is-review.is-crew-review #btnAddToCart {
+        order: 2;
+        min-width: 0;
+        min-height: 50px;
+        flex: 1 1 auto;
+        padding: 0.55rem 0.65rem;
+        font-size: clamp(0.78rem, 3.4vw, 0.92rem);
+        white-space: nowrap;
+    }
 }
 
 /* UPI Payment Modal Overlay */

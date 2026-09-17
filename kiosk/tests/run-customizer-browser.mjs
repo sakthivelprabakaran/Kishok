@@ -511,6 +511,49 @@ try {
                         || advancedToNextMember.crew.configured[0] !== true) {
                         throw new Error('Crew mobile flow did not save Member 1 and advance to Member 2.');
                     }
+
+                    nextButton.click();
+                    nextButton.click();
+                    await window.__kootzyCustomizer.waitForIdle(90000);
+                    nextButton.click();
+                    nextButton.click();
+                    await window.__kootzyCustomizer.waitForIdle(90000);
+                    const review = window.__kootzyCustomizer.snapshot();
+                    window.scrollTo(0, document.body.scrollHeight);
+                    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+                    const nav = document.querySelector('.stepper-nav');
+                    const back = document.getElementById('btnPrevStep');
+                    const add = document.getElementById('btnAddToCart');
+                    const phone = document.getElementById('custPhone');
+                    const navRect = nav.getBoundingClientRect();
+                    const backRect = back.getBoundingClientRect();
+                    const addRect = add.getBoundingClientRect();
+                    const phoneRect = phone.getBoundingClientRect();
+                    const paddingBottom = parseFloat(
+                        getComputedStyle(document.querySelector('.customizer-pane')).paddingBottom
+                    );
+                    mobileFlow.footer = {
+                        reviewStep: review.currentStep,
+                        navHeight: navRect.height,
+                        sameRow: Math.abs(backRect.top - addRect.top) < 4,
+                        formClearsFooter: phoneRect.bottom <= navRect.top - 8,
+                        paddingBottom,
+                        quickPosition: getComputedStyle(quickSwitcher).position,
+                        crewReviewClass: nav.classList.contains('is-crew-review'),
+                    };
+                    if (review.currentStep !== 4
+                        || navRect.height > 92
+                        || !mobileFlow.footer.sameRow
+                        || !mobileFlow.footer.formClearsFooter
+                        || paddingBottom < navRect.height + 12
+                        || mobileFlow.footer.quickPosition === 'sticky'
+                        || !mobileFlow.footer.crewReviewClass) {
+                        throw new Error(
+                            'Crew review footer overlaps mobile content: '
+                            + JSON.stringify(mobileFlow.footer)
+                        );
+                    }
                 }
                 document.getElementById('crewRefreshPreviews').click();
                 const deadline = performance.now() + 90000;
@@ -588,6 +631,12 @@ try {
                 assert.equal(result.crewProbe?.mobileFlow?.advancedStep, 2);
                 assert.equal(result.crewProbe?.mobileFlow?.advancedMember, 1);
                 assert.equal(result.crewProbe?.mobileFlow?.configured[0], true);
+                assert.equal(result.crewProbe?.mobileFlow?.footer?.reviewStep, 4);
+                assert.equal(result.crewProbe?.mobileFlow?.footer?.sameRow, true);
+                assert.equal(result.crewProbe?.mobileFlow?.footer?.formClearsFooter, true);
+                assert.equal(result.crewProbe?.mobileFlow?.footer?.crewReviewClass, true);
+                assert.notEqual(result.crewProbe?.mobileFlow?.footer?.quickPosition, 'sticky');
+                assert.ok(result.crewProbe?.mobileFlow?.footer?.navHeight <= 92);
             }
         }
 
