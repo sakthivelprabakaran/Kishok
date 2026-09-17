@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:52:35.000Z",
+  "sourceHash": "c457c4e67da8cd83b067673c0104e582d4a8d0647499012857ce5cece16ea31f",
+  "productType": "tilekey",
+  "sample": {
+    "text": "AIRA",
+    "font": "Bagel Fat One",
+    "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+    "layers": "3L",
+    "ringPosition": "left",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/tilekey/blue-white-red-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/tilekey/poster.png",
+  "variants": [
+    {
+      "id": "blue-white-red",
+      "label": "Water Blue, White and Red",
+      "text": "AIRA",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#1D7D8D",
+        "font": "#F1ECE1",
+        "outline": "#C93655",
+        "line2": "#C93655"
+      },
+      "sprite": "/assets/catalog-reels/tilekey/blue-white-red-orbit.webp",
+      "poster": "/assets/catalog-reels/tilekey/blue-white-red-poster.webp",
+      "dimensions": {
+        "width": 17.2,
+        "height": 59.5,
+        "depth": 3.4
+      }
+    },
+    {
+      "id": "black-yellow-orange",
+      "label": "Pitch Black, Yellow and Orange",
+      "text": "AIRA",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#F9A800",
+        "outline": "#D67842",
+        "line2": "#D67842"
+      },
+      "sprite": "/assets/catalog-reels/tilekey/black-yellow-orange-orbit.webp",
+      "poster": "/assets/catalog-reels/tilekey/black-yellow-orange-poster.webp",
+      "dimensions": {
+        "width": 17.2,
+        "height": 59.5,
+        "depth": 3.4
+      }
+    },
+    {
+      "id": "forest-beige-army",
+      "label": "Forest Green, Beige and Army Green",
+      "text": "AIRA",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#008351",
+        "font": "#D7CAAB",
+        "outline": "#7C8A68",
+        "line2": "#7C8A68"
+      },
+      "sprite": "/assets/catalog-reels/tilekey/forest-beige-army-orbit.webp",
+      "poster": "/assets/catalog-reels/tilekey/forest-beige-army-poster.webp",
+      "dimensions": {
+        "width": 17.2,
+        "height": 59.5,
+        "depth": 3.4
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 14824,
+    "totalAssetBytes": 266632,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

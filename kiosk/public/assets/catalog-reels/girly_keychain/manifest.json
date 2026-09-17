@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:52:27.294Z",
+  "sourceHash": "00be1b9ee812fd513338a1f5375f6652566686b99921d428886053c9f89216f6",
+  "productType": "girly_keychain",
+  "sample": {
+    "text": "Maya",
+    "font": "Pacifico",
+    "fontFile": "Fonts/Pacifico-Regular.ttf",
+    "layers": "3L",
+    "ringPosition": "left",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/girly_keychain/red-white-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/girly_keychain/poster.png",
+  "variants": [
+    {
+      "id": "red-white",
+      "label": "Imperial Red and Pure White",
+      "text": "Maya",
+      "font": "Pacifico",
+      "fontFile": "Fonts/Pacifico-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#C93655",
+        "font": "#F1ECE1",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/girly_keychain/red-white-orbit.webp",
+      "poster": "/assets/catalog-reels/girly_keychain/red-white-poster.webp",
+      "dimensions": {
+        "width": 38.4,
+        "height": 31.9,
+        "depth": 3.9
+      }
+    },
+    {
+      "id": "blue-yellow",
+      "label": "Water Blue and Lemon Yellow",
+      "text": "Maya",
+      "font": "Pacifico",
+      "fontFile": "Fonts/Pacifico-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#1D7D8D",
+        "font": "#F9A800",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/girly_keychain/blue-yellow-orbit.webp",
+      "poster": "/assets/catalog-reels/girly_keychain/blue-yellow-poster.webp",
+      "dimensions": {
+        "width": 38.4,
+        "height": 31.9,
+        "depth": 3.9
+      }
+    },
+    {
+      "id": "beige-black",
+      "label": "Light Beige and Pitch Black",
+      "text": "Maya",
+      "font": "Pacifico",
+      "fontFile": "Fonts/Pacifico-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#D7CAAB",
+        "font": "#0E0E10",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/girly_keychain/beige-black-orbit.webp",
+      "poster": "/assets/catalog-reels/girly_keychain/beige-black-poster.webp",
+      "dimensions": {
+        "width": 38.4,
+        "height": 31.9,
+        "depth": 3.9
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 34130,
+    "totalAssetBytes": 700541,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

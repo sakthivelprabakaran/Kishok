@@ -324,8 +324,7 @@
         var reelMode = new URLSearchParams(window.location.search).get('previewReel');
         var reelsEnabled = reelMode !== 'off';
         cards.forEach(function (card) {
-            if (reelsEnabled && card.dataset.type === 'keychain') return;
-            if (reelsEnabled && ['wordart', 'desk_organizer'].includes(card.dataset.type)) return;
+            if (reelsEnabled) return;
             var cfg = CONFIG[card.dataset.type];
             if (!cfg) return;
             loadLineFonts(cfg.fonts)

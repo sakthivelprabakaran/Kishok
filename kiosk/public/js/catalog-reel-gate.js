@@ -3,7 +3,22 @@
 
     if (new URLSearchParams(location.search).get('previewReel') === 'off') return;
 
-    const productTypes = ['wordart', 'desk_organizer'];
+    const productTypes = [
+        'bubble_keychain',
+        'flower_keychain',
+        'nametag',
+        'girly_keychain',
+        'tilekey',
+        'linked_initials',
+        'name_beads',
+        'supported_text',
+        'wordart',
+        'loveseries',
+        'nameplate',
+        'led_word_stand',
+        'desk_organizer',
+        'led_word_art',
+    ];
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const saveData = Boolean(navigator.connection && navigator.connection.saveData);
     const canAnimate = !reduceMotion && !saveData && 'IntersectionObserver' in window;
@@ -46,6 +61,8 @@
         image.src = assetUrl(manifest, manifest.fallbackPoster);
         image.alt = '';
         image.decoding = 'async';
+        image.loading = 'lazy';
+        image.fetchPriority = 'low';
         picture.append(source, image);
 
         const layers = [document.createElement('div'), document.createElement('div')];

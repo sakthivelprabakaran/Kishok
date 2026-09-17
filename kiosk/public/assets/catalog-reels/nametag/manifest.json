@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:52:17.956Z",
+  "sourceHash": "904a894a3cfcb7179a1b56cc8f7949d1dc0a6eb9c9293acfcb09e60e2dc43320",
+  "productType": "nametag",
+  "sample": {
+    "text": "Zoya",
+    "font": "Chewy",
+    "fontFile": "Fonts/Chewy-Regular.ttf",
+    "layers": "3L",
+    "ringPosition": "left",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/nametag/imperial-red-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/nametag/poster.png",
+  "variants": [
+    {
+      "id": "imperial-red",
+      "label": "Imperial Red",
+      "text": "Zoya",
+      "font": "Chewy",
+      "fontFile": "Fonts/Chewy-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#C93655",
+        "font": "#C93655",
+        "outline": "#C93655",
+        "line2": "#C93655"
+      },
+      "sprite": "/assets/catalog-reels/nametag/imperial-red-orbit.webp",
+      "poster": "/assets/catalog-reels/nametag/imperial-red-poster.webp",
+      "dimensions": {
+        "width": 19.5,
+        "height": 25.5,
+        "depth": 3.3
+      }
+    },
+    {
+      "id": "water-blue",
+      "label": "Water Blue",
+      "text": "Zoya",
+      "font": "Chewy",
+      "fontFile": "Fonts/Chewy-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#1D7D8D",
+        "font": "#1D7D8D",
+        "outline": "#1D7D8D",
+        "line2": "#1D7D8D"
+      },
+      "sprite": "/assets/catalog-reels/nametag/water-blue-orbit.webp",
+      "poster": "/assets/catalog-reels/nametag/water-blue-poster.webp",
+      "dimensions": {
+        "width": 19.5,
+        "height": 25.5,
+        "depth": 3.3
+      }
+    },
+    {
+      "id": "army-green",
+      "label": "Army Green",
+      "text": "Zoya",
+      "font": "Chewy",
+      "fontFile": "Fonts/Chewy-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#7C8A68",
+        "font": "#7C8A68",
+        "outline": "#7C8A68",
+        "line2": "#7C8A68"
+      },
+      "sprite": "/assets/catalog-reels/nametag/army-green-orbit.webp",
+      "poster": "/assets/catalog-reels/nametag/army-green-poster.webp",
+      "dimensions": {
+        "width": 19.5,
+        "height": 25.5,
+        "depth": 3.3
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 34470,
+    "totalAssetBytes": 655198,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

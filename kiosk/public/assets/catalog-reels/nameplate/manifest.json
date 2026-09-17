@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:53:39.709Z",
+  "sourceHash": "1b3e04aa2f7478d249193f8009cd9214b94e8156db8102033c21f447679e07b4",
+  "productType": "nameplate",
+  "sample": {
+    "text": "AARAV",
+    "font": "Anton",
+    "fontFile": "Fonts/Anton-Regular.ttf",
+    "layers": "3L",
+    "ringPosition": "none",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/nameplate/black-white-red-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/nameplate/poster.png",
+  "variants": [
+    {
+      "id": "black-white-red",
+      "label": "Pitch Black, White and Red",
+      "text": "AARAV",
+      "font": "Anton",
+      "fontFile": "Fonts/Anton-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#F1ECE1",
+        "outline": "#C93655",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/nameplate/black-white-red-orbit.webp",
+      "poster": "/assets/catalog-reels/nameplate/black-white-red-poster.webp",
+      "dimensions": {
+        "width": 70,
+        "height": 35.9,
+        "depth": 6
+      }
+    },
+    {
+      "id": "beige-blue-black",
+      "label": "Light Beige, Blue and Black",
+      "text": "AARAV",
+      "font": "Anton",
+      "fontFile": "Fonts/Anton-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#D7CAAB",
+        "font": "#1D7D8D",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/nameplate/beige-blue-black-orbit.webp",
+      "poster": "/assets/catalog-reels/nameplate/beige-blue-black-poster.webp",
+      "dimensions": {
+        "width": 70,
+        "height": 35.9,
+        "depth": 6
+      }
+    },
+    {
+      "id": "army-yellow-forest",
+      "label": "Army Green, Yellow and Forest Green",
+      "text": "AARAV",
+      "font": "Anton",
+      "fontFile": "Fonts/Anton-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#7C8A68",
+        "font": "#F9A800",
+        "outline": "#008351",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/nameplate/army-yellow-forest-orbit.webp",
+      "poster": "/assets/catalog-reels/nameplate/army-yellow-forest-poster.webp",
+      "dimensions": {
+        "width": 70,
+        "height": 35.9,
+        "depth": 6
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 16874,
+    "totalAssetBytes": 421880,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

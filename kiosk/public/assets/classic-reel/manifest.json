@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T09:03:25.116Z",
-  "sourceHash": "130f13fbb226ee4ed1874986522886ce3609a965b5837889633a41eea4e4b949",
+  "generatedAt": "2026-09-17T07:51:41.067Z",
+  "sourceHash": "627a6f55957d50ed529fc502aa296fee38dc5f032bca8132e71e009dd7fb4d76",
   "productType": "keychain",
   "sample": {
     "text": "Luna",
@@ -28,7 +28,7 @@
   "variants": [
     {
       "id": "orange-white-black",
-      "label": "Luna - Lobster - Pastel Green, White and Black",
+      "label": "Luna - Lobster - Forest Green, White and Black",
       "text": "Luna",
       "font": "Lobster",
       "fontFile": "Fonts/Lobster-Regular.ttf",
@@ -36,10 +36,10 @@
       "ringPosition": "left",
       "ringAnchor": "center",
       "colors": {
-        "base": "#A8E6CF",
-        "font": "#FFFFFF",
-        "outline": "#111111",
-        "line2": "#FFFFFF"
+        "base": "#008351",
+        "font": "#F1ECE1",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
       },
       "sprite": "/assets/classic-reel/orange-white-black-orbit.webp",
       "poster": "/assets/classic-reel/orange-white-black-poster.webp",
@@ -51,7 +51,7 @@
     },
     {
       "id": "purple-white-gold",
-      "label": "Zoya - Oleo Script - Pastel Blush, White and Plum",
+      "label": "Zoya - Oleo Script - Imperial Red, White and Beige",
       "text": "Zoya",
       "font": "Oleo Script",
       "fontFile": "Fonts/OleoScript-Bold.ttf",
@@ -59,10 +59,10 @@
       "ringPosition": "left",
       "ringAnchor": "center",
       "colors": {
-        "base": "#F7B7C9",
-        "font": "#FFFFFF",
-        "outline": "#4B2545",
-        "line2": "#FFFFFF"
+        "base": "#C93655",
+        "font": "#F1ECE1",
+        "outline": "#D7CAAB",
+        "line2": "#F1ECE1"
       },
       "sprite": "/assets/classic-reel/purple-white-gold-orbit.webp",
       "poster": "/assets/classic-reel/purple-white-gold-poster.webp",
@@ -74,7 +74,7 @@
     },
     {
       "id": "blue-gold-black",
-      "label": "MIRA - Super Bubble - Pastel Sky, Cream and Navy",
+      "label": "MIRA - Super Bubble - Water Blue, Yellow and Black",
       "text": "MIRA",
       "font": "Super Bubble",
       "fontFile": "Fonts/Super Bubble.ttf",
@@ -82,10 +82,10 @@
       "ringPosition": "left",
       "ringAnchor": "center",
       "colors": {
-        "base": "#A9D6F5",
-        "font": "#FFF8E7",
-        "outline": "#17324D",
-        "line2": "#FFFFFF"
+        "base": "#1D7D8D",
+        "font": "#F9A800",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
       },
       "sprite": "/assets/classic-reel/blue-gold-black-orbit.webp",
       "poster": "/assets/classic-reel/blue-gold-black-poster.webp",
@@ -97,7 +97,7 @@
     },
     {
       "id": "peach-black-2l",
-      "label": "Aira - Satisfy - Pastel Peach and Black - 2 Layer",
+      "label": "Aira - Satisfy - Terracotta Orange and Black - 2 Layer",
       "text": "Aira",
       "font": "Satisfy",
       "fontFile": "Fonts/Satisfy-Regular.ttf",
@@ -105,10 +105,10 @@
       "ringPosition": "left",
       "ringAnchor": "center",
       "colors": {
-        "base": "#FFC8A2",
-        "font": "#181818",
-        "outline": "#181818",
-        "line2": "#FFFFFF"
+        "base": "#D67842",
+        "font": "#0E0E10",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
       },
       "sprite": "/assets/classic-reel/peach-black-2l-orbit.webp",
       "poster": "/assets/classic-reel/peach-black-2l-poster.webp",
@@ -120,7 +120,7 @@
     },
     {
       "id": "lavender-plum-2l",
-      "label": "AARAV - Fredoka One - Pastel Lavender and Plum - 2 Layer",
+      "label": "AARAV - Fredoka One - Light Beige and Army Green - 2 Layer",
       "text": "AARAV",
       "font": "Fredoka One",
       "fontFile": "Fonts/FredokaOne-Regular.ttf",
@@ -128,10 +128,10 @@
       "ringPosition": "left",
       "ringAnchor": "center",
       "colors": {
-        "base": "#C7B8EA",
-        "font": "#3A275E",
-        "outline": "#3A275E",
-        "line2": "#FFFFFF"
+        "base": "#D7CAAB",
+        "font": "#7C8A68",
+        "outline": "#7C8A68",
+        "line2": "#F1ECE1"
       },
       "sprite": "/assets/classic-reel/lavender-plum-2l-orbit.webp",
       "poster": "/assets/classic-reel/lavender-plum-2l-poster.webp",
@@ -143,8 +143,8 @@
     }
   ],
   "budgets": {
-    "initialPosterBytes": 39852,
-    "totalAssetBytes": 1233690,
+    "initialPosterBytes": 40412,
+    "totalAssetBytes": 1216305,
     "totalAssetBudgetBytes": 1572864
   }
 }

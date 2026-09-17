@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:52:00.904Z",
+  "sourceHash": "04d7022d9d34bea932feb1b39195a7405468aa28e5716fbbce9f6b4b6f9dfd43",
+  "productType": "bubble_keychain",
+  "sample": {
+    "text": "RODIC",
+    "font": "Super Bubble",
+    "fontFile": "Fonts/Super Bubble.ttf",
+    "layers": "3L",
+    "ringPosition": "left",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/bubble_keychain/white-blue-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/bubble_keychain/poster.png",
+  "variants": [
+    {
+      "id": "white-blue",
+      "label": "Pure White and Water Blue",
+      "text": "RODIC",
+      "font": "Super Bubble",
+      "fontFile": "Fonts/Super Bubble.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#F1ECE1",
+        "font": "#1D7D8D",
+        "outline": "#F1ECE1",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/bubble_keychain/white-blue-orbit.webp",
+      "poster": "/assets/catalog-reels/bubble_keychain/white-blue-poster.webp",
+      "dimensions": {
+        "width": 57.1,
+        "height": 18.3,
+        "depth": 3.1
+      }
+    },
+    {
+      "id": "beige-red",
+      "label": "Light Beige and Imperial Red",
+      "text": "RODIC",
+      "font": "Super Bubble",
+      "fontFile": "Fonts/Super Bubble.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#D7CAAB",
+        "font": "#C93655",
+        "outline": "#D7CAAB",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/bubble_keychain/beige-red-orbit.webp",
+      "poster": "/assets/catalog-reels/bubble_keychain/beige-red-poster.webp",
+      "dimensions": {
+        "width": 57.1,
+        "height": 18.3,
+        "depth": 3.1
+      }
+    },
+    {
+      "id": "black-yellow",
+      "label": "Pitch Black and Lemon Yellow",
+      "text": "RODIC",
+      "font": "Super Bubble",
+      "fontFile": "Fonts/Super Bubble.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#F9A800",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/bubble_keychain/black-yellow-orbit.webp",
+      "poster": "/assets/catalog-reels/bubble_keychain/black-yellow-poster.webp",
+      "dimensions": {
+        "width": 57.1,
+        "height": 18.3,
+        "depth": 3.1
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 45768,
+    "totalAssetBytes": 867774,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

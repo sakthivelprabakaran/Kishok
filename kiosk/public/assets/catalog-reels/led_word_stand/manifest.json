@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:53:51.345Z",
+  "sourceHash": "553ed7dc38982c483548ba8c117f0c2c2e7a829c4affef46c55a87ca4dd54c7c",
+  "productType": "led_word_stand",
+  "sample": {
+    "text": "JOY",
+    "font": "Anton",
+    "fontFile": "Fonts/Anton-Regular.ttf",
+    "layers": "3L",
+    "ringPosition": "none",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/led_word_stand/black-white-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/led_word_stand/poster.png",
+  "variants": [
+    {
+      "id": "black-white",
+      "label": "Pitch Black and Pure White",
+      "text": "JOY",
+      "font": "Anton",
+      "fontFile": "Fonts/Anton-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#F1ECE1",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/led_word_stand/black-white-orbit.webp",
+      "poster": "/assets/catalog-reels/led_word_stand/black-white-poster.webp",
+      "dimensions": {
+        "width": 73.9,
+        "height": 51.4,
+        "depth": 13.6
+      }
+    },
+    {
+      "id": "red-white",
+      "label": "Imperial Red and Pure White",
+      "text": "JOY",
+      "font": "Anton",
+      "fontFile": "Fonts/Anton-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#C93655",
+        "font": "#F1ECE1",
+        "outline": "#C93655",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/led_word_stand/red-white-orbit.webp",
+      "poster": "/assets/catalog-reels/led_word_stand/red-white-poster.webp",
+      "dimensions": {
+        "width": 73.9,
+        "height": 51.4,
+        "depth": 13.6
+      }
+    },
+    {
+      "id": "blue-beige",
+      "label": "Water Blue and Light Beige",
+      "text": "JOY",
+      "font": "Anton",
+      "fontFile": "Fonts/Anton-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#1D7D8D",
+        "font": "#D7CAAB",
+        "outline": "#1D7D8D",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/led_word_stand/blue-beige-orbit.webp",
+      "poster": "/assets/catalog-reels/led_word_stand/blue-beige-poster.webp",
+      "dimensions": {
+        "width": 73.9,
+        "height": 51.4,
+        "depth": 13.6
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 28768,
+    "totalAssetBytes": 713640,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

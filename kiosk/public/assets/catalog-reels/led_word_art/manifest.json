@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:54:25.299Z",
+  "sourceHash": "9eb4fc9e96585bed8982421e07dbd153cd1ea78916355315e65aca84b69d20ea",
+  "productType": "led_word_art",
+  "sample": {
+    "text": "Love",
+    "font": "Lobster",
+    "fontFile": "Fonts/Lobster-Regular.ttf",
+    "layers": "3L",
+    "ringPosition": "none",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/led_word_art/black-white-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/led_word_art/poster.png",
+  "variants": [
+    {
+      "id": "black-white",
+      "label": "Pitch Black and Pure White",
+      "text": "Love",
+      "font": "Lobster",
+      "fontFile": "Fonts/Lobster-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#F1ECE1",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/led_word_art/black-white-orbit.webp",
+      "poster": "/assets/catalog-reels/led_word_art/black-white-poster.webp",
+      "dimensions": {
+        "width": 64.2,
+        "height": 49.5,
+        "depth": 13.6
+      }
+    },
+    {
+      "id": "red-beige",
+      "label": "Imperial Red and Light Beige",
+      "text": "Love",
+      "font": "Lobster",
+      "fontFile": "Fonts/Lobster-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#C93655",
+        "font": "#D7CAAB",
+        "outline": "#C93655",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/led_word_art/red-beige-orbit.webp",
+      "poster": "/assets/catalog-reels/led_word_art/red-beige-poster.webp",
+      "dimensions": {
+        "width": 64.2,
+        "height": 49.5,
+        "depth": 13.6
+      }
+    },
+    {
+      "id": "blue-white",
+      "label": "Water Blue and Pure White",
+      "text": "Love",
+      "font": "Lobster",
+      "fontFile": "Fonts/Lobster-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#1D7D8D",
+        "font": "#F1ECE1",
+        "outline": "#1D7D8D",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/led_word_art/blue-white-orbit.webp",
+      "poster": "/assets/catalog-reels/led_word_art/blue-white-poster.webp",
+      "dimensions": {
+        "width": 64.2,
+        "height": 49.5,
+        "depth": 13.6
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 44084,
+    "totalAssetBytes": 1017763,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

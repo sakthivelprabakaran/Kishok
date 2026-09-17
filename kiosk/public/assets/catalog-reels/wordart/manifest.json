@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T09:03:48.935Z",
-  "sourceHash": "08594d6d168b87662001d80643b574df0a795de7900dbf514ea0a9986fe3cab2",
+  "generatedAt": "2026-09-17T07:53:12.204Z",
+  "sourceHash": "1746e490d879eca04023a96bfac962b81e7411cae5b4ee4e22c671895c2ed697",
   "productType": "wordart",
   "sample": {
     "text": "Vivi\nSAKTHI",
@@ -28,7 +28,7 @@
   "variants": [
     {
       "id": "teal-red-gold",
-      "label": "Teal, Red and Gold",
+      "label": "Water Blue, Imperial Red and Yellow",
       "text": "Vivi\nSAKTHI",
       "font": "Brandy / CANAVAR",
       "fontFile": "Fonts/Brandy.ttf",
@@ -36,10 +36,10 @@
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
-        "base": "#0FB9B1",
-        "font": "#FF2D78",
-        "outline": "#172B35",
-        "line2": "#FFD700"
+        "base": "#1D7D8D",
+        "font": "#C93655",
+        "outline": "#0E0E10",
+        "line2": "#F9A800"
       },
       "sprite": "/assets/catalog-reels/wordart/teal-red-gold-orbit.webp",
       "poster": "/assets/catalog-reels/wordart/teal-red-gold-poster.webp",
@@ -51,7 +51,7 @@
     },
     {
       "id": "purple-gold-white",
-      "label": "Purple, Gold and White",
+      "label": "Forest Green, Beige and White",
       "text": "Vivi\nSAKTHI",
       "font": "Brandy / CANAVAR",
       "fontFile": "Fonts/Brandy.ttf",
@@ -59,10 +59,10 @@
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
-        "base": "#7B2FFF",
-        "font": "#FFD700",
-        "outline": "#172B35",
-        "line2": "#FFFFFF"
+        "base": "#008351",
+        "font": "#D7CAAB",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
       },
       "sprite": "/assets/catalog-reels/wordart/purple-gold-white-orbit.webp",
       "poster": "/assets/catalog-reels/wordart/purple-gold-white-poster.webp",
@@ -74,7 +74,7 @@
     },
     {
       "id": "blue-white-gold",
-      "label": "Blue, White and Gold",
+      "label": "Pitch Black, White and Terracotta",
       "text": "Vivi\nSAKTHI",
       "font": "Brandy / CANAVAR",
       "fontFile": "Fonts/Brandy.ttf",
@@ -82,10 +82,10 @@
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
-        "base": "#3A88FE",
-        "font": "#FFFFFF",
-        "outline": "#172B35",
-        "line2": "#FFD700"
+        "base": "#0E0E10",
+        "font": "#F1ECE1",
+        "outline": "#0E0E10",
+        "line2": "#D67842"
       },
       "sprite": "/assets/catalog-reels/wordart/blue-white-gold-orbit.webp",
       "poster": "/assets/catalog-reels/wordart/blue-white-gold-poster.webp",
@@ -97,8 +97,8 @@
     }
   ],
   "budgets": {
-    "initialPosterBytes": 32860,
-    "totalAssetBytes": 648288,
+    "initialPosterBytes": 32838,
+    "totalAssetBytes": 571056,
     "totalAssetBudgetBytes": 1048576
   }
 }

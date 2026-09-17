@@ -64,8 +64,8 @@ assert.deepEqual(
 );
 assert.deepEqual(
     manifest.variants[0].colors,
-    { base: '#A8E6CF', font: '#FFFFFF', outline: '#111111', line2: '#FFFFFF' },
-    'the lead design must use the approved pastel green, white and black combination'
+    { base: '#008351', font: '#F1ECE1', outline: '#0E0E10', line2: '#F1ECE1' },
+    'the lead design must use an available Forest Green, Pure White and Pitch Black combination'
 );
 assert.ok(
     manifest.variants.every((variant) => variant.ringAnchor === 'center'),

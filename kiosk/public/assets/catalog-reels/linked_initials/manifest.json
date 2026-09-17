@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:52:44.189Z",
+  "sourceHash": "3a45e7ead975b9ec7ce149d56069a659eb2129cf69b7e0890e1eb54b88b5d6de",
+  "productType": "linked_initials",
+  "sample": {
+    "text": "AK",
+    "font": "Rock Boys",
+    "fontFile": "Fonts/Rock Boys.ttf",
+    "layers": "3L",
+    "ringPosition": "left",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/linked_initials/red-white-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/linked_initials/poster.png",
+  "variants": [
+    {
+      "id": "red-white",
+      "label": "Imperial Red and Pure White",
+      "text": "AK",
+      "font": "Rock Boys",
+      "fontFile": "Fonts/Rock Boys.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#C93655",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/linked_initials/red-white-orbit.webp",
+      "poster": "/assets/catalog-reels/linked_initials/red-white-poster.webp",
+      "dimensions": {
+        "width": 83.7,
+        "height": 71.8,
+        "depth": 4.8
+      }
+    },
+    {
+      "id": "blue-yellow",
+      "label": "Water Blue and Lemon Yellow",
+      "text": "AK",
+      "font": "Rock Boys",
+      "fontFile": "Fonts/Rock Boys.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#1D7D8D",
+        "outline": "#0E0E10",
+        "line2": "#F9A800"
+      },
+      "sprite": "/assets/catalog-reels/linked_initials/blue-yellow-orbit.webp",
+      "poster": "/assets/catalog-reels/linked_initials/blue-yellow-poster.webp",
+      "dimensions": {
+        "width": 83.7,
+        "height": 71.8,
+        "depth": 4.8
+      }
+    },
+    {
+      "id": "forest-beige",
+      "label": "Forest Green and Light Beige",
+      "text": "AK",
+      "font": "Rock Boys",
+      "fontFile": "Fonts/Rock Boys.ttf",
+      "layers": "3L",
+      "ringPosition": "left",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#008351",
+        "outline": "#0E0E10",
+        "line2": "#D7CAAB"
+      },
+      "sprite": "/assets/catalog-reels/linked_initials/forest-beige-orbit.webp",
+      "poster": "/assets/catalog-reels/linked_initials/forest-beige-poster.webp",
+      "dimensions": {
+        "width": 83.7,
+        "height": 71.8,
+        "depth": 4.8
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 27538,
+    "totalAssetBytes": 570486,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

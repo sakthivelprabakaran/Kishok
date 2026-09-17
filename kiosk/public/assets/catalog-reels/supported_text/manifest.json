@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:53:03.409Z",
+  "sourceHash": "0ad5c11a3c32bcd74bc799f718c4b2868bdb3d98e4b42555bc6fa1dcf3fb37ea",
+  "productType": "supported_text",
+  "sample": {
+    "text": "Zoya",
+    "font": "Lobster",
+    "fontFile": "Fonts/Lobster-Regular.ttf",
+    "layers": "3L",
+    "ringPosition": "none",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/supported_text/imperial-red-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/supported_text/poster.png",
+  "variants": [
+    {
+      "id": "imperial-red",
+      "label": "Imperial Red",
+      "text": "Zoya",
+      "font": "Lobster",
+      "fontFile": "Fonts/Lobster-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#C93655",
+        "font": "#C93655",
+        "outline": "#C93655",
+        "line2": "#C93655"
+      },
+      "sprite": "/assets/catalog-reels/supported_text/imperial-red-orbit.webp",
+      "poster": "/assets/catalog-reels/supported_text/imperial-red-poster.webp",
+      "dimensions": {
+        "width": 12.2,
+        "height": 12,
+        "depth": 1.5
+      }
+    },
+    {
+      "id": "water-blue",
+      "label": "Water Blue",
+      "text": "Zoya",
+      "font": "Lobster",
+      "fontFile": "Fonts/Lobster-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#1D7D8D",
+        "font": "#1D7D8D",
+        "outline": "#1D7D8D",
+        "line2": "#1D7D8D"
+      },
+      "sprite": "/assets/catalog-reels/supported_text/water-blue-orbit.webp",
+      "poster": "/assets/catalog-reels/supported_text/water-blue-poster.webp",
+      "dimensions": {
+        "width": 12.2,
+        "height": 12,
+        "depth": 1.5
+      }
+    },
+    {
+      "id": "forest-green",
+      "label": "Forest Green",
+      "text": "Zoya",
+      "font": "Lobster",
+      "fontFile": "Fonts/Lobster-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#008351",
+        "font": "#008351",
+        "outline": "#008351",
+        "line2": "#008351"
+      },
+      "sprite": "/assets/catalog-reels/supported_text/forest-green-orbit.webp",
+      "poster": "/assets/catalog-reels/supported_text/forest-green-poster.webp",
+      "dimensions": {
+        "width": 12.2,
+        "height": 12,
+        "depth": 1.5
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 46868,
+    "totalAssetBytes": 917679,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:53:26.373Z",
+  "sourceHash": "375f7f71ebb4a60c6a46bdd39564da2f46c8b9939931b0335df6f5146a334d37",
+  "productType": "loveseries",
+  "sample": {
+    "text": "Aira",
+    "font": "Satisfy",
+    "fontFile": "Fonts/Satisfy-Regular.ttf",
+    "layers": "3L",
+    "ringPosition": "none",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/loveseries/red-white-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/loveseries/poster.png",
+  "variants": [
+    {
+      "id": "red-white",
+      "label": "Imperial Red and Pure White",
+      "text": "Aira",
+      "font": "Satisfy",
+      "fontFile": "Fonts/Satisfy-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#C93655",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/loveseries/red-white-orbit.webp",
+      "poster": "/assets/catalog-reels/loveseries/red-white-poster.webp",
+      "dimensions": {
+        "width": 52,
+        "height": 34.3,
+        "depth": 3
+      }
+    },
+    {
+      "id": "blue-yellow",
+      "label": "Water Blue and Lemon Yellow",
+      "text": "Aira",
+      "font": "Satisfy",
+      "fontFile": "Fonts/Satisfy-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#1D7D8D",
+        "outline": "#0E0E10",
+        "line2": "#F9A800"
+      },
+      "sprite": "/assets/catalog-reels/loveseries/blue-yellow-orbit.webp",
+      "poster": "/assets/catalog-reels/loveseries/blue-yellow-poster.webp",
+      "dimensions": {
+        "width": 52,
+        "height": 34.3,
+        "depth": 3
+      }
+    },
+    {
+      "id": "forest-beige",
+      "label": "Forest Green and Light Beige",
+      "text": "Aira",
+      "font": "Satisfy",
+      "fontFile": "Fonts/Satisfy-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#0E0E10",
+        "font": "#008351",
+        "outline": "#0E0E10",
+        "line2": "#D7CAAB"
+      },
+      "sprite": "/assets/catalog-reels/loveseries/forest-beige-orbit.webp",
+      "poster": "/assets/catalog-reels/loveseries/forest-beige-poster.webp",
+      "dimensions": {
+        "width": 52,
+        "height": 34.3,
+        "depth": 3
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 43786,
+    "totalAssetBytes": 931181,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

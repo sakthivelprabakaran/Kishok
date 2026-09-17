@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-17T07:52:53.324Z",
+  "sourceHash": "d453d3c557eadf66531930fcae1771a1a7bd52706cfc954e04f882f716f754b1",
+  "productType": "name_beads",
+  "sample": {
+    "text": "EMMA",
+    "font": "Bagel Fat One",
+    "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+    "layers": "3L",
+    "ringPosition": "none",
+    "ringAnchor": "top",
+    "showFDMTexture": false
+  },
+  "frame": {
+    "width": 840,
+    "height": 600,
+    "angles": [
+      -8,
+      -4,
+      0,
+      4,
+      8
+    ]
+  },
+  "poster": "/assets/catalog-reels/name_beads/blue-white-poster.webp",
+  "fallbackPoster": "/assets/catalog-reels/name_beads/poster.png",
+  "variants": [
+    {
+      "id": "blue-white",
+      "label": "Water Blue and Pure White",
+      "text": "EMMA",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#1D7D8D",
+        "font": "#F1ECE1",
+        "outline": "#1D7D8D",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/name_beads/blue-white-orbit.webp",
+      "poster": "/assets/catalog-reels/name_beads/blue-white-poster.webp",
+      "dimensions": {
+        "width": 51,
+        "height": 6.8,
+        "depth": 7
+      }
+    },
+    {
+      "id": "red-beige",
+      "label": "Imperial Red and Light Beige",
+      "text": "EMMA",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#C93655",
+        "font": "#D7CAAB",
+        "outline": "#C93655",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/name_beads/red-beige-orbit.webp",
+      "poster": "/assets/catalog-reels/name_beads/red-beige-poster.webp",
+      "dimensions": {
+        "width": 51,
+        "height": 6.8,
+        "depth": 7
+      }
+    },
+    {
+      "id": "army-yellow",
+      "label": "Army Green and Lemon Yellow",
+      "text": "EMMA",
+      "font": "Bagel Fat One",
+      "fontFile": "Fonts/BagelFatOne-Regular.ttf",
+      "layers": "3L",
+      "ringPosition": "none",
+      "ringAnchor": "top",
+      "colors": {
+        "base": "#7C8A68",
+        "font": "#F9A800",
+        "outline": "#7C8A68",
+        "line2": "#F1ECE1"
+      },
+      "sprite": "/assets/catalog-reels/name_beads/army-yellow-orbit.webp",
+      "poster": "/assets/catalog-reels/name_beads/army-yellow-poster.webp",
+      "dimensions": {
+        "width": 51,
+        "height": 6.8,
+        "depth": 7
+      }
+    }
+  ],
+  "budgets": {
+    "initialPosterBytes": 23846,
+    "totalAssetBytes": 527855,
+    "totalAssetBudgetBytes": 1048576
+  }
+}

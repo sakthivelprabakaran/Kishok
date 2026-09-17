@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-16T09:04:02.827Z",
-  "sourceHash": "fc05b649ed973acb5d4d93e8a2485a71e774c6cf67aa6b62ac062c52eae329f3",
+  "generatedAt": "2026-09-17T07:54:06.683Z",
+  "sourceHash": "fe9e49beeaf97c89fd543cbaea073666d60215ea7c5f6b1793521eb238281a39",
   "productType": "desk_organizer",
   "sample": {
     "text": "ALEX",
@@ -28,7 +28,7 @@
   "variants": [
     {
       "id": "white-pink",
-      "label": "White and Pink",
+      "label": "Pure White and Imperial Red",
       "text": "ALEX",
       "font": "Bagel Fat One",
       "fontFile": "Fonts/BagelFatOne-Regular.ttf",
@@ -36,10 +36,10 @@
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
-        "base": "#FFFFFF",
-        "font": "#FF61A6",
-        "outline": "#172B35",
-        "line2": "#FFFFFF"
+        "base": "#F1ECE1",
+        "font": "#C93655",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
       },
       "sprite": "/assets/catalog-reels/desk_organizer/white-pink-orbit.webp",
       "poster": "/assets/catalog-reels/desk_organizer/white-pink-poster.webp",
@@ -51,7 +51,7 @@
     },
     {
       "id": "white-blue",
-      "label": "White and Blue",
+      "label": "Light Beige and Water Blue",
       "text": "ALEX",
       "font": "Bagel Fat One",
       "fontFile": "Fonts/BagelFatOne-Regular.ttf",
@@ -59,10 +59,10 @@
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
-        "base": "#FFFFFF",
-        "font": "#3A88FE",
-        "outline": "#172B35",
-        "line2": "#FFFFFF"
+        "base": "#D7CAAB",
+        "font": "#1D7D8D",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
       },
       "sprite": "/assets/catalog-reels/desk_organizer/white-blue-orbit.webp",
       "poster": "/assets/catalog-reels/desk_organizer/white-blue-poster.webp",
@@ -74,7 +74,7 @@
     },
     {
       "id": "purple-gold",
-      "label": "Purple and Gold",
+      "label": "Army Green and Lemon Yellow",
       "text": "ALEX",
       "font": "Bagel Fat One",
       "fontFile": "Fonts/BagelFatOne-Regular.ttf",
@@ -82,10 +82,10 @@
       "ringPosition": "none",
       "ringAnchor": "top",
       "colors": {
-        "base": "#7B2FFF",
-        "font": "#FFD700",
-        "outline": "#172B35",
-        "line2": "#FFFFFF"
+        "base": "#7C8A68",
+        "font": "#F9A800",
+        "outline": "#0E0E10",
+        "line2": "#F1ECE1"
       },
       "sprite": "/assets/catalog-reels/desk_organizer/purple-gold-orbit.webp",
       "poster": "/assets/catalog-reels/desk_organizer/purple-gold-poster.webp",
@@ -97,8 +97,8 @@
     }
   ],
   "budgets": {
-    "initialPosterBytes": 27374,
-    "totalAssetBytes": 737643,
+    "initialPosterBytes": 28356,
+    "totalAssetBytes": 742664,
     "totalAssetBudgetBytes": 1048576
   }
 }

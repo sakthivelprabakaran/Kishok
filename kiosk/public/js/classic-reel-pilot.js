@@ -52,6 +52,8 @@
         fallback.src = assetUrl(manifest, manifest.fallbackPoster);
         fallback.alt = '';
         fallback.decoding = 'async';
+        fallback.loading = 'lazy';
+        fallback.fetchPriority = 'low';
         picture.append(source, fallback);
 
         const layerA = document.createElement('div');
