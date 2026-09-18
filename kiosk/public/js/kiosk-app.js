@@ -2406,13 +2406,15 @@ function finishMobileKeyboardSession() {
     if (!isIOSWebKit() || isDesktop()) return;
     const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     const target = Math.max(0, Math.min(keyboardSessionScrollY, maxScroll));
-    const nudge = target < maxScroll ? target + 1 : Math.max(0, target - 1);
+    const displacement = Math.abs(window.scrollY - target);
+    const correctionThreshold = Math.max(80, Math.round(window.innerHeight * 0.12));
 
-    // A one-pixel scroll forces Safari to reconcile its visual and layout
-    // viewports after the keyboard closes, then restores the customer's place.
-    window.scrollTo(0, nudge);
+    // Safari usually restores the viewport correctly by itself. Only intervene
+    // when it leaves a substantial offset; unconditional scroll writes create
+    // a visible "settling" jump after tapping Done.
+    if (displacement <= correctionThreshold) return;
     requestAnimationFrame(() => {
-        window.scrollTo(0, target);
+        window.scrollTo({ top: target, left: 0, behavior: 'instant' });
         syncStepperNavClearance();
     });
 }
@@ -2434,7 +2436,7 @@ function setupMobileKeyboardStability() {
     document.addEventListener('focusout', (event) => {
         if (!isTextEntryElement(event.target)) return;
         clearTimeout(keyboardDismissTimer);
-        keyboardDismissTimer = setTimeout(finishMobileKeyboardSession, 420);
+        keyboardDismissTimer = setTimeout(finishMobileKeyboardSession, 180);
     });
 }
 

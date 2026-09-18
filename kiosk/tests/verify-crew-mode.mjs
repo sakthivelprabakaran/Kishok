@@ -73,6 +73,7 @@ assert.match(kioskApp, /function syncStepperNavClearance/);
 assert.match(kioskApp, /function setupMobileKeyboardStability/);
 assert.match(kioskApp, /function startMobileKeyboardSession/);
 assert.match(kioskApp, /function finishMobileKeyboardSession/);
+assert.match(kioskApp, /displacement <= correctionThreshold/);
 assert.match(kioskApp, /nextDesktopLayout !== lastDesktopLayout/);
 assert.match(kioskApp, /mobile-keyboard-active'[\s\S]*?!isTextEntryElement\(document\.activeElement\)/);
 assert.match(kioskApp, /nav\.classList\.toggle\('is-crew-review'/);
