@@ -120,6 +120,16 @@
             </div>
             <div class="crew-quick-members" id="crewQuickMembers" role="tablist" aria-label="Choose a crew member to customize"></div>
         </section>
+        <section class="match-set-quick-switcher" id="matchSetQuickSwitcher" hidden aria-label="Switch matching set product">
+            <div class="match-set-quick-heading">
+                <div>
+                    <span id="matchSetQuickTitle">Customizing Classic Keychain</span>
+                    <small id="matchSetQuickProgress">3 products selected</small>
+                </div>
+                <button type="button" id="matchSetEditProductsBtn">Edit set</button>
+            </div>
+            <div class="match-set-quick-products" id="matchSetQuickProducts" role="tablist" aria-label="Choose a matching set product"></div>
+        </section>
 
         <!-- STEP 1: Text Customization -->
         <div class="step-card" data-step="1">
@@ -180,12 +190,12 @@
                             <button type="button" id="matchSetSeparateBtn" aria-pressed="false">Customize each</button>
                         </div>
                     </div>
-                    <div class="match-set-options" id="matchSetOptions" aria-label="Choose products for your matching set"></div>
                     <div class="match-set-preview-heading">
-                        <strong>Tap a product to preview it above</strong>
-                        <span>Dimensions and price follow the selected product.</span>
+                        <strong>Choose your set and tap a card to customize</strong>
+                        <span>The large preview, dimensions and price follow the active product.</span>
                     </div>
-                    <div class="crew-member-strip match-set-preview-strip" id="matchSetPreviewStrip" role="tablist" aria-label="Preview and customize matching set products"></div>
+                    <div id="matchSetOptions" hidden aria-hidden="true"></div>
+                    <div class="match-set-product-rail" id="matchSetPreviewStrip" role="tablist" aria-label="Choose, preview and customize matching set products"></div>
                     <p class="crew-status" id="matchSetStatus" aria-live="polite"></p>
                 </div>
             </section>
@@ -394,6 +404,25 @@
                 <span class="alert-message" id="batchPromoAlertMsg">This Classic Keychain matches a live colour batch.</span>
             </div>
         </div>
+
+        <section class="step-card match-set-review-card" id="matchSetReviewCard" data-step="4" style="display: none;" aria-labelledby="matchSetReviewTitle">
+            <div class="match-set-review-heading">
+                <div>
+                    <span class="match-set-review-eyebrow">Your coordinated set</span>
+                    <h3 id="matchSetReviewTitle">Review every product</h3>
+                    <p>Check the design, finished size and price before adding the complete set.</p>
+                </div>
+                <button type="button" id="matchSetReviewEditBtn">Edit products</button>
+            </div>
+            <div class="match-set-review-items" id="matchSetReviewItems"></div>
+            <div class="match-set-review-total">
+                <div>
+                    <span>Complete Match Set</span>
+                    <small id="matchSetReviewCount">3 customized products</small>
+                </div>
+                <strong id="matchSetReviewTotal">Preparing…</strong>
+            </div>
+        </section>
 
         <!-- STEP 4: Live Cost Breakdown -->
         <div class="step-card price-breakdown-card" data-step="4" style="display: none;">
