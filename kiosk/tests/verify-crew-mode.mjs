@@ -90,6 +90,7 @@ assert.match(customizeCss, /\.crew-member-card\.active/);
 assert.match(customizeCss, /\.crew-quick-switcher/);
 assert.match(customizeCss, /\.crew-quick-member\.is-complete::after/);
 assert.match(customizeCss, /body\.mobile-keyboard-active \.stepper-nav/);
+assert.doesNotMatch(customizeCss, /body\.mobile-keyboard-active \.visualizer-pane/);
 assert.match(customizeCss, /overscroll-behavior-y:\s*none/);
 assert.match(customizeCss, /\.stepper-nav\.is-review\.is-crew-review/);
 assert.match(customizeCss, /var\(--stepper-nav-height, 76px\)/);
