@@ -29,7 +29,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/kiosk.css?v=k6">
     <link rel="stylesheet" href="css/legal.css?v=wa1">
-    <link rel="stylesheet" href="css/customize.css?v=k14">
+    <link rel="stylesheet" href="css/customize.css?v=k15">
 </head>
 <body>
     <!-- Sticky 3D Canvas Pane (45% viewport height) -->
@@ -173,12 +173,19 @@
                     <div class="match-set-intro">
                         <div>
                             <strong>One style, multiple products</strong>
-                            <span>Your name, font and colours stay coordinated across the set.</span>
+                            <span id="matchSetModeHint">Your name, font and colours stay coordinated across the set.</span>
                         </div>
-                        <button type="button" class="crew-refresh-btn" id="matchSetRefresh">Refresh set previews</button>
+                        <div class="match-set-edit-mode" role="group" aria-label="Matching set customization mode">
+                            <button type="button" class="active" id="matchSetSharedBtn" aria-pressed="true">Same style</button>
+                            <button type="button" id="matchSetSeparateBtn" aria-pressed="false">Customize each</button>
+                        </div>
                     </div>
                     <div class="match-set-options" id="matchSetOptions" aria-label="Choose products for your matching set"></div>
-                    <div class="crew-member-strip match-set-preview-strip" id="matchSetPreviewStrip" aria-label="Matching set previews"></div>
+                    <div class="match-set-preview-heading">
+                        <strong>Tap a product to preview it above</strong>
+                        <span>Dimensions and price follow the selected product.</span>
+                    </div>
+                    <div class="crew-member-strip match-set-preview-strip" id="matchSetPreviewStrip" role="tablist" aria-label="Preview and customize matching set products"></div>
                     <p class="crew-status" id="matchSetStatus" aria-live="polite"></p>
                 </div>
             </section>
@@ -557,6 +564,6 @@
     </script>
 
     <script type="module" src="js/store-status.js?v=s1"></script>
-    <script type="module" src="js/kiosk-app.js?v=k25"></script>
+    <script type="module" src="js/kiosk-app.js?v=k26"></script>
 </body>
 </html>

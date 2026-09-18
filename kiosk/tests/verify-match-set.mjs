@@ -19,7 +19,8 @@ for (const id of [
     'matchSetBuilder',
     'matchSetOptions',
     'matchSetPreviewStrip',
-    'matchSetRefresh',
+    'matchSetSharedBtn',
+    'matchSetSeparateBtn',
     'matchSetStatus',
 ]) {
     assert.match(html, new RegExp(`id="${id}"`), `Missing Match Set control: ${id}`);
@@ -27,6 +28,9 @@ for (const id of [
 
 assert.match(app, /MATCH_SET_PRODUCTS[\s\S]*?'keychain'[\s\S]*?'bubble_keychain'[\s\S]*?'nameplate'/);
 assert.match(app, /function setMatchSetMode/);
+assert.match(app, /function selectMatchSetProduct/);
+assert.match(app, /function setMatchSetEditingMode/);
+assert.match(app, /function activeEditorProductType/);
 assert.match(app, /function refreshMatchSetPreviews/);
 assert.match(app, /for \(let index = 0; index < products\.length; index \+= 1\)/);
 assert.match(app, /state\.matchSet\.items\[product\.productType\] = await renderMatchSetProduct/);

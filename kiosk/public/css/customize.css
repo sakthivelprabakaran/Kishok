@@ -444,6 +444,28 @@ body {
     font-size: 0.7rem;
     line-height: 1.35;
 }
+.match-set-edit-mode {
+    display: flex;
+    flex: 0 0 auto;
+    padding: 3px;
+    border: 1.5px solid var(--text-main);
+    border-radius: 999px;
+    background: var(--bg-panel);
+}
+.match-set-edit-mode button {
+    min-height: 34px;
+    padding: 0.35rem 0.6rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font: 800 0.65rem var(--font-family);
+    cursor: pointer;
+}
+.match-set-edit-mode button.active {
+    background: var(--primary);
+    color: #fff;
+}
 .match-set-options {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -476,8 +498,36 @@ body {
     color: var(--primary-strong);
     font-weight: 900;
 }
-.match-set-preview-strip .crew-member-card { cursor: default; }
+.match-set-preview-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: var(--text-main);
+    font-size: 0.72rem;
+}
+.match-set-preview-heading span { color: var(--text-muted); font-size: 0.65rem; }
+.match-set-preview-strip .crew-member-card { cursor: pointer; }
+.match-set-preview-strip .crew-member-card[aria-selected="true"] {
+    border-color: var(--primary-strong);
+    box-shadow: 3px 3px 0 var(--primary);
+}
+.match-set-preview-strip .crew-member-card.is-loading::after {
+    content: "Loading…";
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    padding: 0.15rem 0.35rem;
+    border-radius: 999px;
+    background: var(--text-main);
+    color: var(--bg-panel);
+    font-size: 0.55rem;
+    font-weight: 900;
+}
 .match-set-mode-active .qty-selector-wrap { display: none; }
+.match-set-mode-active:not([data-match-product="keychain"]) #thicknessSection,
+.match-set-mode-active:not([data-match-product="keychain"]) #ringPositionSection {
+    display: none !important;
+}
 .match-set-refreshing .customizer-pane .step-card,
 .match-set-refreshing .stepper-nav { pointer-events: none; user-select: none; }
 .crew-quick-switcher { display: none; }
@@ -619,6 +669,9 @@ body {
     .crew-mode-toggle { flex-wrap: wrap; }
     .match-set-options { grid-template-columns: 1fr; }
     .match-set-intro { display: grid; }
+    .match-set-edit-mode { width: 100%; }
+    .match-set-edit-mode button { flex: 1; }
+    .match-set-preview-heading { display: grid; }
     .crew-overview-heading {
         align-items: stretch;
         flex-direction: column;

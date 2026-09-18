@@ -155,6 +155,9 @@ const state = {
     matchSet: {
         enabled: false,
         selected: ['keychain', 'bubble_keychain', 'nameplate'],
+        activeProductType: 'keychain',
+        separate: false,
+        drafts: {},
         items: {},
         refreshing: false,
     },
@@ -198,7 +201,9 @@ function cacheElements() {
     el.matchSetBuilder = document.getElementById('matchSetBuilder');
     el.matchSetOptions = document.getElementById('matchSetOptions');
     el.matchSetPreviewStrip = document.getElementById('matchSetPreviewStrip');
-    el.matchSetRefresh = document.getElementById('matchSetRefresh');
+    el.matchSetSharedBtn = document.getElementById('matchSetSharedBtn');
+    el.matchSetSeparateBtn = document.getElementById('matchSetSeparateBtn');
+    el.matchSetModeHint = document.getElementById('matchSetModeHint');
     el.matchSetStatus = document.getElementById('matchSetStatus');
     
     el.stepDots        = document.querySelectorAll('.step-dot');
@@ -998,11 +1003,65 @@ function setMatchSetStatus(message = '', isError = false) {
     el.matchSetStatus.classList.toggle('is-error', isError);
 }
 
+function matchSetDraftFromState(existing = {}) {
+    return {
+        name: state.name,
+        font: state.selectedFont,
+        fontFile: state.selectedFontFile,
+        layers: state.layers,
+        colors: { ...state.colors },
+        ringPosition: state.ringPosition,
+        ringAnchor: state.ringAnchor,
+        showFDMTexture: state.showFDMTexture,
+        preview: existing.preview || '',
+        dims: existing.dims || null,
+        unitPrice: Number(existing.unitPrice) || 0,
+        weightG: Number(existing.weightG) || 0,
+        dirty: existing.dirty !== false,
+    };
+}
+
+function ensureMatchSetDraft(productType) {
+    if (!state.matchSet.drafts[productType]) {
+        state.matchSet.drafts[productType] = matchSetDraftFromState();
+    }
+    return state.matchSet.drafts[productType];
+}
+
+function saveActiveMatchSetDraft() {
+    if (!state.matchSet.enabled || !state.matchSet.separate) return;
+    const productType = state.matchSet.activeProductType;
+    state.matchSet.drafts[productType] = matchSetDraftFromState(
+        state.matchSet.drafts[productType] || {}
+    );
+}
+
+function applyMatchSetDraft(productType) {
+    const draft = ensureMatchSetDraft(productType);
+    state.name = draft.name;
+    state.selectedFont = draft.font;
+    state.selectedFontFile = draft.fontFile;
+    state.layers = draft.layers;
+    state.colors = { ...draft.colors };
+    state.ringPosition = draft.ringPosition || 'left';
+    state.ringAnchor = draft.ringAnchor || 'top';
+    state.showFDMTexture = Boolean(draft.showFDMTexture);
+    el.nameInput.value = state.name;
+    el.charCount.textContent = String(state.name.length);
+    renderFontList();
+    renderColorSwatches();
+}
+
 function markMatchSetDirty() {
     if (!state.matchSet.enabled) return;
-    for (const productType of state.matchSet.selected) {
+    const targets = state.matchSet.separate
+        ? [state.matchSet.activeProductType]
+        : state.matchSet.selected;
+    for (const productType of targets) {
         if (state.matchSet.items[productType]) state.matchSet.items[productType].dirty = true;
+        if (state.matchSet.drafts[productType]) state.matchSet.drafts[productType].dirty = true;
     }
+    if (state.matchSet.separate) saveActiveMatchSetDraft();
     renderMatchSetUi();
 }
 
@@ -1035,8 +1094,13 @@ function renderMatchSetUi() {
         button.addEventListener('click', () => {
             if (selected) {
                 state.matchSet.selected = state.matchSet.selected.filter((type) => type !== product.productType);
+                delete state.matchSet.items[product.productType];
+                if (state.matchSet.activeProductType === product.productType) {
+                    selectMatchSetProduct('keychain');
+                }
             } else {
                 state.matchSet.selected = [...state.matchSet.selected, product.productType];
+                ensureMatchSetDraft(product.productType);
             }
             renderMatchSetUi();
             syncCrewUi();
@@ -1047,8 +1111,14 @@ function renderMatchSetUi() {
     el.matchSetPreviewStrip.textContent = '';
     selectedMatchSetProducts().forEach((product) => {
         const result = state.matchSet.items[product.productType];
-        const card = document.createElement('div');
-        card.className = 'crew-member-card';
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `crew-member-card${result?.loading ? ' is-loading' : ''}`;
+        card.dataset.matchSetProduct = product.productType;
+        card.setAttribute('role', 'tab');
+        card.setAttribute('aria-selected', String(
+            product.productType === state.matchSet.activeProductType
+        ));
         const preview = document.createElement('span');
         preview.className = 'crew-member-preview';
         if (result?.preview && !result.dirty) {
@@ -1071,9 +1141,93 @@ function renderMatchSetUi() {
             : 'Preview needed';
         meta.append(title, note);
         card.append(preview, meta);
+        card.addEventListener('click', () => selectMatchSetProduct(product.productType));
         el.matchSetPreviewStrip.appendChild(card);
     });
-    if (el.matchSetRefresh) el.matchSetRefresh.disabled = state.matchSet.refreshing;
+    if (el.matchSetSharedBtn) {
+        el.matchSetSharedBtn.classList.toggle('active', !state.matchSet.separate);
+        el.matchSetSharedBtn.setAttribute('aria-pressed', String(!state.matchSet.separate));
+    }
+    if (el.matchSetSeparateBtn) {
+        el.matchSetSeparateBtn.classList.toggle('active', state.matchSet.separate);
+        el.matchSetSeparateBtn.setAttribute('aria-pressed', String(state.matchSet.separate));
+    }
+    if (el.matchSetModeHint) {
+        el.matchSetModeHint.textContent = state.matchSet.separate
+            ? 'Each selected product keeps its own name, font and colours.'
+            : 'Your name, font and colours stay coordinated across the set.';
+    }
+}
+
+function applyMatchSetControlProfile(productType) {
+    document.body.dataset.matchProduct = productType;
+    if (productType === 'bubble_keychain') {
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Base Plate Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Rim & Text Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'none';
+    } else if (productType === 'nameplate') {
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Plaque Base Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Font Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display = 'flex';
+        if (el.outlineColorLabel) el.outlineColorLabel.textContent = 'Outline Color';
+    } else {
+        if (el.baseColorRow) el.baseColorRow.style.display = 'flex';
+        if (el.baseColorLabel) el.baseColorLabel.textContent = 'Base Color';
+        if (el.fontColorRow) el.fontColorRow.style.display = 'flex';
+        if (el.fontColorLabel) el.fontColorLabel.textContent = 'Font Color';
+        if (el.outlineColorRow) el.outlineColorRow.style.display =
+            state.layers === '2L' ? 'none' : 'flex';
+        if (el.outlineColorLabel) el.outlineColorLabel.textContent = 'Outline Color';
+    }
+    if (el.line2ColorRow) el.line2ColorRow.style.display = 'none';
+    renderColorSwatches();
+}
+
+function setMatchSetEditingMode(separate) {
+    if (!state.matchSet.enabled || state.matchSet.refreshing) return;
+    if (Boolean(separate) === state.matchSet.separate) return;
+    if (separate) {
+        for (const product of selectedMatchSetProducts()) {
+            state.matchSet.drafts[product.productType] = matchSetDraftFromState(
+                state.matchSet.items[product.productType] || {}
+            );
+        }
+        state.matchSet.separate = true;
+    } else {
+        saveActiveMatchSetDraft();
+        state.matchSet.separate = false;
+        applyMatchSetDraft('keychain');
+        for (const productType of state.matchSet.selected) {
+            if (state.matchSet.items[productType]) state.matchSet.items[productType].dirty = true;
+        }
+    }
+    applyMatchSetControlProfile(state.matchSet.activeProductType);
+    renderMatchSetUi();
+    update3DModelNow();
+}
+
+function selectMatchSetProduct(productType) {
+    if (!state.matchSet.enabled || state.matchSet.refreshing) return;
+    if (!state.matchSet.selected.includes(productType)) return;
+    if (productType === state.matchSet.activeProductType) return;
+    saveActiveMatchSetDraft();
+    state.matchSet.activeProductType = productType;
+    if (state.matchSet.separate) applyMatchSetDraft(productType);
+    applyMatchSetControlProfile(productType);
+    const product = MATCH_SET_PRODUCTS.find((entry) => entry.productType === productType);
+    if (el.productTitle) el.productTitle.textContent = product?.label || productType;
+    if (el.productSubtitle) {
+        el.productSubtitle.textContent = state.matchSet.separate
+            ? 'Customizing this product separately'
+            : 'Using the shared Match Set style';
+    }
+    renderMatchSetUi();
+    setMatchSetStatus(`Previewing ${product?.label || productType}.`);
+    update3DModelNow();
 }
 
 function setMatchSetMode(enabled) {
@@ -1081,11 +1235,17 @@ function setMatchSetMode(enabled) {
     state.matchSet.enabled = Boolean(enabled);
     if (enabled) {
         if (state.crew.enabled) state.crew.enabled = false;
+        state.matchSet.activeProductType = 'keychain';
+        state.matchSet.drafts = {};
+        for (const product of selectedMatchSetProducts()) ensureMatchSetDraft(product.productType);
         state.quantity = 1;
         if (el.qtyVal) el.qtyVal.textContent = '1';
         markMatchSetDirty();
-        setMatchSetStatus('Choose the products, then refresh exact previews.');
+        applyMatchSetControlProfile('keychain');
+        setMatchSetStatus('Tap any selected product to preview it above.');
     } else {
+        saveActiveMatchSetDraft();
+        delete document.body.dataset.matchProduct;
         setMatchSetStatus('');
     }
     syncCrewUi();
@@ -1112,24 +1272,33 @@ function matchSetViewerParams() {
     };
 }
 
-function colorsForMatchSetProduct(productType) {
+function colorsForMatchSetProduct(productType, draft = null) {
+    const colors = draft?.colors || state.colors;
     if (productType === 'bubble_keychain') {
-        return { base: state.colors.base, font: state.colors.font };
+        return { base: colors.base, font: colors.font };
     }
     return {
-        base: state.colors.base,
-        font: state.colors.font,
-        outline: state.colors.outline,
+        base: colors.base,
+        font: colors.font,
+        outline: colors.outline,
     };
 }
 
-async function renderMatchSetProduct(product) {
+async function renderMatchSetProduct(product, sourceDraft = null) {
+    const draft = sourceDraft || (state.matchSet.separate
+        ? ensureMatchSetDraft(product.productType)
+        : matchSetDraftFromState());
     await viewer.update(
-        state.name,
-        state.selectedFontFile,
-        state.colors,
-        state.layers,
-        matchSetViewerParams(),
+        draft.name,
+        draft.fontFile,
+        draft.colors,
+        draft.layers,
+        {
+            ...matchSetViewerParams(),
+            ringPosition: draft.ringPosition,
+            ring: { anchor: draft.ringAnchor || 'top' },
+            showFDMTexture: Boolean(draft.showFDMTexture),
+        },
         product.productType,
         null
     );
@@ -1140,7 +1309,7 @@ async function renderMatchSetProduct(product) {
             productType: 'keychain',
             design: {
                 layers: state.layers,
-                colors: colorsForMatchSetProduct('keychain'),
+                colors: colorsForMatchSetProduct('keychain', draft),
             },
             weightG: dims.weightGrams,
         }, state.activeBatches, Pricing.priceLine, DEFAULT_BATCH_SIZE)
@@ -1153,6 +1322,7 @@ async function renderMatchSetProduct(product) {
     return {
         productType: product.productType,
         label: product.label,
+        draft: { ...draft, colors: { ...draft.colors } },
         preview: captureViewerPreview(),
         dims: { ...dims },
         unitPrice: priced.unitPrice,
@@ -1185,7 +1355,10 @@ async function refreshMatchSetPreviews() {
             const product = products[index];
             setMatchSetStatus(`Generating ${product.label} · ${index + 1} of ${products.length}…`);
             showViewerLoading(`Preparing ${product.label}…`);
-            state.matchSet.items[product.productType] = await renderMatchSetProduct(product);
+            const draft = state.matchSet.separate
+                ? ensureMatchSetDraft(product.productType)
+                : matchSetDraftFromState();
+            state.matchSet.items[product.productType] = await renderMatchSetProduct(product, draft);
             renderMatchSetUi();
         }
         setMatchSetStatus(`All ${products.length} matching products are ready.`);
@@ -1200,19 +1373,36 @@ async function refreshMatchSetPreviews() {
         hideViewerLoading();
         renderMatchSetUi();
         syncCrewUi();
-        update3DModelNow();
+        const activeDraft = state.matchSet.separate
+            ? ensureMatchSetDraft(state.matchSet.activeProductType)
+            : matchSetDraftFromState();
+        const activeProduct = MATCH_SET_PRODUCTS.find(
+            (product) => product.productType === state.matchSet.activeProductType
+        );
+        if (activeProduct) {
+            const restored = await renderMatchSetProduct(activeProduct, activeDraft);
+            state.matchSet.items[activeProduct.productType] = restored;
+            state.dims = { ...restored.dims };
+            calculatePricing();
+            renderCustomerDimensions({
+                dimensions: state.dims,
+                dimensionsVisible: viewer.dimensionOverlayVisible,
+            });
+        }
+        renderMatchSetUi();
     }
 }
 
 function buildMatchSetCartLine(item, setId, itemIndex, itemCount) {
+    const draft = item.draft || matchSetDraftFromState();
     const design = {
-        font: state.selectedFont,
-        fontFile: state.selectedFontFile,
-        layers: state.layers,
-        colors: colorsForMatchSetProduct(item.productType),
-        ringPosition: state.ringPosition,
-        ringAnchor: state.ringAnchor,
-        showFDMTexture: state.showFDMTexture,
+        font: draft.font,
+        fontFile: draft.fontFile,
+        layers: draft.layers,
+        colors: colorsForMatchSetProduct(item.productType, draft),
+        ringPosition: draft.ringPosition,
+        ringAnchor: draft.ringAnchor,
+        showFDMTexture: draft.showFDMTexture,
         matchSet: {
             id: setId,
             label: 'Kootzy Match Set',
@@ -1228,7 +1418,7 @@ function buildMatchSetCartLine(item, setId, itemIndex, itemCount) {
     };
     return {
         productType: item.productType,
-        text: state.name,
+        text: draft.name,
         quantity: 1,
         design,
         preview: item.preview,
@@ -1309,20 +1499,27 @@ function update3DModelNow() {
     _runUpdate3D();
 }
 
+function activeEditorProductType() {
+    return state.matchSet.enabled
+        ? state.matchSet.activeProductType
+        : state.productType;
+}
+
 async function _runUpdate3D() {
     if (!viewer) return;
     if (_update3DRunning) { _update3DDirty = true; return; }
     _update3DRunning = true;
     _update3DDirty = false;
 
+    const renderProductType = activeEditorProductType();
     showViewerLoading(
-        state.productType === 'wordart' && state.wordartBase === 'hollow'
+        renderProductType === 'wordart' && state.wordartBase === 'hollow'
             ? 'Building hollow Word Art…'
             : 'Generating 3D Studio Preview…'
     );
 
-    const isWordart = state.productType === 'wordart';
-    const isLoveSeries = state.productType === 'loveseries';
+    const isWordart = renderProductType === 'wordart';
+    const isLoveSeries = renderProductType === 'loveseries';
     const isWordartLike = isWordart || isLoveSeries;
     
     // Determine target font file and payload
@@ -1390,7 +1587,7 @@ async function _runUpdate3D() {
     // overlaps at ~-11% of size (-2.5 / 22), so -12 ≈ the same proportional overlap.
     // NOTE: Word STAND is intentionally NOT overlapped — its letters print
     // separately and clip onto the stand, so they must stay apart.
-    if (state.productType === 'led_word_art') {
+    if (renderProductType === 'led_word_art') {
         paramsPayload.letter_spacing = -12;
     }
     
@@ -1401,7 +1598,7 @@ async function _runUpdate3D() {
             colorsPayload,
             state.layers,
             paramsPayload,
-            state.productType,
+            renderProductType,
             wordartFonts
         );
         
@@ -1410,6 +1607,27 @@ async function _runUpdate3D() {
         kiriModelRevision += 1;
         state.kiriComparison = null;
         calculatePricing();
+        if (state.matchSet.enabled && !state.matchSet.refreshing) {
+            if (viewer.renderer) viewer.renderer.render(viewer.scene, viewer.camera);
+            const product = MATCH_SET_PRODUCTS.find((entry) => entry.productType === renderProductType);
+            const draft = matchSetDraftFromState(
+                state.matchSet.drafts[renderProductType] || {}
+            );
+            const captured = {
+                productType: renderProductType,
+                label: product?.label || renderProductType,
+                draft: { ...draft, colors: { ...draft.colors } },
+                preview: captureViewerPreview(),
+                dims: { ...state.dims },
+                unitPrice: Number(state.costs?.finalAmount) || 0,
+                weightG: Number(state.dims.weightGrams) || 0,
+                dirty: false,
+            };
+            state.matchSet.items[renderProductType] = captured;
+            if (state.matchSet.separate) state.matchSet.drafts[renderProductType] = captured.draft;
+            renderMatchSetUi();
+            syncCrewUi();
+        }
         if (state.crew.enabled && !state.crew.refreshing) {
             if (viewer.renderer) viewer.renderer.render(viewer.scene, viewer.camera);
             saveActiveCrewDraft({ capture: true });
@@ -1438,6 +1656,7 @@ async function _runUpdate3D() {
 
 function calculatePricing() {
     if (!state.dims) return;
+    const pricingProductType = activeEditorProductType();
     
     const weight = state.dims.weightGrams || 2.0; // fallback if zero
     
@@ -1446,10 +1665,10 @@ function calculatePricing() {
     // other multi-colour products are deliberately excluded until batches have
     // a product-specific schema.
     const matchedOffer = BatchOffers.findBatchDiscount({
-        productType: state.productType,
+        productType: pricingProductType,
         design: {
             layers: state.layers,
-            colors: relevantColors(),
+            colors: relevantColors(pricingProductType),
         },
         weightG: weight,
     }, state.activeBatches, Pricing.priceLine, DEFAULT_BATCH_SIZE);
@@ -2530,9 +2749,9 @@ function updateCartBadge() {
  * This mirrors the visibility table in applyProductTypeConstraints(), which is
  * what the customer actually saw while designing.
  */
-function relevantColors() {
+function relevantColors(productType = state.productType) {
     const c = state.colors;
-    const t = state.productType;
+    const t = productType;
 
     if (t === 'linked_initials') return { font: c.font, line2: c.line2 };
     if (t === 'wordart' || t === 'loveseries') {
@@ -2759,8 +2978,11 @@ function setupEvents() {
     if (el.matchSetModeBtn) {
         el.matchSetModeBtn.addEventListener('click', () => setMatchSetMode(true));
     }
-    if (el.matchSetRefresh) {
-        el.matchSetRefresh.addEventListener('click', () => refreshMatchSetPreviews());
+    if (el.matchSetSharedBtn) {
+        el.matchSetSharedBtn.addEventListener('click', () => setMatchSetEditingMode(false));
+    }
+    if (el.matchSetSeparateBtn) {
+        el.matchSetSeparateBtn.addEventListener('click', () => setMatchSetEditingMode(true));
     }
     if (el.crewCountMinus) {
         el.crewCountMinus.addEventListener('click', () => setCrewCount(state.crew.count - 1));

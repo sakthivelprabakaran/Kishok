@@ -602,15 +602,27 @@ try {
                 document.getElementById('soloModeBtn').click();
                 localStorage.removeItem('kootzyCart.v1');
                 document.getElementById('matchSetModeBtn').click();
-                document.getElementById('matchSetRefresh').click();
+                document.getElementById('matchSetSeparateBtn').click();
+                document.querySelector('[data-match-set-product="bubble_keychain"]').click();
+                await window.__kootzyCustomizer.waitForIdle(90000);
+                const setInput = document.getElementById('nameInput');
+                setInput.value = 'Bubble';
+                setInput.dispatchEvent(new Event('input', { bubbles: true }));
+                await window.__kootzyCustomizer.waitForIdle(90000);
+                document.querySelector('[data-match-set-product="keychain"]').click();
+                await window.__kootzyCustomizer.waitForIdle(90000);
+                const keychainDraftName = setInput.value;
+                document.querySelector('[data-match-set-product="bubble_keychain"]').click();
+                await window.__kootzyCustomizer.waitForIdle(90000);
+                const bubbleDraftName = setInput.value;
+                if (bubbleDraftName !== 'Bubble' || keychainDraftName === 'Bubble') {
+                    throw new Error('Customize each did not preserve independent product drafts.');
+                }
+                for (const productType of ['bubble_keychain', 'nameplate', 'keychain']) {
+                    document.querySelector('[data-match-set-product="' + productType + '"]').click();
+                    await window.__kootzyCustomizer.waitForIdle(90000);
+                }
                 const setDeadline = performance.now() + 90000;
-                while (document.body.classList.contains('match-set-refreshing')
-                    && performance.now() < setDeadline) {
-                    await new Promise((resolve) => setTimeout(resolve, 50));
-                }
-                if (document.body.classList.contains('match-set-refreshing')) {
-                    throw new Error('Match Set previews did not finish before timeout.');
-                }
                 const setPreviewCount =
                     document.querySelectorAll('#matchSetPreviewStrip .crew-member-preview img').length;
                 while (addButton.disabled && performance.now() < setDeadline) {
