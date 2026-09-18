@@ -200,6 +200,17 @@ try {
     cdp = await CdpClient.connect(target.webSocketDebuggerUrl);
     await cdp.send('Page.enable');
     await cdp.send('Runtime.enable');
+    await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
+        source: `
+            window.__kootzyStartupErrors = [];
+            window.addEventListener('error', (event) => {
+                window.__kootzyStartupErrors.push(event.error?.stack || event.message || 'Unknown startup error');
+            });
+            window.addEventListener('unhandledrejection', (event) => {
+                window.__kootzyStartupErrors.push(event.reason?.stack || String(event.reason));
+            });
+        `,
+    });
     if (mobileViewport) {
         await cdp.send('Emulation.setUserAgentOverride', {
             userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1',
@@ -230,7 +241,9 @@ try {
             while (!window.__kootzyCustomizer && performance.now() < deadline) {
                 await new Promise((resolve) => setTimeout(resolve, 50));
             }
-            if (!window.__kootzyCustomizer) throw new Error('Customizer test API did not initialize.');
+            if (!window.__kootzyCustomizer) {
+                throw new Error('Customizer test API did not initialize. ' + (window.__kootzyStartupErrors || []).join(' | '));
+            }
             return window.__kootzyCustomizer.waitForIdle(90000);
         })()`);
         assert.equal(ready.productType, productType);
@@ -602,6 +615,48 @@ try {
                 document.getElementById('soloModeBtn').click();
                 localStorage.removeItem('kootzyCart.v1');
                 document.getElementById('matchSetModeBtn').click();
+                const nameplateCheckboxSelector =
+                    '.match-set-selector-item:nth-child(3) input[type="checkbox"]';
+                const nameplateMainSelector =
+                    '.match-set-selector-item:nth-child(3) [data-match-set-product="nameplate"]';
+                const requiredCheckbox = document.querySelector(
+                    '.match-set-selector-item:first-child input[type="checkbox"]'
+                );
+                const requiredMain = document.querySelector(
+                    '.match-set-selector-item:first-child [data-match-set-product="keychain"]'
+                );
+                if (document.getElementById('matchSetSelectionCount').textContent
+                    !== '3 of 3 products selected') {
+                    throw new Error('Match Set did not announce its initial three-product selection.');
+                }
+                if (!requiredCheckbox?.checked
+                    || requiredCheckbox.disabled
+                    || requiredCheckbox.getAttribute('aria-disabled') !== 'true'
+                    || requiredMain?.getAttribute('aria-current') !== 'true'
+                    || requiredMain?.getAttribute('aria-pressed') !== 'true') {
+                    throw new Error('Required Classic Keychain state is not exposed correctly.');
+                }
+                document.querySelector(nameplateCheckboxSelector).click();
+                const twoProductCount = document.getElementById('matchSetSelectionCount').textContent;
+                if (twoProductCount !== '2 of 3 products selected') {
+                    throw new Error('Match Set checkbox feedback did not update to two selected products.');
+                }
+                const unselectedNameplateMain = document.querySelector(nameplateMainSelector);
+                if (unselectedNameplateMain.disabled
+                    || unselectedNameplateMain.getAttribute('aria-pressed') !== 'false') {
+                    throw new Error('An unselected Match Set product row is not fully selectable.');
+                }
+                unselectedNameplateMain.click();
+                if (document.getElementById('matchSetSelectionCount').textContent
+                    !== '3 of 3 products selected') {
+                    throw new Error('Clicking an unselected product row did not add it to the set.');
+                }
+                // Re-query after each render; the previous checkbox node is detached.
+                document.querySelector(nameplateCheckboxSelector).click();
+                if (document.getElementById('matchSetSelectionCount').textContent
+                    !== '2 of 3 products selected') {
+                    throw new Error('Re-queried Match Set checkbox did not restore two products.');
+                }
                 document.getElementById('matchSetSeparateBtn').click();
                 document.querySelector('[data-match-set-product="bubble_keychain"]').click();
                 await window.__kootzyCustomizer.waitForIdle(90000);
@@ -618,39 +673,80 @@ try {
                 if (bubbleDraftName !== 'Bubble' || keychainDraftName === 'Bubble') {
                     throw new Error('Customize each did not preserve independent product drafts.');
                 }
-                for (const productType of ['bubble_keychain', 'nameplate', 'keychain']) {
+                for (const productType of ['bubble_keychain', 'keychain']) {
                     document.querySelector('[data-match-set-product="' + productType + '"]').click();
                     await window.__kootzyCustomizer.waitForIdle(90000);
                 }
-                const setDeadline = performance.now() + 90000;
-                const setPreviewCount =
-                    document.querySelectorAll('#matchSetPreviewStrip .crew-member-preview img').length;
+                let setDeadline = performance.now() + 90000;
                 while (addButton.disabled && performance.now() < setDeadline) {
                     await new Promise((resolve) => setTimeout(resolve, 50));
                 }
                 addButton.click();
-                let setItems = [];
+                let twoProductItems = [];
                 while (performance.now() < setDeadline) {
                     const payload = JSON.parse(localStorage.getItem('kootzyCart.v1') || '{"items":[]}');
-                    setItems = payload.items || [];
-                    if (setItems.length === 3 && !addButton.disabled) break;
+                    twoProductItems = payload.items || [];
+                    if (twoProductItems.length === 2 && !addButton.disabled) break;
                     await new Promise((resolve) => setTimeout(resolve, 50));
                 }
-                const setIds = [...new Set(
-                    setItems.map((item) => item.design?.matchSet?.id).filter(Boolean)
+                const twoProductIds = [...new Set(
+                    twoProductItems.map((item) => item.design?.matchSet?.id).filter(Boolean)
                 )];
+                const twoProductProbe = {
+                    previewCount:
+                        document.querySelectorAll('#matchSetPreviewStrip .match-set-selector-preview img').length,
+                    productTypes: twoProductItems.map((item) => item.productType).sort(),
+                    setIds: twoProductIds,
+                    itemIndexes:
+                        twoProductItems.map((item) => item.design?.matchSet?.itemIndex).sort(),
+                };
+                if (twoProductItems.length !== 2
+                    || twoProductIds.length !== 1
+                    || twoProductProbe.previewCount !== 2) {
+                    throw new Error('Two-product Match Set was not previewed and grouped correctly.');
+                }
+
+                localStorage.removeItem('kootzyCart.v1');
+                document.querySelector(nameplateCheckboxSelector).click();
+                if (document.getElementById('matchSetSelectionCount').textContent
+                    !== '3 of 3 products selected') {
+                    throw new Error('Re-queried checkbox did not restore the three-product state.');
+                }
+                for (const productType of ['bubble_keychain', 'nameplate', 'keychain']) {
+                    document.querySelector('[data-match-set-product="' + productType + '"]').click();
+                    await window.__kootzyCustomizer.waitForIdle(90000);
+                }
+                setDeadline = performance.now() + 90000;
+                while (addButton.disabled && performance.now() < setDeadline) {
+                    await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+                addButton.click();
+                let threeProductItems = [];
+                while (performance.now() < setDeadline) {
+                    const payload = JSON.parse(localStorage.getItem('kootzyCart.v1') || '{"items":[]}');
+                    threeProductItems = payload.items || [];
+                    if (threeProductItems.length === 3 && !addButton.disabled) break;
+                    await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+                const threeProductIds = [...new Set(
+                    threeProductItems.map((item) => item.design?.matchSet?.id).filter(Boolean)
+                )];
+                const setPreviewCount =
+                    document.querySelectorAll('#matchSetPreviewStrip .match-set-selector-preview img').length;
                 matchSetProbe = {
+                    twoProduct: twoProductProbe,
                     previewCount: setPreviewCount,
                     canvasCount: document.querySelectorAll('#viewer3dCanvas canvas').length,
-                    productTypes: setItems.map((item) => item.productType).sort(),
-                    setIds,
-                    itemIndexes: setItems.map((item) => item.design?.matchSet?.itemIndex).sort(),
+                    productTypes: threeProductItems.map((item) => item.productType).sort(),
+                    setIds: threeProductIds,
+                    itemIndexes:
+                        threeProductItems.map((item) => item.design?.matchSet?.itemIndex).sort(),
                     quantityHidden: getComputedStyle(document.querySelector('.qty-selector-wrap')).display === 'none',
                 };
                 if (setPreviewCount !== 3 || matchSetProbe.canvasCount !== 1) {
                     throw new Error('Match Set did not produce three exact previews with one WebGL canvas.');
                 }
-                if (setItems.length !== 3 || setIds.length !== 1) {
+                if (threeProductItems.length !== 3 || threeProductIds.length !== 1) {
                     throw new Error('Match Set cart lines were not grouped under one set ID.');
                 }
                 if (!matchSetProbe.quantityHidden) {
@@ -686,6 +782,13 @@ try {
             assert.deepEqual(result.crewProbe?.memberIndexes, [1, 2, 3]);
             assert.equal(result.crewProbe?.crewIds.length, 1);
             assert.equal(result.crewProbe?.quantityHidden, true);
+            assert.equal(result.matchSetProbe?.twoProduct?.previewCount, 2);
+            assert.deepEqual(
+                result.matchSetProbe?.twoProduct?.productTypes,
+                ['bubble_keychain', 'keychain'],
+            );
+            assert.deepEqual(result.matchSetProbe?.twoProduct?.itemIndexes, [1, 2]);
+            assert.equal(result.matchSetProbe?.twoProduct?.setIds.length, 1);
             assert.equal(result.matchSetProbe?.previewCount, 3);
             assert.equal(result.matchSetProbe?.canvasCount, 1);
             assert.deepEqual(

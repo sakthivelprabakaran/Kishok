@@ -17,7 +17,7 @@ const admin = read('public/js/admin-dashboard.js');
 for (const id of [
     'matchSetModeBtn',
     'matchSetBuilder',
-    'matchSetOptions',
+    'matchSetSelectionCount',
     'matchSetPreviewStrip',
     'matchSetSharedBtn',
     'matchSetSeparateBtn',
@@ -30,6 +30,7 @@ assert.match(app, /MATCH_SET_PRODUCTS[\s\S]*?'keychain'[\s\S]*?'bubble_keychain'
 assert.match(app, /function setMatchSetMode/);
 assert.match(app, /function selectMatchSetProduct/);
 assert.match(app, /function setMatchSetEditingMode/);
+assert.match(app, /function toggleMatchSetProduct/);
 assert.match(app, /function activeEditorProductType/);
 assert.match(app, /function refreshMatchSetPreviews/);
 assert.match(app, /for \(let index = 0; index < products\.length; index \+= 1\)/);
@@ -41,8 +42,15 @@ assert.match(app, /BatchOffers\.findBatchDiscount\(/);
 assert.match(app, /matchSetProductAvailable/);
 assert.match(app, /state\.catalogProducts/);
 assert.match(app, /state\.matchSet\.enabled[\s\S]*?state\.crew\.enabled = false/);
+assert.match(app, /\$\{selectedProducts\.length\} of \$\{MATCH_SET_PRODUCTS\.length\} products selected/);
+assert.match(app, /if \(selected\) selectMatchSetProduct\(product\.productType\);[\s\S]*?else toggleMatchSetProduct\(product\.productType, true\);/);
+assert.match(app, /aria-current/);
+assert.match(app, /required and selected/);
+assert.match(app, /if \(!isDesktop\(\)\) return `Add Set/);
+assert.doesNotMatch(app, /renderMatchSetUiLegacy|matchSetAddLabelLegacy/);
 
-assert.match(css, /\.match-set-options/);
+assert.match(css, /\.match-set-product-selector/);
+assert.match(css, /\.match-set-checkbox/);
 assert.match(css, /\.match-set-mode-active \.qty-selector-wrap/);
 assert.match(cart, /function matchSetMeta/);
 assert.match(cart, /function matchSetHeadingNode/);

@@ -199,8 +199,8 @@ function cacheElements() {
     el.crewQuickMembers = document.getElementById('crewQuickMembers');
     el.crewEditNamesBtn = document.getElementById('crewEditNamesBtn');
     el.matchSetBuilder = document.getElementById('matchSetBuilder');
-    el.matchSetOptions = document.getElementById('matchSetOptions');
     el.matchSetPreviewStrip = document.getElementById('matchSetPreviewStrip');
+    el.matchSetSelectionCount = document.getElementById('matchSetSelectionCount');
     el.matchSetSharedBtn = document.getElementById('matchSetSharedBtn');
     el.matchSetSeparateBtn = document.getElementById('matchSetSeparateBtn');
     el.matchSetModeHint = document.getElementById('matchSetModeHint');
@@ -1081,79 +1081,131 @@ function matchSetEstimatedTotal() {
     return items.reduce((sum, item) => sum + item.unitPrice, 0);
 }
 
-function matchSetAddLabel() {
-    const count = selectedMatchSetProducts().length;
-    const total = matchSetEstimatedTotal();
-    return `Add ${count}-product Match Set${total ? ` · ₹${total}` : ''}`;
+function toggleMatchSetProduct(productType, selected) {
+    const product = MATCH_SET_PRODUCTS.find((entry) => entry.productType === productType);
+    if (!product || productType === 'keychain' || !matchSetProductAvailable(productType)) return;
+    if (selected) {
+        if (!state.matchSet.selected.includes(productType)) {
+            state.matchSet.selected = [...state.matchSet.selected, productType];
+            ensureMatchSetDraft(productType);
+        }
+    } else {
+        state.matchSet.selected = state.matchSet.selected.filter((type) => type !== productType);
+        delete state.matchSet.items[productType];
+        if (state.matchSet.activeProductType === productType) {
+            state.matchSet.activeProductType = 'keychain';
+            if (state.matchSet.separate) applyMatchSetDraft('keychain');
+            applyMatchSetControlProfile('keychain');
+            update3DModelNow();
+        }
+    }
+    setMatchSetStatus(
+        `${selected ? 'Added' : 'Removed'} ${product.label}. `
+        + `${selectedMatchSetProducts().length} of ${MATCH_SET_PRODUCTS.length} products selected.`
+    );
+    renderMatchSetUi();
+    syncCrewUi();
 }
 
 function renderMatchSetUi() {
-    if (!el.matchSetOptions || !el.matchSetPreviewStrip) return;
-    el.matchSetOptions.textContent = '';
-    MATCH_SET_PRODUCTS.forEach((product) => {
+    if (!el.matchSetPreviewStrip) return;
+    const products = MATCH_SET_PRODUCTS;
+    const selectedProducts = selectedMatchSetProducts();
+    if (el.matchSetSelectionCount) {
+        el.matchSetSelectionCount.textContent =
+            `${selectedProducts.length} of ${MATCH_SET_PRODUCTS.length} products selected`;
+    }
+    el.matchSetPreviewStrip.textContent = '';
+    products.forEach((product) => {
         const available = matchSetProductAvailable(product.productType);
         const selected = state.matchSet.selected.includes(product.productType);
         const required = product.productType === 'keychain';
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = `match-set-option${selected ? ' active' : ''}`;
-        button.disabled = required || !available || state.matchSet.refreshing;
-        button.setAttribute('aria-pressed', String(selected));
-        button.innerHTML = `<strong>${product.label}</strong><small>${available ? product.note : 'Unavailable in Admin'}</small>`
-            + `<span class="match-set-check">${selected ? '✓' : '+'}</span>`;
-        button.addEventListener('click', () => {
-            if (selected) {
-                state.matchSet.selected = state.matchSet.selected.filter((type) => type !== product.productType);
-                delete state.matchSet.items[product.productType];
-                if (state.matchSet.activeProductType === product.productType) {
-                    selectMatchSetProduct('keychain');
-                }
-            } else {
-                state.matchSet.selected = [...state.matchSet.selected, product.productType];
-                ensureMatchSetDraft(product.productType);
-            }
-            renderMatchSetUi();
-            syncCrewUi();
-        });
-        el.matchSetOptions.appendChild(button);
-    });
-
-    el.matchSetPreviewStrip.textContent = '';
-    selectedMatchSetProducts().forEach((product) => {
         const result = state.matchSet.items[product.productType];
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.className = `crew-member-card${result?.loading ? ' is-loading' : ''}`;
-        card.dataset.matchSetProduct = product.productType;
-        card.setAttribute('role', 'tab');
-        card.setAttribute('aria-selected', String(
-            product.productType === state.matchSet.activeProductType
-        ));
+        const row = document.createElement('article');
+        row.className = `match-set-selector-item${selected ? ' is-selected' : ''}${product.productType === state.matchSet.activeProductType ? ' is-active' : ''}`;
+
+        const checkLabel = document.createElement('label');
+        checkLabel.className = 'match-set-checkbox';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = selected;
+        checkbox.disabled = !available || state.matchSet.refreshing;
+        if (required) checkbox.setAttribute('aria-disabled', 'true');
+        checkbox.setAttribute('aria-label', required
+            ? `${product.label}, required and selected`
+            : `${selected ? 'Remove' : 'Add'} ${product.label}`);
+        const checkmark = document.createElement('span');
+        checkmark.setAttribute('aria-hidden', 'true');
+        checkLabel.append(checkbox, checkmark);
+        checkbox.addEventListener('click', (event) => {
+            if (!required) return;
+            event.preventDefault();
+            checkbox.checked = true;
+            selectMatchSetProduct(product.productType);
+        });
+        checkbox.addEventListener('change', () => {
+            if (required) {
+                checkbox.checked = true;
+                return;
+            }
+            toggleMatchSetProduct(product.productType, checkbox.checked);
+        });
+
+        const main = document.createElement('button');
+        main.type = 'button';
+        main.className = 'match-set-selector-main';
+        main.dataset.matchSetProduct = product.productType;
+        main.disabled = !available || state.matchSet.refreshing;
+        main.setAttribute('aria-pressed', String(selected));
+        if (product.productType === state.matchSet.activeProductType) {
+            main.setAttribute('aria-current', 'true');
+        }
+        main.setAttribute(
+            'aria-label',
+            selected
+                ? `Preview ${product.label}${product.productType === state.matchSet.activeProductType ? ', currently previewing' : ''}`
+                : `Add ${product.label} to Match Set`
+        );
         const preview = document.createElement('span');
-        preview.className = 'crew-member-preview';
+        preview.className = 'match-set-selector-preview';
         if (result?.preview && !result.dirty) {
             const image = document.createElement('img');
             image.src = result.preview;
             image.alt = '';
             preview.appendChild(image);
         } else {
-            const placeholder = document.createElement('span');
-            placeholder.textContent = state.name || product.label;
-            preview.appendChild(placeholder);
+            preview.textContent = (state.matchSet.separate
+                ? state.matchSet.drafts[product.productType]?.name
+                : state.name) || product.label;
         }
         const meta = document.createElement('span');
-        meta.className = 'crew-member-meta';
+        meta.className = 'match-set-selector-meta';
         const title = document.createElement('strong');
         title.textContent = product.label;
         const note = document.createElement('small');
-        note.textContent = result?.unitPrice && !result.dirty
-            ? `₹${result.unitPrice} · ${Number(result.dims?.width || 0).toFixed(0)} mm`
-            : 'Preview needed';
+        if (!available) note.textContent = 'Unavailable';
+        else if (required) note.textContent = 'Required · Included in every Match Set';
+        else if (!selected) note.textContent = product.note;
+        else if (result?.unitPrice && !result.dirty) {
+            note.textContent = `₹${result.unitPrice} · ${Number(result.dims?.width || 0).toFixed(0)} mm`;
+        } else note.textContent = 'Selected · Tap to preview';
         meta.append(title, note);
-        card.append(preview, meta);
-        card.addEventListener('click', () => selectMatchSetProduct(product.productType));
-        el.matchSetPreviewStrip.appendChild(card);
+        const action = document.createElement('span');
+        action.className = 'match-set-selector-action';
+        action.textContent = required
+            ? 'Required'
+            : selected
+                ? (product.productType === state.matchSet.activeProductType ? 'Previewing' : 'Preview')
+            : 'Not selected';
+        main.append(preview, meta, action);
+        main.addEventListener('click', () => {
+            if (selected) selectMatchSetProduct(product.productType);
+            else toggleMatchSetProduct(product.productType, true);
+        });
+        row.append(checkLabel, main);
+        el.matchSetPreviewStrip.appendChild(row);
     });
+
     if (el.matchSetSharedBtn) {
         el.matchSetSharedBtn.classList.toggle('active', !state.matchSet.separate);
         el.matchSetSharedBtn.setAttribute('aria-pressed', String(!state.matchSet.separate));
@@ -1167,8 +1219,8 @@ function renderMatchSetUi() {
             ? 'Each selected product keeps its own name, font and colours.'
             : 'Your name, font and colours stay coordinated across the set.';
     }
-    renderMatchSetQuickSwitcher();
-    renderMatchSetReview();
+    if (typeof renderMatchSetQuickSwitcher === 'function') renderMatchSetQuickSwitcher();
+    if (typeof renderMatchSetReview === 'function') renderMatchSetReview();
 }
 
 function renderMatchSetQuickSwitcher() {
@@ -1195,6 +1247,13 @@ function renderMatchSetQuickSwitcher() {
         button.type = 'button';
         button.className = `match-set-quick-product${product.productType === state.matchSet.activeProductType ? ' active' : ''}${item && !item.dirty ? ' is-ready' : ''}`;
         button.dataset.productNumber = String(index + 1);
+        button.setAttribute(
+            'aria-pressed',
+            String(product.productType === state.matchSet.activeProductType)
+        );
+        if (product.productType === state.matchSet.activeProductType) {
+            button.setAttribute('aria-current', 'true');
+        }
         button.textContent = product.shortLabel || product.label;
         button.addEventListener('click', () => selectMatchSetProduct(product.productType));
         el.matchSetQuickProducts.appendChild(button);
@@ -1257,6 +1316,13 @@ function renderMatchSetReview() {
         const total = matchSetEstimatedTotal();
         el.matchSetReviewTotal.textContent = total ? `₹${total}` : 'Finalizing…';
     }
+}
+
+function matchSetAddLabel() {
+    const count = selectedMatchSetProducts().length;
+    const total = matchSetEstimatedTotal();
+    if (!isDesktop()) return `Add Set${total ? ` · ₹${total}` : ''}`;
+    return `Add ${count}-product Match Set${total ? ` · ₹${total}` : ''}`;
 }
 
 function applyMatchSetControlProfile(productType) {
@@ -2004,7 +2070,8 @@ function renderStepper() {
     renderStepper.revision = (renderStepper.revision || 0) + 1;
     const desktop = isDesktop();
     const crewEnabled = Boolean(state.crew && state.crew.enabled);
-    const groupedModeEnabled = crewEnabled || Boolean(state.matchSet && state.matchSet.enabled);
+    const matchSetEnabled = Boolean(state.matchSet && state.matchSet.enabled);
+    const groupedModeEnabled = crewEnabled || matchSetEnabled;
     document.body.classList.toggle('all-steps', desktop);
     document.body.classList.toggle(
         'crew-review-step',
@@ -2012,7 +2079,7 @@ function renderStepper() {
     );
     document.body.classList.toggle(
         'match-set-review-step',
-        !desktop && state.matchSet.enabled && state.currentStep === 4
+        !desktop && matchSetEnabled && state.currentStep === 4
     );
 
     if (desktop) {
@@ -2055,9 +2122,9 @@ function renderStepper() {
             ? `${stepTitles[state.currentStep]} · ${activeCrewName}`
             : stepTitles[state.currentStep];
     }
-    renderMatchSetQuickSwitcher();
-    renderMatchSetReview();
-    if (!desktop && state.matchSet.enabled && state.currentStep === 4 && !state.matchSet.refreshing) {
+    if (typeof renderMatchSetQuickSwitcher === 'function') renderMatchSetQuickSwitcher();
+    if (typeof renderMatchSetReview === 'function') renderMatchSetReview();
+    if (!desktop && matchSetEnabled && state.currentStep === 4 && !state.matchSet.refreshing) {
         const needsRefresh = selectedMatchSetProducts().some(({ productType }) => {
             const item = state.matchSet.items[productType];
             return !item || item.dirty;
