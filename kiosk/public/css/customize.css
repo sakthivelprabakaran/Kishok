@@ -2,9 +2,17 @@
    KOOTZY KIOSK — CUSTOMIZER SPECIFIC STYLES
    ========================================= */
 
+html {
+    min-height: 100%;
+    background: var(--bg-dark);
+    overscroll-behavior-y: none;
+}
+
 body {
     display: flex;
     flex-direction: column;
+    min-height: 100svh;
+    overscroll-behavior-y: none;
 }
 
 /* 3D Visualizer Container */
@@ -537,6 +545,16 @@ body {
     body.crew-review-step .crew-quick-switcher:not([hidden]) {
         position: relative;
         top: auto;
+    }
+    body.mobile-keyboard-active .visualizer-pane,
+    body.mobile-keyboard-active .crew-quick-switcher:not([hidden]) {
+        position: relative;
+        top: auto;
+    }
+    body.mobile-keyboard-active .stepper-nav {
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateY(110%);
     }
 }
 

@@ -375,6 +375,7 @@ function init3DViewer() {
                 return {
                     productType: state.productType,
                     currentStep: state.currentStep,
+                    stepperRenderRevision: renderStepper.revision || 0,
                     colors: { ...state.colors },
                     renderedColors: {
                         base: viewer?._lastBaseColor || null,
@@ -1326,6 +1327,7 @@ function isDesktop() { return window.matchMedia('(min-width: 880px)').matches; }
 
 let stepperNavMeasureFrame = 0;
 let stepperNavResizeObserver = null;
+let stepperNavLastHeight = 0;
 
 function syncStepperNavClearance() {
     cancelAnimationFrame(stepperNavMeasureFrame);
@@ -1333,6 +1335,8 @@ function syncStepperNavClearance() {
         const nav = el.stepperNav;
         const mobileFixed = nav && !isDesktop() && getComputedStyle(nav).position === 'fixed';
         const height = mobileFixed ? Math.ceil(nav.getBoundingClientRect().height) : 0;
+        if (height === stepperNavLastHeight) return;
+        stepperNavLastHeight = height;
         document.documentElement.style.setProperty(
             '--stepper-nav-height',
             `${height || 76}px`
@@ -1345,9 +1349,6 @@ function setupStepperNavClearance() {
     if ('ResizeObserver' in window) {
         stepperNavResizeObserver = new ResizeObserver(syncStepperNavClearance);
         stepperNavResizeObserver.observe(el.stepperNav);
-    }
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', syncStepperNavClearance);
     }
     syncStepperNavClearance();
 }
@@ -1378,6 +1379,7 @@ function isSectionUnavailable(elem) {
 }
 
 function renderStepper() {
+    renderStepper.revision = (renderStepper.revision || 0) + 1;
     const desktop = isDesktop();
     const crewEnabled = Boolean(state.crew && state.crew.enabled);
     document.body.classList.toggle('all-steps', desktop);
@@ -2372,6 +2374,70 @@ function setInputValuePreservingCaret(input, next) {
     try { input.setSelectionRange(cap, cap); } catch (_) { /* type doesn't support selection */ }
 }
 
+let keyboardPointerScrollY = null;
+let keyboardSessionScrollY = 0;
+let keyboardDismissTimer = null;
+
+function isTextEntryElement(node) {
+    if (!node || !(node instanceof HTMLElement)) return false;
+    if (node instanceof HTMLTextAreaElement) return true;
+    if (!(node instanceof HTMLInputElement)) return node.isContentEditable;
+    return !['button', 'checkbox', 'color', 'file', 'hidden', 'radio', 'range', 'reset', 'submit']
+        .includes(node.type);
+}
+
+function isIOSWebKit() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function startMobileKeyboardSession(scrollY = window.scrollY) {
+    if (isDesktop()) return;
+    clearTimeout(keyboardDismissTimer);
+    keyboardSessionScrollY = scrollY;
+    document.body.classList.add('mobile-keyboard-active');
+}
+
+function finishMobileKeyboardSession() {
+    if (isTextEntryElement(document.activeElement)) return;
+    document.body.classList.remove('mobile-keyboard-active');
+    syncStepperNavClearance();
+
+    if (!isIOSWebKit() || isDesktop()) return;
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    const target = Math.max(0, Math.min(keyboardSessionScrollY, maxScroll));
+    const nudge = target < maxScroll ? target + 1 : Math.max(0, target - 1);
+
+    // A one-pixel scroll forces Safari to reconcile its visual and layout
+    // viewports after the keyboard closes, then restores the customer's place.
+    window.scrollTo(0, nudge);
+    requestAnimationFrame(() => {
+        window.scrollTo(0, target);
+        syncStepperNavClearance();
+    });
+}
+
+function setupMobileKeyboardStability() {
+    document.addEventListener('pointerdown', (event) => {
+        if (!isDesktop() && isTextEntryElement(event.target)) {
+            keyboardPointerScrollY = window.scrollY;
+            startMobileKeyboardSession(keyboardPointerScrollY);
+        }
+    }, true);
+
+    document.addEventListener('focusin', (event) => {
+        if (isDesktop() || !isTextEntryElement(event.target)) return;
+        startMobileKeyboardSession(keyboardPointerScrollY ?? window.scrollY);
+        keyboardPointerScrollY = null;
+    });
+
+    document.addEventListener('focusout', (event) => {
+        if (!isTextEntryElement(event.target)) return;
+        clearTimeout(keyboardDismissTimer);
+        keyboardDismissTimer = setTimeout(finishMobileKeyboardSession, 420);
+    });
+}
+
 // ===== EVENT BINDINGS =====
 
 function setupEvents() {
@@ -2920,6 +2986,7 @@ async function init() {
     cacheElements();
     setupEvents();
     setupStepperNavClearance();
+    setupMobileKeyboardStability();
 
     const filamentPromise = loadFilamentColours();
     const productAvailabilityPromise = loadCurrentProductAvailability();
@@ -2964,10 +3031,21 @@ async function init() {
     // Re-render the stepper when crossing the desktop/mobile breakpoint so the
     // layout switches between all-steps and wizard cleanly. Debounced.
     let _rsTimer = null;
+    let lastDesktopLayout = isDesktop();
     window.addEventListener('resize', () => {
         clearTimeout(_rsTimer);
         _rsTimer = setTimeout(() => {
-            renderStepper();
+            const nextDesktopLayout = isDesktop();
+            if (nextDesktopLayout !== lastDesktopLayout) {
+                lastDesktopLayout = nextDesktopLayout;
+                renderStepper();
+            }
+            if (
+                document.body.classList.contains('mobile-keyboard-active')
+                && !isTextEntryElement(document.activeElement)
+            ) {
+                finishMobileKeyboardSession();
+            }
             syncStepperNavClearance();
         }, 200);
     });

@@ -201,6 +201,10 @@ try {
     await cdp.send('Page.enable');
     await cdp.send('Runtime.enable');
     if (mobileViewport) {
+        await cdp.send('Emulation.setUserAgentOverride', {
+            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1',
+            platform: 'iPhone',
+        });
         await cdp.send('Emulation.setDeviceMetricsOverride', {
             width: 390,
             height: 844,
@@ -638,6 +642,91 @@ try {
                 assert.notEqual(result.crewProbe?.mobileFlow?.footer?.quickPosition, 'sticky');
                 assert.ok(result.crewProbe?.mobileFlow?.footer?.navHeight <= 92);
             }
+        }
+
+        if (mobileViewport && productType === 'keychain') {
+            const keyboardBefore = await cdp.evaluate(`(async () => {
+                window.scrollTo(0, document.body.scrollHeight);
+                await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                const input = document.getElementById('custName');
+                input.dispatchEvent(new PointerEvent('pointerdown', {
+                    bubbles: true,
+                    pointerType: 'touch',
+                    isPrimary: true,
+                }));
+                input.focus();
+                await new Promise((resolve) => requestAnimationFrame(resolve));
+                const snapshot = window.__kootzyCustomizer.snapshot();
+                return {
+                    scrollY: window.scrollY,
+                    currentStep: snapshot.currentStep,
+                    renderRevision: snapshot.stepperRenderRevision,
+                    keyboardClass: document.body.classList.contains('mobile-keyboard-active'),
+                    activeElement: document.activeElement?.id || document.activeElement?.tagName,
+                    isDesktop: window.matchMedia('(min-width: 880px)').matches,
+                    inputDisabled: input.disabled,
+                };
+            })()`);
+
+            await cdp.send('Emulation.setDeviceMetricsOverride', {
+                width: 390,
+                height: 520,
+                deviceScaleFactor: 2,
+                mobile: true,
+                screenWidth: 390,
+                screenHeight: 844,
+            });
+            await delay(350);
+            const keyboardDuring = await cdp.evaluate(`(() => ({
+                keyboardClass: document.body.classList.contains('mobile-keyboard-active'),
+                navVisibility: getComputedStyle(document.querySelector('.stepper-nav')).visibility,
+                renderRevision: window.__kootzyCustomizer.snapshot().stepperRenderRevision,
+            }))()`);
+
+            await cdp.evaluate(`document.getElementById('custName').blur()`);
+            await cdp.send('Emulation.setDeviceMetricsOverride', {
+                width: 390,
+                height: 844,
+                deviceScaleFactor: 2,
+                mobile: true,
+                screenWidth: 390,
+                screenHeight: 844,
+            });
+            await delay(700);
+            const keyboardAfter = await cdp.evaluate(`(() => {
+                const snapshot = window.__kootzyCustomizer.snapshot();
+                const visibleStep = [...document.querySelectorAll('[data-step]')].some((element) => {
+                    const rect = element.getBoundingClientRect();
+                    return getComputedStyle(element).display !== 'none'
+                        && rect.bottom > 0
+                        && rect.top < window.innerHeight;
+                });
+                return {
+                    scrollY: window.scrollY,
+                    currentStep: snapshot.currentStep,
+                    renderRevision: snapshot.stepperRenderRevision,
+                    keyboardClass: document.body.classList.contains('mobile-keyboard-active'),
+                    visibleStep,
+                    bodyHeight: document.body.getBoundingClientRect().height,
+                    viewportHeight: window.innerHeight,
+                };
+            })()`);
+
+            assert.equal(
+                keyboardBefore.keyboardClass,
+                true,
+                `Keyboard did not activate: ${JSON.stringify(keyboardBefore)}`,
+            );
+            assert.equal(keyboardDuring.keyboardClass, true);
+            assert.equal(keyboardDuring.navVisibility, 'hidden');
+            assert.equal(keyboardDuring.renderRevision, keyboardBefore.renderRevision);
+            assert.equal(keyboardAfter.keyboardClass, false);
+            assert.equal(keyboardAfter.currentStep, keyboardBefore.currentStep);
+            assert.equal(keyboardAfter.renderRevision, keyboardBefore.renderRevision);
+            assert.equal(keyboardAfter.visibleStep, true);
+            assert.ok(keyboardAfter.bodyHeight >= keyboardAfter.viewportHeight);
+            assert.ok(Math.abs(keyboardAfter.scrollY - keyboardBefore.scrollY) <= 2);
+            result.keyboardProbe = { keyboardBefore, keyboardDuring, keyboardAfter };
         }
 
         await cdp.evaluate('window.scrollTo(0, 0)');
