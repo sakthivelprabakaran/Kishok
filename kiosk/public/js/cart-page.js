@@ -37,6 +37,17 @@ function crewMeta(item) {
     };
 }
 
+function matchSetMeta(item) {
+    const set = item && item.design && item.design.matchSet;
+    if (!set || typeof set !== 'object' || !String(set.id || '').trim()) return null;
+    return {
+        id: String(set.id),
+        label: String(set.label || 'Kootzy Match Set'),
+        itemIndex: Number(set.itemIndex) || 0,
+        itemCount: Number(set.itemCount) || 0,
+    };
+}
+
 function lineNode(item) {
     const li = document.createElement('li');
     li.className = 'cart-line';
@@ -99,6 +110,13 @@ function lineNode(item) {
         crewLine.className = 'cart-line-meta cart-crew-member-note';
         crewLine.textContent = `${crew.label} · Member ${crew.memberIndex} of ${crew.memberCount}`;
         info.appendChild(crewLine);
+    }
+    const matchSet = matchSetMeta(item);
+    if (matchSet) {
+        const setLine = document.createElement('p');
+        setLine.className = 'cart-line-meta cart-crew-member-note';
+        setLine.textContent = `${matchSet.label} · Product ${matchSet.itemIndex} of ${matchSet.itemCount}`;
+        info.appendChild(setLine);
     }
     if (item.batchOffer && Number(item.batchOffer.savings) > 0) {
         const saving = document.createElement('p');
@@ -168,21 +186,51 @@ function crewHeadingNode(crew, members) {
     return li;
 }
 
+function matchSetHeadingNode(set, items) {
+    const li = document.createElement('li');
+    li.className = 'cart-crew-heading';
+    const text = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = set.label;
+    const note = document.createElement('span');
+    note.textContent = `${items.length} coordinated products · one matching style`;
+    text.append(title, note);
+    const total = document.createElement('strong');
+    total.textContent = rupees(items.reduce(
+        (sum, item) => sum + item.unitPrice * item.quantity,
+        0
+    ));
+    li.append(text, total);
+    return li;
+}
+
 function appendGroupedLines(fragment, items) {
     const renderedCrewIds = new Set();
+    const renderedMatchSetIds = new Set();
     for (const item of items) {
         const crew = crewMeta(item);
-        if (!crew) {
-            fragment.appendChild(lineNode(item));
+        if (crew) {
+            if (renderedCrewIds.has(crew.id)) continue;
+            renderedCrewIds.add(crew.id);
+            const members = items
+                .filter((candidate) => crewMeta(candidate)?.id === crew.id)
+                .sort((a, b) => crewMeta(a).memberIndex - crewMeta(b).memberIndex);
+            fragment.appendChild(crewHeadingNode(crew, members));
+            members.forEach((member) => fragment.appendChild(lineNode(member)));
             continue;
         }
-        if (renderedCrewIds.has(crew.id)) continue;
-        renderedCrewIds.add(crew.id);
-        const members = items
-            .filter((candidate) => crewMeta(candidate)?.id === crew.id)
-            .sort((a, b) => crewMeta(a).memberIndex - crewMeta(b).memberIndex);
-        fragment.appendChild(crewHeadingNode(crew, members));
-        members.forEach((member) => fragment.appendChild(lineNode(member)));
+        const matchSet = matchSetMeta(item);
+        if (matchSet) {
+            if (renderedMatchSetIds.has(matchSet.id)) continue;
+            renderedMatchSetIds.add(matchSet.id);
+            const setItems = items
+                .filter((candidate) => matchSetMeta(candidate)?.id === matchSet.id)
+                .sort((a, b) => matchSetMeta(a).itemIndex - matchSetMeta(b).itemIndex);
+            fragment.appendChild(matchSetHeadingNode(matchSet, setItems));
+            setItems.forEach((setItem) => fragment.appendChild(lineNode(setItem)));
+            continue;
+        }
+        fragment.appendChild(lineNode(item));
     }
 }
 

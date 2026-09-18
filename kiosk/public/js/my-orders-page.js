@@ -207,7 +207,11 @@ async function renderDetail(orderNum) {
         const crewText = crew && crew.id
             ? `${crew.label || 'Kootzy Crew'} · Member ${Number(crew.memberIndex) || 0} of ${Number(crew.memberCount) || 0} · `
             : '';
-        meta.textContent = `${crewText}×${item.quantity} · ${rupees(item.lineTotal)}`;
+        const matchSet = item.design && item.design.matchSet;
+        const setText = matchSet && matchSet.id
+            ? `${matchSet.label || 'Kootzy Match Set'} · Product ${Number(matchSet.itemIndex) || 0} of ${Number(matchSet.itemCount) || 0} · `
+            : '';
+        meta.textContent = `${crewText || setText}×${item.quantity} · ${rupees(item.lineTotal)}`;
         info.append(name, text, meta);
         li.appendChild(info);
         $('odItems').appendChild(li);

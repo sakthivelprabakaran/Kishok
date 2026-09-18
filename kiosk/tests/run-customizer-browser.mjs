@@ -458,6 +458,7 @@ try {
             if (final.loadingVisible) throw new Error('Loading overlay remained visible after rendering completed.');
 
             let crewProbe = null;
+            let matchSetProbe = null;
             if (${JSON.stringify(productType)} === 'keychain') {
                 localStorage.removeItem('kootzyCart.v1');
                 document.getElementById('crewModeBtn').click();
@@ -597,6 +598,52 @@ try {
                     throw new Error('Crew cart lines were not grouped under one Crew ID.');
                 }
                 if (!crewProbe.quantityHidden) throw new Error('Crew mode must hide the single-item quantity control.');
+
+                document.getElementById('soloModeBtn').click();
+                localStorage.removeItem('kootzyCart.v1');
+                document.getElementById('matchSetModeBtn').click();
+                document.getElementById('matchSetRefresh').click();
+                const setDeadline = performance.now() + 90000;
+                while (document.body.classList.contains('match-set-refreshing')
+                    && performance.now() < setDeadline) {
+                    await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+                if (document.body.classList.contains('match-set-refreshing')) {
+                    throw new Error('Match Set previews did not finish before timeout.');
+                }
+                const setPreviewCount =
+                    document.querySelectorAll('#matchSetPreviewStrip .crew-member-preview img').length;
+                while (addButton.disabled && performance.now() < setDeadline) {
+                    await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+                addButton.click();
+                let setItems = [];
+                while (performance.now() < setDeadline) {
+                    const payload = JSON.parse(localStorage.getItem('kootzyCart.v1') || '{"items":[]}');
+                    setItems = payload.items || [];
+                    if (setItems.length === 3 && !addButton.disabled) break;
+                    await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+                const setIds = [...new Set(
+                    setItems.map((item) => item.design?.matchSet?.id).filter(Boolean)
+                )];
+                matchSetProbe = {
+                    previewCount: setPreviewCount,
+                    canvasCount: document.querySelectorAll('#viewer3dCanvas canvas').length,
+                    productTypes: setItems.map((item) => item.productType).sort(),
+                    setIds,
+                    itemIndexes: setItems.map((item) => item.design?.matchSet?.itemIndex).sort(),
+                    quantityHidden: getComputedStyle(document.querySelector('.qty-selector-wrap')).display === 'none',
+                };
+                if (setPreviewCount !== 3 || matchSetProbe.canvasCount !== 1) {
+                    throw new Error('Match Set did not produce three exact previews with one WebGL canvas.');
+                }
+                if (setItems.length !== 3 || setIds.length !== 1) {
+                    throw new Error('Match Set cart lines were not grouped under one set ID.');
+                }
+                if (!matchSetProbe.quantityHidden) {
+                    throw new Error('Match Set must hide the single-item quantity control.');
+                }
             }
             return {
                 colorCases,
@@ -605,6 +652,7 @@ try {
                 hollowImmediate,
                 fastPathProbe,
                 crewProbe,
+                matchSetProbe,
                 final,
             };
         })()`);
@@ -626,6 +674,15 @@ try {
             assert.deepEqual(result.crewProbe?.memberIndexes, [1, 2, 3]);
             assert.equal(result.crewProbe?.crewIds.length, 1);
             assert.equal(result.crewProbe?.quantityHidden, true);
+            assert.equal(result.matchSetProbe?.previewCount, 3);
+            assert.equal(result.matchSetProbe?.canvasCount, 1);
+            assert.deepEqual(
+                result.matchSetProbe?.productTypes,
+                ['bubble_keychain', 'keychain', 'nameplate'],
+            );
+            assert.deepEqual(result.matchSetProbe?.itemIndexes, [1, 2, 3]);
+            assert.equal(result.matchSetProbe?.setIds.length, 1);
+            assert.equal(result.matchSetProbe?.quantityHidden, true);
             if (mobileViewport) {
                 assert.equal(result.crewProbe?.mobileFlow?.quickVisible, true);
                 assert.equal(result.crewProbe?.mobileFlow?.enteredStep, 2);

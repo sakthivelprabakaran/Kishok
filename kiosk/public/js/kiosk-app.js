@@ -144,11 +144,18 @@ const state = {
     costs: null,
     kiriComparison: null,
     catalogProduct: null,
+    catalogProducts: [],
     crew: {
         enabled: false,
         count: 3,
         activeIndex: 0,
         members: [],
+        refreshing: false,
+    },
+    matchSet: {
+        enabled: false,
+        selected: ['keychain', 'bubble_keychain', 'nameplate'],
+        items: {},
         refreshing: false,
     },
 };
@@ -175,6 +182,7 @@ function cacheElements() {
     el.crewModeCard = document.getElementById('crewModeCard');
     el.soloModeBtn = document.getElementById('soloModeBtn');
     el.crewModeBtn = document.getElementById('crewModeBtn');
+    el.matchSetModeBtn = document.getElementById('matchSetModeBtn');
     el.crewBuilder = document.getElementById('crewBuilder');
     el.crewCountMinus = document.getElementById('crewCountMinus');
     el.crewCountPlus = document.getElementById('crewCountPlus');
@@ -187,6 +195,11 @@ function cacheElements() {
     el.crewQuickProgress = document.getElementById('crewQuickProgress');
     el.crewQuickMembers = document.getElementById('crewQuickMembers');
     el.crewEditNamesBtn = document.getElementById('crewEditNamesBtn');
+    el.matchSetBuilder = document.getElementById('matchSetBuilder');
+    el.matchSetOptions = document.getElementById('matchSetOptions');
+    el.matchSetPreviewStrip = document.getElementById('matchSetPreviewStrip');
+    el.matchSetRefresh = document.getElementById('matchSetRefresh');
+    el.matchSetStatus = document.getElementById('matchSetStatus');
     
     el.stepDots        = document.querySelectorAll('.step-dot');
     el.stepLines       = document.querySelectorAll('.stepper-line');
@@ -346,6 +359,7 @@ function syncProductAvailability() {
 
 async function loadCurrentProductAvailability() {
     const products = await loadProductCatalog();
+    state.catalogProducts = products;
     state.catalogProduct = products.find((product) => product.productType === state.productType) || {
         productType: state.productType,
         displayName: 'This product',
@@ -468,6 +482,11 @@ function renderCustomerDimensions(detail) {
 
 const CREW_MIN = 2;
 const CREW_MAX = 6;
+const MATCH_SET_PRODUCTS = Object.freeze([
+    { productType: 'keychain', label: 'Classic Keychain', note: 'Required' },
+    { productType: 'bubble_keychain', label: 'Bubble Badge', note: 'Matching carry piece' },
+    { productType: 'nameplate', label: 'Desk Nameplate', note: 'Matching desk piece' },
+]);
 
 function newCrewId() {
     if (globalThis.crypto && typeof crypto.randomUUID === 'function') {
@@ -672,32 +691,44 @@ function syncCrewUi() {
     const available = state.productType === 'keychain';
     if (el.crewModeCard) el.crewModeCard.hidden = !available;
     if (!available && state.crew.enabled) state.crew.enabled = false;
+    if (!available && state.matchSet.enabled) state.matchSet.enabled = false;
     document.body.classList.toggle('crew-mode-active', available && state.crew.enabled);
+    document.body.classList.toggle('match-set-mode-active', available && state.matchSet.enabled);
     if (el.crewBuilder) el.crewBuilder.hidden = !state.crew.enabled;
+    if (el.matchSetBuilder) el.matchSetBuilder.hidden = !state.matchSet.enabled;
     if (el.soloModeBtn) {
-        el.soloModeBtn.classList.toggle('active', !state.crew.enabled);
-        el.soloModeBtn.setAttribute('aria-pressed', String(!state.crew.enabled));
+        const solo = !state.crew.enabled && !state.matchSet.enabled;
+        el.soloModeBtn.classList.toggle('active', solo);
+        el.soloModeBtn.setAttribute('aria-pressed', String(solo));
     }
     if (el.crewModeBtn) {
         el.crewModeBtn.classList.toggle('active', state.crew.enabled);
         el.crewModeBtn.setAttribute('aria-pressed', String(state.crew.enabled));
+    }
+    if (el.matchSetModeBtn) {
+        el.matchSetModeBtn.classList.toggle('active', state.matchSet.enabled);
+        el.matchSetModeBtn.setAttribute('aria-pressed', String(state.matchSet.enabled));
     }
     if (el.btnAddToCart) {
         const label = el.btnAddToCart.querySelector('.btn-text');
         if (label && !el.btnAddToCart.disabled) {
             label.textContent = state.crew.enabled
                 ? `Add ${state.crew.count}-member crew to cart`
-                : 'Add to cart';
+                : state.matchSet.enabled
+                    ? matchSetAddLabel()
+                    : 'Add to cart';
         }
     }
     if (state.crew.enabled) renderCrewMembers();
     else if (el.crewQuickSwitcher) el.crewQuickSwitcher.hidden = true;
+    if (state.matchSet.enabled) renderMatchSetUi();
 }
 
 function setCrewMode(enabled) {
     if (state.productType !== 'keychain' || state.crew.refreshing) return;
     if (enabled === state.crew.enabled) return;
     if (enabled) {
+        state.matchSet.enabled = false;
         state.crew.enabled = true;
         state.crew.activeIndex = 0;
         state.crew.members = [makeCrewMember(0)];
@@ -950,6 +981,276 @@ async function addCrewToCart() {
     return true;
 }
 
+function matchSetProductAvailable(productType) {
+    const product = state.catalogProducts.find((entry) => entry.productType === productType);
+    return !product || product.orderable;
+}
+
+function selectedMatchSetProducts() {
+    return MATCH_SET_PRODUCTS.filter(({ productType }) =>
+        state.matchSet.selected.includes(productType) && matchSetProductAvailable(productType)
+    );
+}
+
+function setMatchSetStatus(message = '', isError = false) {
+    if (!el.matchSetStatus) return;
+    el.matchSetStatus.textContent = message;
+    el.matchSetStatus.classList.toggle('is-error', isError);
+}
+
+function markMatchSetDirty() {
+    if (!state.matchSet.enabled) return;
+    for (const productType of state.matchSet.selected) {
+        if (state.matchSet.items[productType]) state.matchSet.items[productType].dirty = true;
+    }
+    renderMatchSetUi();
+}
+
+function matchSetEstimatedTotal() {
+    const items = selectedMatchSetProducts().map(({ productType }) => state.matchSet.items[productType]);
+    if (!items.length || items.some((item) => !item || item.dirty || !item.unitPrice)) return 0;
+    return items.reduce((sum, item) => sum + item.unitPrice, 0);
+}
+
+function matchSetAddLabel() {
+    const count = selectedMatchSetProducts().length;
+    const total = matchSetEstimatedTotal();
+    return `Add ${count}-product Match Set${total ? ` · ₹${total}` : ''}`;
+}
+
+function renderMatchSetUi() {
+    if (!el.matchSetOptions || !el.matchSetPreviewStrip) return;
+    el.matchSetOptions.textContent = '';
+    MATCH_SET_PRODUCTS.forEach((product) => {
+        const available = matchSetProductAvailable(product.productType);
+        const selected = state.matchSet.selected.includes(product.productType);
+        const required = product.productType === 'keychain';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `match-set-option${selected ? ' active' : ''}`;
+        button.disabled = required || !available || state.matchSet.refreshing;
+        button.setAttribute('aria-pressed', String(selected));
+        button.innerHTML = `<strong>${product.label}</strong><small>${available ? product.note : 'Unavailable in Admin'}</small>`
+            + `<span class="match-set-check">${selected ? '✓' : '+'}</span>`;
+        button.addEventListener('click', () => {
+            if (selected) {
+                state.matchSet.selected = state.matchSet.selected.filter((type) => type !== product.productType);
+            } else {
+                state.matchSet.selected = [...state.matchSet.selected, product.productType];
+            }
+            renderMatchSetUi();
+            syncCrewUi();
+        });
+        el.matchSetOptions.appendChild(button);
+    });
+
+    el.matchSetPreviewStrip.textContent = '';
+    selectedMatchSetProducts().forEach((product) => {
+        const result = state.matchSet.items[product.productType];
+        const card = document.createElement('div');
+        card.className = 'crew-member-card';
+        const preview = document.createElement('span');
+        preview.className = 'crew-member-preview';
+        if (result?.preview && !result.dirty) {
+            const image = document.createElement('img');
+            image.src = result.preview;
+            image.alt = '';
+            preview.appendChild(image);
+        } else {
+            const placeholder = document.createElement('span');
+            placeholder.textContent = state.name || product.label;
+            preview.appendChild(placeholder);
+        }
+        const meta = document.createElement('span');
+        meta.className = 'crew-member-meta';
+        const title = document.createElement('strong');
+        title.textContent = product.label;
+        const note = document.createElement('small');
+        note.textContent = result?.unitPrice && !result.dirty
+            ? `₹${result.unitPrice} · ${Number(result.dims?.width || 0).toFixed(0)} mm`
+            : 'Preview needed';
+        meta.append(title, note);
+        card.append(preview, meta);
+        el.matchSetPreviewStrip.appendChild(card);
+    });
+    if (el.matchSetRefresh) el.matchSetRefresh.disabled = state.matchSet.refreshing;
+}
+
+function setMatchSetMode(enabled) {
+    if (state.productType !== 'keychain' || state.matchSet.refreshing) return;
+    state.matchSet.enabled = Boolean(enabled);
+    if (enabled) {
+        if (state.crew.enabled) state.crew.enabled = false;
+        state.quantity = 1;
+        if (el.qtyVal) el.qtyVal.textContent = '1';
+        markMatchSetDirty();
+        setMatchSetStatus('Choose the products, then refresh exact previews.');
+    } else {
+        setMatchSetStatus('');
+    }
+    syncCrewUi();
+    calculatePricing();
+    renderStepper();
+}
+
+function matchSetViewerParams() {
+    return {
+        ringPosition: state.ringPosition,
+        ring: { anchor: state.ringAnchor || 'top' },
+        wave_mode: 'wave',
+        wave_amplitude: 5,
+        wave_cycles: 1,
+        text_size: 22,
+        letter_gap: -2.5,
+        base_thickness: 2.5,
+        height_even: 4,
+        height_odd: 2,
+        ring_outer_d: 10,
+        ring_inner_d: 5,
+        ring_height: 4.5,
+        showFDMTexture: state.showFDMTexture,
+    };
+}
+
+function colorsForMatchSetProduct(productType) {
+    if (productType === 'bubble_keychain') {
+        return { base: state.colors.base, font: state.colors.font };
+    }
+    return {
+        base: state.colors.base,
+        font: state.colors.font,
+        outline: state.colors.outline,
+    };
+}
+
+async function renderMatchSetProduct(product) {
+    await viewer.update(
+        state.name,
+        state.selectedFontFile,
+        state.colors,
+        state.layers,
+        matchSetViewerParams(),
+        product.productType,
+        null
+    );
+    if (viewer.renderer) viewer.renderer.render(viewer.scene, viewer.camera);
+    const dims = viewer.getDimensions();
+    const offer = product.productType === 'keychain'
+        ? BatchOffers.findBatchDiscount({
+            productType: 'keychain',
+            design: {
+                layers: state.layers,
+                colors: colorsForMatchSetProduct('keychain'),
+            },
+            weightG: dims.weightGrams,
+        }, state.activeBatches, Pricing.priceLine, DEFAULT_BATCH_SIZE)
+        : null;
+    const priced = Pricing.priceLine({
+        weightG: dims.weightGrams,
+        quantity: 1,
+        batchSize: offer ? offer.batchSize : DEFAULT_BATCH_SIZE,
+    });
+    return {
+        productType: product.productType,
+        label: product.label,
+        preview: captureViewerPreview(),
+        dims: { ...dims },
+        unitPrice: priced.unitPrice,
+        weightG: dims.weightGrams,
+        dirty: false,
+    };
+}
+
+async function refreshMatchSetPreviews() {
+    if (!state.matchSet.enabled || state.matchSet.refreshing || !viewer) return false;
+    if (!String(state.name || '').trim()) {
+        setMatchSetStatus('Enter a name before preparing the matching set.', true);
+        el.nameInput.focus();
+        return false;
+    }
+    const products = selectedMatchSetProducts();
+    if (products.length < 2) {
+        setMatchSetStatus('Choose at least one matching product with the Classic Keychain.', true);
+        return false;
+    }
+    clearTimeout(_update3DTimer);
+    _update3DTimer = null;
+    while (_update3DRunning) await new Promise((resolve) => setTimeout(resolve, 25));
+
+    state.matchSet.refreshing = true;
+    document.body.classList.add('match-set-refreshing');
+    renderMatchSetUi();
+    try {
+        for (let index = 0; index < products.length; index += 1) {
+            const product = products[index];
+            setMatchSetStatus(`Generating ${product.label} · ${index + 1} of ${products.length}…`);
+            showViewerLoading(`Preparing ${product.label}…`);
+            state.matchSet.items[product.productType] = await renderMatchSetProduct(product);
+            renderMatchSetUi();
+        }
+        setMatchSetStatus(`All ${products.length} matching products are ready.`);
+        return true;
+    } catch (error) {
+        console.error('Match Set preview refresh failed:', error);
+        setMatchSetStatus(error.message || 'Could not prepare the complete set.', true);
+        return false;
+    } finally {
+        state.matchSet.refreshing = false;
+        document.body.classList.remove('match-set-refreshing');
+        hideViewerLoading();
+        renderMatchSetUi();
+        syncCrewUi();
+        update3DModelNow();
+    }
+}
+
+function buildMatchSetCartLine(item, setId, itemIndex, itemCount) {
+    const design = {
+        font: state.selectedFont,
+        fontFile: state.selectedFontFile,
+        layers: state.layers,
+        colors: colorsForMatchSetProduct(item.productType),
+        ringPosition: state.ringPosition,
+        ringAnchor: state.ringAnchor,
+        showFDMTexture: state.showFDMTexture,
+        matchSet: {
+            id: setId,
+            label: 'Kootzy Match Set',
+            itemIndex: itemIndex + 1,
+            itemCount,
+        },
+        finishedSize: {
+            approximate: true,
+            lengthMm: Number(item.dims.width.toFixed(1)),
+            heightMm: Number(item.dims.height.toFixed(1)),
+            thicknessMm: Number(item.dims.depth.toFixed(1)),
+        },
+    };
+    return {
+        productType: item.productType,
+        text: state.name,
+        quantity: 1,
+        design,
+        preview: item.preview,
+        unitPrice: item.unitPrice,
+        weightG: item.weightG,
+    };
+}
+
+async function addMatchSetToCart() {
+    const ready = await refreshMatchSetPreviews();
+    if (!ready) return false;
+    const products = selectedMatchSetProducts();
+    const setId = `set-${newCrewId().slice(5)}`;
+    for (let index = 0; index < products.length; index += 1) {
+        const item = state.matchSet.items[products[index].productType];
+        setMatchSetStatus(`Adding ${item.label} · ${index + 1} of ${products.length}…`);
+        await Cart.add(buildMatchSetCartLine(item, setId, index, products.length));
+    }
+    setMatchSetStatus(`${products.length}-product Kootzy Match Set added to your cart.`);
+    return true;
+}
+
 // Debounced entry point. Rapid calls (typing, slider drags) collapse into a single
 // rebuild ~180ms after the last change. While a build is running, further calls set
 // a "dirty" flag so exactly one more rebuild runs after it finishes — no pile-up.
@@ -972,6 +1273,7 @@ function hideViewerLoading() {
 
 function update3DModel(options = {}) {
     if (state.crew.enabled) saveActiveCrewDraft({ markDirty: true });
+    markMatchSetDirty();
     if (state.crew.refreshing) {
         _update3DDirty = true;
         return;
@@ -989,6 +1291,7 @@ function update3DModel(options = {}) {
 
 function updateColorsWithoutRebuild() {
     if (state.crew.enabled) saveActiveCrewDraft({ markDirty: true });
+    markMatchSetDirty();
     if (!viewer || _update3DRunning || _update3DTimer || _update3DDirty) return false;
     return viewer.updateColors({
         base: state.colors.base,
@@ -1382,6 +1685,7 @@ function renderStepper() {
     renderStepper.revision = (renderStepper.revision || 0) + 1;
     const desktop = isDesktop();
     const crewEnabled = Boolean(state.crew && state.crew.enabled);
+    const groupedModeEnabled = crewEnabled || Boolean(state.matchSet && state.matchSet.enabled);
     document.body.classList.toggle('all-steps', desktop);
     document.body.classList.toggle(
         'crew-review-step',
@@ -1436,13 +1740,13 @@ function renderStepper() {
     // the primary action and the walk-up "pay now" path reads as secondary.
     const showCheckoutButtons = (visible) => {
         if (el.btnPlaceOrder) {
-            el.btnPlaceOrder.style.display = visible && !crewEnabled ? 'flex' : 'none';
+            el.btnPlaceOrder.style.display = visible && !groupedModeEnabled ? 'flex' : 'none';
         }
         if (el.btnAddToCart)  el.btnAddToCart.style.display  = visible ? 'inline-flex' : 'none';
         const nav = el.stepperNav || document.querySelector('.stepper-nav');
         if (nav) {
             nav.classList.toggle('is-review', visible);
-            nav.classList.toggle('is-crew-review', visible && crewEnabled);
+            nav.classList.toggle('is-crew-review', visible && groupedModeEnabled);
         }
         if (typeof syncCrewUi === 'function') syncCrewUi();
         if (typeof syncStepperNavClearance === 'function') syncStepperNavClearance();
@@ -2444,10 +2748,19 @@ function setupMobileKeyboardStability() {
 
 function setupEvents() {
     if (el.soloModeBtn) {
-        el.soloModeBtn.addEventListener('click', () => setCrewMode(false));
+        el.soloModeBtn.addEventListener('click', () => {
+            setCrewMode(false);
+            setMatchSetMode(false);
+        });
     }
     if (el.crewModeBtn) {
         el.crewModeBtn.addEventListener('click', () => setCrewMode(true));
+    }
+    if (el.matchSetModeBtn) {
+        el.matchSetModeBtn.addEventListener('click', () => setMatchSetMode(true));
+    }
+    if (el.matchSetRefresh) {
+        el.matchSetRefresh.addEventListener('click', () => refreshMatchSetPreviews());
     }
     if (el.crewCountMinus) {
         el.crewCountMinus.addEventListener('click', () => setCrewCount(state.crew.count - 1));
@@ -2846,6 +3159,13 @@ function setupEvents() {
                         if (label) label.textContent = original;
                         return;
                     }
+                } else if (state.matchSet.enabled) {
+                    if (label) label.textContent = 'Preparing Match Set…';
+                    const added = await addMatchSetToCart();
+                    if (!added) {
+                        if (label) label.textContent = original;
+                        return;
+                    }
                 } else {
                     await Cart.add(buildCartLine());
                 }
@@ -2857,7 +3177,9 @@ function setupEvents() {
                     if (label) {
                         label.textContent = state.crew.enabled
                             ? `Add ${state.crew.count}-member crew to cart`
-                            : 'Add to cart';
+                            : state.matchSet.enabled
+                                ? matchSetAddLabel()
+                                : 'Add to cart';
                     }
                     el.btnAddToCart.disabled = !productCanOrder();
                 }, 1400);

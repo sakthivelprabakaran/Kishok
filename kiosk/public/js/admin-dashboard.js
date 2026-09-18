@@ -584,6 +584,11 @@ function itemCrew(item) {
     return crew && typeof crew === 'object' && String(crew.id || '').trim() ? crew : null;
 }
 
+function itemMatchSet(item) {
+    const set = item && item.design && item.design.matchSet;
+    return set && typeof set === 'object' && String(set.id || '').trim() ? set : null;
+}
+
 function studioSpec(order, item) {
     const design = item.design && typeof item.design === 'object' ? item.design : {};
     const colors = design.colors && typeof design.colors === 'object' ? design.colors : {};
@@ -645,6 +650,10 @@ function orderItemHTML(order, item, index) {
     const crewBadge = crew && crew.id
         ? `<span class="order-product-crew">${esc(crew.label || 'Kootzy Crew')} · ${esc(crew.memberIndex)}/${esc(crew.memberCount)}</span>`
         : '';
+    const matchSet = item.design && item.design.matchSet;
+    const setBadge = matchSet && matchSet.id
+        ? `<span class="order-product-crew">${esc(matchSet.label || 'Kootzy Match Set')} · ${esc(matchSet.itemIndex)}/${esc(matchSet.itemCount)}</span>`
+        : '';
     const itemId = Number(item.id);
     const editable = Number.isInteger(itemId) && itemId > 0
         && !['Pending', 'Cancelled', 'PaymentFailed'].includes(order.status);
@@ -656,7 +665,7 @@ function orderItemHTML(order, item, index) {
                     <strong>${index + 1}. ${esc(plabel(item.productType))}</strong>
                     <span>×${esc(item.quantity)}</span>
                 </div>
-                ${crewBadge}
+                ${crewBadge || setBadge}
                 <div class="order-product-text">&quot;${esc(item.text)}&quot;</div>
                 <div class="order-product-meta">
                     <span class="color-indicator-swatches">${renderColorSwatches(colours.join('/'), 'Product colours')}</span>
@@ -680,35 +689,62 @@ function productionIsComplete(item) {
 
 function orderProductsHTML(order, items) {
     const renderedCrewIds = new Set();
+    const renderedMatchSetIds = new Set();
     const html = [];
     for (const item of items) {
         const crew = itemCrew(item);
-        if (!crew) {
-            html.push(orderItemHTML(order, item, items.indexOf(item)));
+        if (crew) {
+            if (renderedCrewIds.has(crew.id)) continue;
+            renderedCrewIds.add(crew.id);
+            const members = items
+                .filter((candidate) => itemCrew(candidate)?.id === crew.id)
+                .sort((a, b) => Number(itemCrew(a).memberIndex) - Number(itemCrew(b).memberIndex));
+            const complete = members.filter(productionIsComplete).length;
+            const names = members.map((member) => member.text).join(', ');
+            html.push(`
+                <details class="order-crew-group" open>
+                    <summary>
+                        <span>
+                            <strong>${esc(crew.label || 'Kootzy Crew')}</strong>
+                            <small>${esc(names)}</small>
+                        </span>
+                        <span class="order-crew-progress">${complete}/${members.length} complete</span>
+                    </summary>
+                    <div class="order-crew-members">
+                        ${members.map((member) =>
+                            orderItemHTML(order, member, items.indexOf(member))
+                        ).join('')}
+                    </div>
+                </details>`);
             continue;
         }
-        if (renderedCrewIds.has(crew.id)) continue;
-        renderedCrewIds.add(crew.id);
-        const members = items
-            .filter((candidate) => itemCrew(candidate)?.id === crew.id)
-            .sort((a, b) => Number(itemCrew(a).memberIndex) - Number(itemCrew(b).memberIndex));
-        const complete = members.filter(productionIsComplete).length;
-        const names = members.map((member) => member.text).join(', ');
-        html.push(`
-            <details class="order-crew-group" open>
-                <summary>
-                    <span>
-                        <strong>${esc(crew.label || 'Kootzy Crew')}</strong>
-                        <small>${esc(names)}</small>
-                    </span>
-                    <span class="order-crew-progress">${complete}/${members.length} complete</span>
-                </summary>
-                <div class="order-crew-members">
-                    ${members.map((member) =>
-                        orderItemHTML(order, member, items.indexOf(member))
-                    ).join('')}
-                </div>
-            </details>`);
+        const matchSet = itemMatchSet(item);
+        if (matchSet) {
+            if (renderedMatchSetIds.has(matchSet.id)) continue;
+            renderedMatchSetIds.add(matchSet.id);
+            const setItems = items
+                .filter((candidate) => itemMatchSet(candidate)?.id === matchSet.id)
+                .sort((a, b) => Number(itemMatchSet(a).itemIndex) - Number(itemMatchSet(b).itemIndex));
+            const complete = setItems.filter(productionIsComplete).length;
+            const products = setItems.map((setItem) => plabel(setItem.productType)).join(', ');
+            html.push(`
+                <details class="order-crew-group" open>
+                    <summary>
+                        <span>
+                            <strong>${esc(matchSet.label || 'Kootzy Match Set')}</strong>
+                            <small>${esc(products)}</small>
+                        </span>
+                        <span class="order-crew-progress">${complete}/${setItems.length} complete</span>
+                    </summary>
+                    <div class="order-crew-members">
+                        ${setItems.map((setItem) =>
+                            orderItemHTML(order, setItem, items.indexOf(setItem))
+                        ).join('')}
+                    </div>
+                </details>`);
+            continue;
+        }
+        html.push(orderItemHTML(order, item, items.indexOf(item)));
     }
     return html.join('');
 }

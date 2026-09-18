@@ -29,7 +29,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/kiosk.css?v=k6">
     <link rel="stylesheet" href="css/legal.css?v=wa1">
-    <link rel="stylesheet" href="css/customize.css?v=k13">
+    <link rel="stylesheet" href="css/customize.css?v=k14">
 </head>
 <body>
     <!-- Sticky 3D Canvas Pane (45% viewport height) -->
@@ -141,6 +141,7 @@
                     <div class="crew-mode-toggle" role="group" aria-label="Keychain order mode">
                         <button type="button" class="crew-mode-option active" id="soloModeBtn" aria-pressed="true">Just one</button>
                         <button type="button" class="crew-mode-option" id="crewModeBtn" aria-pressed="false">Kootzy Crew</button>
+                        <button type="button" class="crew-mode-option" id="matchSetModeBtn" aria-pressed="false">Match Set</button>
                     </div>
                 </div>
 
@@ -166,6 +167,19 @@
                     </div>
                     <div class="crew-member-strip" id="crewMemberStrip" role="tablist" aria-label="Kootzy Crew members"></div>
                     <p class="crew-status" id="crewStatus" aria-live="polite"></p>
+                </div>
+
+                <div class="match-set-builder" id="matchSetBuilder" hidden>
+                    <div class="match-set-intro">
+                        <div>
+                            <strong>One style, multiple products</strong>
+                            <span>Your name, font and colours stay coordinated across the set.</span>
+                        </div>
+                        <button type="button" class="crew-refresh-btn" id="matchSetRefresh">Refresh set previews</button>
+                    </div>
+                    <div class="match-set-options" id="matchSetOptions" aria-label="Choose products for your matching set"></div>
+                    <div class="crew-member-strip match-set-preview-strip" id="matchSetPreviewStrip" aria-label="Matching set previews"></div>
+                    <p class="crew-status" id="matchSetStatus" aria-live="polite"></p>
                 </div>
             </section>
 
@@ -543,6 +557,6 @@
     </script>
 
     <script type="module" src="js/store-status.js?v=s1"></script>
-    <script type="module" src="js/kiosk-app.js?v=k24"></script>
+    <script type="module" src="js/kiosk-app.js?v=k25"></script>
 </body>
 </html>

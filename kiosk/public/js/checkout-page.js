@@ -174,7 +174,11 @@ async function render() {
         const crewPrefix = crew && crew.id
             ? `${crew.label || 'Kootzy Crew'} ${Number(crew.memberIndex) || 0}/${Number(crew.memberCount) || 0} · `
             : '';
-        name.textContent = `${crewPrefix}${LABELS[item.productType] || item.productType} · “${item.text}”`;
+        const matchSet = item.design && item.design.matchSet;
+        const setPrefix = matchSet && matchSet.id
+            ? `${matchSet.label || 'Kootzy Match Set'} ${Number(matchSet.itemIndex) || 0}/${Number(matchSet.itemCount) || 0} · `
+            : '';
+        name.textContent = `${crewPrefix || setPrefix}${LABELS[item.productType] || item.productType} · “${item.text}”`;
 
         const qty = document.createElement('span');
         qty.className = 'co-line-qty';
